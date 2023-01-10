@@ -1,0 +1,15 @@
+Indexer:
+  BlockInterval: '10s'
+  PoolSize: 2
+  BlockPtr: 8233707
+Network:
+  NativeAsset:
+    Name: 'Ethereum'
+    Symbol: 'ETH'
+    Decimals: 18
+    MockAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
+  Node:
+    Api: 'https://rpc.ankr.com/eth_goerli'
+Contracts:
+  ETHAClipper: ''
+  ETHBClipper: ''

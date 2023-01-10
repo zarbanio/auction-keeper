@@ -1,0 +1,16 @@
+# binding files
+bindings/*/*.go
+bindings/*/*/*.go
+
+# config file
+config.yaml
+
+# block pointer files
+goerli.ptr
+mainnet.ptr
+
+# ethereume generator
+eh-gen
+
+# IDEA
+.idea
