@@ -5,7 +5,6 @@ import (
 	"github.com/IR-Digital-Token/auction-keeper/entities"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/shopspring/decimal"
 	"math/big"
 )
 
@@ -44,14 +43,12 @@ func (cp *ClipperLoader) GetSale(auctionId *big.Int) (*entities.Auction, error) 
 	}
 
 	auction := entities.Auction{
-		Id:  decimal.NewFromBigInt(auctionId, 0),
-		Top: decimal.NewFromBigInt(sale.Top, 0),
-		Tab: decimal.NewFromBigInt(sale.Tab, 0),
-		Lot: decimal.NewFromBigInt(sale.Lot, 0),
+		Id:  auctionId,
+		Top: sale.Top,
+		Tab: sale.Tab,
+		Lot: sale.Lot,
 		Usr: sale.Usr,
 		Tic: sale.Tic.Uint64(),
-
-		ClipperName: cp.Name,
 	}
 	return &auction, nil
 }

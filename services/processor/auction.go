@@ -4,39 +4,61 @@ import (
 	"fmt"
 	"github.com/IR-Digital-Token/auction-keeper/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
+	"math/big"
 	"sync"
 )
 
+type clipper struct {
+	clipperLoader   *loaders.ClipperLoader
+	auctions        map[*big.Int]entities.Auction
+	updateAuctions  sync.Mutex
+	processAuctions sync.Mutex
+}
+
 type AuctionProcessor struct {
-	clippersLoader map[string]*loaders.ClipperLoader
-	auctions       chan entities.Auction
-	addAuction     sync.Mutex
+	clippers map[string]*clipper
 }
 
 func NewAuctionProcessor(_clippersLoader map[string]*loaders.ClipperLoader) *AuctionProcessor {
-	return &AuctionProcessor{
-		clippersLoader: _clippersLoader,
-		auctions:       make(chan entities.Auction, 128),
+	auctionProcessor := &AuctionProcessor{}
+
+	for _, ca := range _clippersLoader {
+		auctionProcessor.clippers[ca.Name] = &clipper{clipperLoader: ca}
 	}
+
+	return auctionProcessor
 }
 
-func (ap *AuctionProcessor) AddAuction(auction entities.Auction) {
-	ap.addAuction.Lock()
-	defer ap.addAuction.Unlock()
+func (ap *AuctionProcessor) AddAuction(auction entities.Auction, clipperName string) {
+	c := ap.clippers[clipperName]
+	c.updateAuctions.Lock()
+	defer c.updateAuctions.Unlock()
 
-	ap.auctions <- auction
+	c.auctions[auction.Id] = auction
+}
+
+func (ap *AuctionProcessor) DeleteAuction(auction entities.Auction, clipperName string) {
+	c := ap.clippers[clipperName]
+	c.updateAuctions.Lock()
+	defer c.updateAuctions.Unlock()
+
+	delete(c.auctions, auction.Id)
 }
 
 func (ap *AuctionProcessor) StartProcess() {
-	go func() {
-		for {
-			select {
-			case auction := <-ap.auctions:
-				fmt.Println("Start Process Auction")
-				fmt.Println("\tAuction ID: ", auction.Id)
-				fmt.Println("\tClipper Name: ", ap.clippersLoader[auction.ClipperName].Name)
-				fmt.Println("\tClipper Address: ", ap.clippersLoader[auction.ClipperName].Address)
-			}
+	for clipperName, clipperAuctions := range ap.clippers {
+		clipperAuctions.processAuctions.Lock()
+		clipperAuctions.updateAuctions.Lock()
+
+		fmt.Println("processing opportunities for:", clipperName)
+		fmt.Println(clipperName, "\tactive auctions qty: ", len(clipperAuctions.auctions))
+
+		for _, auction := range clipperAuctions.auctions {
+			fmt.Println("\tprocessing auction id:", auction.Id)
+
 		}
-	}()
+
+		clipperAuctions.updateAuctions.Unlock()
+		clipperAuctions.processAuctions.Unlock()
+	}
 }

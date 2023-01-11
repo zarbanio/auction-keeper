@@ -4,17 +4,16 @@ import (
 	"context"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/clip"
 	"github.com/IR-Digital-Token/auction-keeper/configs"
-	"github.com/IR-Digital-Token/auction-keeper/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/callbacks"
 	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
 	"github.com/IR-Digital-Token/auction-keeper/services/processor"
 	"github.com/IR-Digital-Token/x/chain"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/shopspring/decimal"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func registerEventHandlers(indexer *chain.Indexer, eth *ethclient.Client, auctionProcessor *processor.AuctionProcessor, clippers map[string]*loaders.ClipperLoader) {
@@ -29,28 +28,26 @@ func registerEventHandlers(indexer *chain.Indexer, eth *ethclient.Client, auctio
 	println("Done\n")
 }
 
-func getActiveAuctions(clippers map[string]*loaders.ClipperLoader) (map[decimal.Decimal]entities.Auction, error) {
+func getActiveAuctions(clippers map[string]*loaders.ClipperLoader, auctionProcessor *processor.AuctionProcessor) error {
 	println("Get active auctions from clippers.")
 
-	auctions := make(map[decimal.Decimal]entities.Auction)
-	for _, v := range clippers {
-		auctionsIds, err := v.GetActiveAuctions()
+	for _, c := range clippers {
+		auctionsIds, err := c.GetActiveAuctions()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		for _, auctionId := range auctionsIds {
-			sale, err := v.GetSale(auctionId)
+			sale, err := c.GetSale(auctionId)
 			if err != nil {
-				return nil, err
+				return err
 			}
-
-			auctions[decimal.NewFromBigInt(auctionId, 0)] = *sale
+			auctionProcessor.AddAuction(*sale, c.Name)
 		}
 	}
 
-	defer println("Done\n")
-	return auctions, nil
+	println("Done\n")
+	return nil
 }
 
 func Execute() {
@@ -93,17 +90,24 @@ func Execute() {
 
 	/* -------------------------------------------------------------------------- */
 	/*  get active auctions and add them in auction processor and start processor */
-	activeAuctions, _err := getActiveAuctions(clippersLoader)
-	if _err != nil {
-		panic(_err)
-	}
-
 	auctionProcessor := processor.NewAuctionProcessor(clippersLoader)
-	for _, auction := range activeAuctions {
-		auctionProcessor.AddAuction(auction)
+	err = getActiveAuctions(clippersLoader, auctionProcessor)
+	if err != nil {
+		panic(err)
 	}
 
-	auctionProcessor.StartProcess()
+	ticker := time.NewTicker(60 * time.Second)
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				auctionProcessor.StartProcess()
+			}
+		}
+	}()
 	/* -------------------------------------------------------------------------- */
 
 	/* -------------------------------------------------------------------------- */
@@ -129,4 +133,6 @@ func Execute() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+	ticker.Stop()
+	done <- true
 }
