@@ -3,6 +3,7 @@ package configs
 import (
 	"github.com/ethereum/go-ethereum/common"
 	"log"
+	"math/big"
 	"reflect"
 	"time"
 
@@ -27,9 +28,24 @@ type Config struct {
 			Api string `yaml:"Api"`
 		}
 	}
-	Contracts struct {
-		ETHAClipper common.Address `yaml:"ETHAJoin"`
-		ETHBClipper common.Address `yaml:"ETHBJoin"`
+	Wallet struct {
+		Private string         `yaml:"Private"`
+		Address common.Address `yaml:"Address"`
+	}
+	Collaterals struct {
+		ETHA struct {
+			Clipper        common.Address `yaml:"Clipper"`
+			GemJoinAdapter common.Address `yaml:"GemJoinAdapter"`
+		}
+		ETHB struct {
+			Clipper        common.Address `yaml:"Clipper"`
+			GemJoinAdapter common.Address `yaml:"GemJoinAdapter"`
+		}
+	}
+	Processor struct {
+		MinProfitPercentage *big.Int `yaml:"MinProfitPercentage"`
+		MinLotDaiValue      *big.Int `yaml:"MinLotDaiValue"`
+		MaxLotDaiValue      *big.Int `yaml:"MaxLotDaiValue"`
 	}
 }
 

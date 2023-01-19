@@ -8,10 +8,10 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-func ClipperKickCallback(auctionProcessor *processor.AuctionProcessor, clipperName string) events.CallbackFn[clipper.ClipperKick] {
+func ClipperKickCallback(liquidatorProcessor *processor.LiquidatorProcessor, clipperName string) events.CallbackFn[clipper.ClipperKick] {
 	return func(header types.Header, kick clipper.ClipperKick) error {
 
-		auctionProcessor.AddAuction(entities.Auction{
+		liquidatorProcessor.AddAuction(entities.Auction{
 			Id:  kick.Id,
 			Top: kick.Top,
 			Tab: kick.Tab,

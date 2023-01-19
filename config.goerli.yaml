@@ -10,6 +10,13 @@ Network:
     MockAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
   Node:
     Api: 'https://rpc.ankr.com/eth_goerli'
+Wallet:
+  Private: ''
+  Address: '0xb94c551347D04DA5a815844f464AD48918E48686'
 Contracts:
   ETHAClipper: ''
   ETHBClipper: ''
+Processor:
+  MinProfitPercentage: 1.025
+  MinLotDaiValue: 0
+  MaxLotDaiValue: 1000000

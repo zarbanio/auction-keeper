@@ -4,10 +4,12 @@ import (
 	"context"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/clip"
 	"github.com/IR-Digital-Token/auction-keeper/configs"
+	"github.com/IR-Digital-Token/auction-keeper/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/callbacks"
 	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
 	"github.com/IR-Digital-Token/auction-keeper/services/processor"
 	"github.com/IR-Digital-Token/x/chain"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
 	"os"
@@ -16,33 +18,33 @@ import (
 	"time"
 )
 
-func registerEventHandlers(indexer *chain.Indexer, eth *ethclient.Client, auctionProcessor *processor.AuctionProcessor, clippers map[string]*loaders.ClipperLoader) {
+func registerEventHandlers(indexer *chain.Indexer, eth *ethclient.Client, liquidatorProcessor *processor.LiquidatorProcessor, collaterals map[string]entities.Collateral) {
 	println("Register callbacks on event triggers come from the indexer.")
 
-	for _, v := range clippers {
-		indexer.RegisterEventHandler(clipper.NewKickHandler(v.Address, eth, callbacks.ClipperKickCallback(auctionProcessor, v.Name)))
-		indexer.RegisterEventHandler(clipper.NewRedoHandler(v.Address, eth, callbacks.ClipperRedoCallback()))
-		indexer.RegisterEventHandler(clipper.NewTakeHandler(v.Address, eth, callbacks.ClipperTakeCallback()))
+	for _, v := range collaterals {
+		indexer.RegisterEventHandler(clipper.NewKickHandler(v.Clipper.Address, eth, callbacks.ClipperKickCallback(liquidatorProcessor, v.Name)))
+		indexer.RegisterEventHandler(clipper.NewRedoHandler(v.Clipper.Address, eth, callbacks.ClipperRedoCallback(liquidatorProcessor, v.Name)))
+		indexer.RegisterEventHandler(clipper.NewTakeHandler(v.Clipper.Address, eth, callbacks.ClipperTakeCallback(liquidatorProcessor, v.Name)))
 	}
 
 	println("Done\n")
 }
 
-func getActiveAuctions(clippers map[string]*loaders.ClipperLoader, auctionProcessor *processor.AuctionProcessor) error {
+func getActiveAuctions(collaterals map[string]entities.Collateral, liquidatorProcessor *processor.LiquidatorProcessor) error {
 	println("Get active auctions from clippers.")
 
-	for _, c := range clippers {
-		auctionsIds, err := c.GetActiveAuctions()
+	for _, c := range collaterals {
+		auctionsIds, err := c.Clipper.Loader.GetActiveAuctions()
 		if err != nil {
 			return err
 		}
 
 		for _, auctionId := range auctionsIds {
-			sale, err := c.GetSale(auctionId)
+			sale, err := c.Clipper.Loader.GetSale(auctionId)
 			if err != nil {
 				return err
 			}
-			auctionProcessor.AddAuction(*sale, c.Name)
+			liquidatorProcessor.AddAuction(*sale, c.Name)
 		}
 	}
 
@@ -50,23 +52,54 @@ func getActiveAuctions(clippers map[string]*loaders.ClipperLoader, auctionProces
 	return nil
 }
 
+func getCollaterals(cfg configs.Config, eth *ethclient.Client) (map[string]entities.Collateral, error) {
+	collaterals := make(map[string]entities.Collateral)
+
+	type cConfig struct {
+		name           string
+		clipperAddress common.Address
+		gemJoinAdapter common.Address
+	}
+	collateralsConfig := make([]cConfig, 2)
+
+	collateralsConfig = append(collateralsConfig, cConfig{"ETHA", cfg.Collaterals.ETHA.Clipper, cfg.Collaterals.ETHA.GemJoinAdapter})
+	collateralsConfig = append(collateralsConfig, cConfig{"ETHB", cfg.Collaterals.ETHB.Clipper, cfg.Collaterals.ETHB.GemJoinAdapter})
+
+	for _, collateralConfig := range collateralsConfig {
+		clipperLoader, err := loaders.NewClipperLoader(eth, collateralConfig.clipperAddress)
+		if err != nil {
+			return nil, err
+		}
+
+		chost, err := clipperLoader.GetChost()
+		if err != nil {
+			return nil, err
+		}
+
+		abacus, err := clipperLoader.GetAbacusInstance()
+		if err != nil {
+			return nil, err
+		}
+
+		collaterals[collateralConfig.name] = entities.Collateral{
+			Name: collateralConfig.name,
+			Clipper: entities.Clipper{
+				Loader:  clipperLoader,
+				Address: collateralConfig.clipperAddress,
+				Chost:   chost,
+				Abacus:  abacus,
+			},
+			GemJoinAdapter: collateralConfig.gemJoinAdapter,
+		}
+	}
+
+	return collaterals, nil
+}
+
 func Execute() {
 	cfg := configs.ReadConfig("config.yaml")
 
 	eth, err := ethclient.Dial(cfg.Network.Node.Api)
-	if err != nil {
-		panic(err)
-	}
-
-	/***************************************
-	 create clippers loaders
-	***************************************/
-	clippersLoader := make(map[string]*loaders.ClipperLoader)
-	clippersLoader["ETHAClipper"], err = loaders.NewClipperLoader(eth, "ETHAClipper", cfg.Contracts.ETHAClipper)
-	if err != nil {
-		panic(err)
-	}
-	clippersLoader["ETHBClipper"], err = loaders.NewClipperLoader(eth, "ETHBClipper", cfg.Contracts.ETHBClipper)
 	if err != nil {
 		panic(err)
 	}
@@ -88,10 +121,24 @@ func Execute() {
 		panic(err)
 	}
 
+	/***************************************
+	 			get collaterals
+	***************************************/
+	collaterals, err := getCollaterals(cfg, eth)
+	if err != nil {
+		panic(err)
+	}
+
 	/* -------------------------------------------------------------------------- */
 	/*  get active auctions and add them in auction processor and start processor */
-	auctionProcessor := processor.NewAuctionProcessor(clippersLoader)
-	err = getActiveAuctions(clippersLoader, auctionProcessor)
+	liquidatorConfig := &processor.LiquidatorConfig{
+		MinProfitPercentage: cfg.Processor.MinProfitPercentage,
+		MinLotDaiValue:      cfg.Processor.MinLotDaiValue,
+		MaxLotDaiValue:      cfg.Processor.MaxLotDaiValue,
+		ProfitAddress:       cfg.Wallet.Address,
+	}
+	liquidatorProcessor := processor.NewLiquidatorProcessor(eth, collaterals, liquidatorConfig)
+	err = getActiveAuctions(collaterals, liquidatorProcessor)
 	if err != nil {
 		panic(err)
 	}
@@ -104,7 +151,7 @@ func Execute() {
 			case <-done:
 				return
 			case <-ticker.C:
-				auctionProcessor.StartProcess()
+				liquidatorProcessor.StartProcessing()
 			}
 		}
 	}()
@@ -116,7 +163,7 @@ func Execute() {
 	registerEventHandlers(indexer, eth, auctionProcessor, clippersLoader)
 
 	for _, v := range clippersLoader {
-		indexer.RegisterAddress(v.Address)
+		indexer.RegisterAddress(v.ClipperAddress)
 	}
 	/* -------------------------------------------------------------------------- */
 
