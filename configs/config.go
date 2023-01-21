@@ -18,6 +18,7 @@ type Config struct {
 		BlockPtr      uint64        `yaml:"BlockPtr"`
 	} `yaml:"General"`
 	Network struct {
+		ChainId     *big.Int `yaml:"ChainId"`
 		NativeAsset struct {
 			Name        string         `yaml:"Name"`
 			Symbol      string         `yaml:"Symbol"`

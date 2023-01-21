@@ -133,7 +133,7 @@ func Execute() {
 	/***************************************
 	 			import wallet
 	***************************************/
-	sender, err := transaction.NewSender(eth, cfg.Wallet.Private)
+	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, cfg.Network.ChainId)
 	if err != nil {
 		panic(err)
 	}

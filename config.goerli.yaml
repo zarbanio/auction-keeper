@@ -3,6 +3,7 @@ Indexer:
   PoolSize: 2
   BlockPtr: 8233707
 Network:
+  ChainId: 5
   NativeAsset:
     Name: 'Ethereum'
     Symbol: 'ETH'
