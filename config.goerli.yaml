@@ -18,5 +18,5 @@ Contracts:
   ETHBClipper: ''
 Processor:
   MinProfitPercentage: 1.025
-  MinLotDaiValue: 0
-  MaxLotDaiValue: 1000000
+  MinLotZarValue: 0
+  MaxLotZarValue: 1000000

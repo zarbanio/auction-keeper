@@ -44,8 +44,8 @@ type Config struct {
 	}
 	Processor struct {
 		MinProfitPercentage *big.Int `yaml:"MinProfitPercentage"`
-		MinLotDaiValue      *big.Int `yaml:"MinLotDaiValue"`
-		MaxLotDaiValue      *big.Int `yaml:"MaxLotDaiValue"`
+		MinLotZarValue      *big.Int `yaml:"MinLotZarValue"`
+		MaxLotZarValue      *big.Int `yaml:"MaxLotZarValue"`
 	}
 }
 
