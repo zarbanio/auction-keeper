@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/IR-Digital-Token/auction-keeper/entities"
+	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -11,17 +13,35 @@ import (
 	"math/big"
 )
 
+var (
+	Decimals9  = math.BigPow(10, 9)
+	Decimals18 = math.BigPow(10, 18)
+	Decimals27 = math.BigPow(10, 27)
+)
+
 type collateralProcessor struct {
 	eth             *ethclient.Client
 	collateral      entities.Collateral
-	auctionIterator auctionIterator
+	auctionIterator AuctionCollection
 }
 
 func (cp *collateralProcessor) addAuction(auction entities.Auction) {
-	cp.auctionIterator.AddAuction(auction)
+	cp.auctionIterator.addAuction(auction)
 }
 
-func (cp *collateralProcessor) processCollateral(minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address) {
+func (cp *collateralProcessor) deleteAuction(id *big.Int) {
+	cp.auctionIterator.deleteAuction(id)
+}
+
+func (cp *collateralProcessor) updateAuctionAfterTake(id, tab, lot *big.Int) {
+	cp.auctionIterator.updateAuctionAfterTake(id, tab, lot)
+}
+
+func (cp *collateralProcessor) updateAuctionAfterRedo(id, top *big.Int, tic uint64) {
+	cp.auctionIterator.updateAuctionAfterRedo(id, top, tic)
+}
+
+func (cp *collateralProcessor) processCollateral(sender *transaction.Sender, minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address) {
 	fmt.Printf("processing opportunities for: %s", cp.collateral.Name)
 	fmt.Printf("%d active auctions qty: %d\n", cp.collateral.Name, len(cp.auctionIterator.auctions))
 
@@ -54,10 +74,10 @@ func (cp *collateralProcessor) processCollateral(minProfitPercentage, minLotZarV
 		}
 
 		// determine configured lot sizes in Gem terms
-		minLotDaiValue18 := new(big.Int).Mul(minLotZarValue, Decimals18)
-		minLot := new(big.Int).Div(minLotDaiValue18, new(big.Int).Div(collateralPrice, Decimals9))
-		maxLotDaiValue18 := new(big.Int).Mul(maxLotZarValue, Decimals18)
-		maxLot := new(big.Int).Div(maxLotDaiValue18, new(big.Int).Div(collateralPrice, Decimals9))
+		minLotZarValue18 := new(big.Int).Mul(minLotZarValue, Decimals18)
+		minLot := new(big.Int).Div(minLotZarValue18, new(big.Int).Div(collateralPrice, Decimals9))
+		maxLotZarValue18 := new(big.Int).Mul(maxLotZarValue, Decimals18)
+		maxLot := new(big.Int).Div(maxLotZarValue18, new(big.Int).Div(collateralPrice, Decimals9))
 
 		// adjust lot based upon slice taken at the current auction price
 		slice18 := math.BigMin(maxLot, auction.Lot)
@@ -81,7 +101,7 @@ func (cp *collateralProcessor) processCollateral(minProfitPercentage, minLotZarV
 				slice18 = new(big.Int).Div(owe27, new(big.Int).Div(collateralPrice, Decimals18))
 			}
 			if slice18.Cmp(maxLot) > 0 { // handle corner case where maxLotZarValue is set too low
-				fmt.Printf("Ignoring auction %d whose chost-adjusted slice of %d exceeds our maximum lot of %d}\n", a.Id, slice18, maxLot)
+				fmt.Printf("Ignoring auction %d whose chost-adjusted slice of %d exceeds our maximum lot of %d}\n", auction.Id, slice18, maxLot)
 				continue
 			}
 		}
@@ -94,13 +114,13 @@ func (cp *collateralProcessor) processCollateral(minProfitPercentage, minLotZarV
 
 		lot := slice18
 		if lot.Cmp(minLot) < 0 {
-			fmt.Printf("Ignoring auction %d while slice is smaller than our minimum lot\n", a.Id)
+			fmt.Printf("Ignoring auction %d while slice is smaller than our minimum lot\n", auction.Id)
 			// slice approaches lot as auction price decreases towards owe == tab
 			continue
 		}
 
-		// Find the minimum effective exchange rate between collateral/Dai
-		// e.x. ETH price 1000 DAI -> minimum profit of 1% -> new ETH price is 1000*1.01 = 1010
+		// Find the minimum effective exchange rate between collateral/Zar
+		// e.x. ETH price 1000 Zar -> minimum profit of 1% -> new ETH price is 1000*1.01 = 1010
 		calcMinProfit45 := new(big.Int).Mul(owe27, minProfitPercentage)
 		totalMinProfit45 := new(big.Int).Sub(calcMinProfit45, new(big.Int).Mul(owe27, Decimals18))
 		minProfit := new(big.Int).Div(totalMinProfit45, Decimals27)
@@ -113,11 +133,38 @@ func (cp *collateralProcessor) processCollateral(minProfitPercentage, minLotZarV
 
 		// TODO: print Auction Summary
 
-		exchangeCalleeAddress := common.Address{0} // TODO
-		executeAuction(auction.Id, amt, collateralPrice, minProfit, profitAddress, cp.collateral.GemJoinAdapter, exchangeCalleeAddress)
+		exchangeCalleeAddress := common.Address{0xdB9C76109d102d2A1E645dCa3a7E671EBfd8e11A} // TODO: UniswapV3Callee
+		cp.executeAuction(sender, auction.Id, amt, collateralPrice, minProfit, profitAddress, cp.collateral.GemJoinAdapter, exchangeCalleeAddress)
 	}
 }
 
-func executeAuction(auctionId, _amt, _maxPrice, _minProfit *big.Int, _profitAddr, _gemJoinAdapter, exchangeCalleeAddress common.Address) {
+var (
+	Uint256, _ = abi.NewType("uint256", "", nil)
+	Bytes, _   = abi.NewType("bytes", "", nil)
+	Address, _ = abi.NewType("address", "", nil)
+)
+
+func (cp *collateralProcessor) executeAuction(sender *transaction.Sender, auctionId, amt, maxPrice, _minProfit *big.Int, _profitAddr, _gemJoinAdapter, exchangeCalleeAddress common.Address) {
+
+	// Uniswap v3 swap
+	// typesArray := ['address', 'address', 'uint256', 'bytes', 'address'];
+	args := abi.Arguments{
+		{Name: "to", Type: Address},
+		{Name: "gemJoin", Type: Address},
+		{Name: "minProfit", Type: Uint256},
+		{Name: "path", Type: Bytes},
+		{Name: "charterManager", Type: Address},
+	}
+
+	route := []byte{} // TODO
+	flashData, err := args.Pack(_profitAddr, _gemJoinAdapter, _minProfit, route, common.Address{0})
+	if err != nil {
+		fmt.Printf("error in pack flash data: ", err)
+	}
+
+	err = sender.SendTakeTx(cp.collateral.Clipper.Loader.Clipper, auctionId, amt, maxPrice, exchangeCalleeAddress, flashData)
+	if err != nil {
+		fmt.Printf("error in sending take transaction: ", err)
+	}
 
 }

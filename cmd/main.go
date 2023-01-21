@@ -8,6 +8,7 @@ import (
 	"github.com/IR-Digital-Token/auction-keeper/services/callbacks"
 	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
 	"github.com/IR-Digital-Token/auction-keeper/services/processor"
+	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"github.com/IR-Digital-Token/x/chain"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -129,15 +130,23 @@ func Execute() {
 		panic(err)
 	}
 
+	/***************************************
+	 			import wallet
+	***************************************/
+	sender, err := transaction.NewSender(eth, cfg.Wallet.Private)
+	if err != nil {
+		panic(err)
+	}
+
 	/* -------------------------------------------------------------------------- */
 	/*  get active auctions and add them in auction processor and start processor */
 	liquidatorConfig := &processor.LiquidatorConfig{
 		MinProfitPercentage: cfg.Processor.MinProfitPercentage,
-		MinLotDaiValue:      cfg.Processor.MinLotDaiValue,
-		MaxLotDaiValue:      cfg.Processor.MaxLotDaiValue,
+		MinLotZarValue:      cfg.Processor.MinLotZarValue,
+		MaxLotZarValue:      cfg.Processor.MaxLotZarValue,
 		ProfitAddress:       cfg.Wallet.Address,
 	}
-	liquidatorProcessor := processor.NewLiquidatorProcessor(eth, collaterals, liquidatorConfig)
+	liquidatorProcessor := processor.NewLiquidatorProcessor(eth, sender, collaterals, liquidatorConfig)
 	err = getActiveAuctions(collaterals, liquidatorProcessor)
 	if err != nil {
 		panic(err)
@@ -160,10 +169,10 @@ func Execute() {
 	/* -------------------------------------------------------------------------- */
 	/*                     register contract events on indexer                    */
 	indexer := chain.NewIndexer(eth, blockPtr, cfg.Indexer.PoolSize)
-	registerEventHandlers(indexer, eth, auctionProcessor, clippersLoader)
+	registerEventHandlers(indexer, eth, liquidatorProcessor, collaterals)
 
-	for _, v := range clippersLoader {
-		indexer.RegisterAddress(v.ClipperAddress)
+	for _, c := range collaterals {
+		indexer.RegisterAddress(c.Clipper.Address)
 	}
 	/* -------------------------------------------------------------------------- */
 
