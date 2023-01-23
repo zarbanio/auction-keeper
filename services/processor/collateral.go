@@ -20,30 +20,30 @@ var (
 )
 
 type collateralProcessor struct {
-	eth             *ethclient.Client
-	collateral      entities.Collateral
-	auctionIterator AuctionCollection
+	eth               *ethclient.Client
+	collateral        entities.Collateral
+	auctionCollection AuctionCollection
 }
 
 func (cp *collateralProcessor) addAuction(auction entities.Auction) {
-	cp.auctionIterator.addAuction(auction)
+	cp.auctionCollection.addAuction(auction)
 }
 
 func (cp *collateralProcessor) deleteAuction(id *big.Int) {
-	cp.auctionIterator.deleteAuction(id)
+	cp.auctionCollection.deleteAuction(id)
 }
 
 func (cp *collateralProcessor) updateAuctionAfterTake(id, tab, lot *big.Int) {
-	cp.auctionIterator.updateAuctionAfterTake(id, tab, lot)
+	cp.auctionCollection.updateAuctionAfterTake(id, tab, lot)
 }
 
 func (cp *collateralProcessor) updateAuctionAfterRedo(id, top *big.Int, tic uint64) {
-	cp.auctionIterator.updateAuctionAfterRedo(id, top, tic)
+	cp.auctionCollection.updateAuctionAfterRedo(id, top, tic)
 }
 
 func (cp *collateralProcessor) processCollateral(sender *transaction.Sender, minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address) {
 	fmt.Printf("processing opportunities for: %s", cp.collateral.Name)
-	fmt.Printf("%d active auctions qty: %d\n", cp.collateral.Name, len(cp.auctionIterator.auctions))
+	fmt.Printf("%d active auctions qty: %d\n", cp.collateral.Name, len(cp.auctionCollection.auctions))
 
 	blockNum, err := cp.eth.BlockNumber(context.Background())
 	if err != nil {
@@ -58,7 +58,7 @@ func (cp *collateralProcessor) processCollateral(sender *transaction.Sender, min
 
 	currentTime := block.Header().Time
 
-	for id, auction := range cp.auctionIterator.auctions {
+	for id, auction := range cp.auctionCollection.auctions {
 		fmt.Printf("\tprocessing auction id: %d", id)
 
 		// TODO
