@@ -13,10 +13,14 @@ Network:
     Api: 'https://rpc.ankr.com/eth_goerli'
 Wallet:
   Private: ''
-  Address: '0xb94c551347D04DA5a815844f464AD48918E48686'
+  Address: ''
 Contracts:
-  ETHAClipper: ''
-  ETHBClipper: ''
+  ETHA:
+    Clipper: '0x7Dfd4834d5731dC45da97E561931dFBEF0dCc2FA'
+    GemJoinAdapter: '0x03F6141bFda8e2925b46BB62a1Aa0Aeac904FfEB'
+  ETHB:
+    Clipper: '0x92a8F182E27692f8EcCc08C80642Ad24735DB4bf'
+    GemJoinAdapter: '0x5b844f6276582ed8bB6D47A3B0c7001D1F47aAED'
 Processor:
   MinProfitPercentage: 1.025
   MinLotZarValue: 0
