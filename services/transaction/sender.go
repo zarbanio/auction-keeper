@@ -4,12 +4,14 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"math/big"
+
 	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
+	"github.com/IR-Digital-Token/auction-keeper/store"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"math/big"
 )
 
 type Sender struct {
@@ -77,6 +79,7 @@ func (s *Sender) SendTakeTx(clipper *clipper.Clipper, id, amt, maxPrice *big.Int
 	if err != nil {
 		return err
 	}
+	store.StoreTakeTransaction()
 
 	fmt.Printf("Take Transaction Sent: %s\n", tx.Hash().Hex())
 
