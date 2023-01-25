@@ -14,8 +14,3 @@ export const NETWORKS_RPC_URL = {
     ? `https://eth-goerli.g.alchemy.com/v2/${ALCHEMY_KEY}`
     : `https://goerli.infura.io/v3/${INFURA_KEY}`,
 };
-
-export const NETWORKS_DEFAULT_GAS = {
-  ['main']: 65 * GWEI,
-  ['goerli']: 24 * GWEI,
-};
