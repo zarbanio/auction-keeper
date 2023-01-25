@@ -1,5 +1,5 @@
 {
-  "name": "uniswap-v3-callee",
+  "name": "exchange-callee",
   "version": "1.0.0",
   "files": [
     "contracts",
