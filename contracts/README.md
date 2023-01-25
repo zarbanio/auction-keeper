@@ -13,3 +13,14 @@ INFURA_KEY=
 ETHERSCAN_KEY=
 
 ```
+
+### Deploy Uniswap v3 Callee
+* testnet  (goerli)
+```
+npx hardhat run scripts/deploy-uniswap-v3-callee.ts --network goerli
+``` 
+
+* mainnet
+```
+npx hardhat run scripts/deploy-uniswap-v3-callee.ts --network main
+``` 
