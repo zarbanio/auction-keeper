@@ -35,12 +35,28 @@ type Config struct {
 	}
 	Collaterals struct {
 		ETHA struct {
-			Clipper        common.Address `yaml:"Clipper"`
-			GemJoinAdapter common.Address `yaml:"GemJoinAdapter"`
+			Erc20addr       common.Address `yaml:"Erc20addr"`
+			Decimals        *big.Int       `yaml:"Decimals"`
+			Clipper         common.Address `yaml:"Clipper"`
+			GemJoinAdapter  common.Address `yaml:"GemJoinAdapter"`
+			UniswapV3Callee common.Address `yaml:"UniswapV3Callee"`
+			UniV3Path       []struct {
+				Fee    *big.Int `yaml:"Fee"`
+				TokenA common.Address
+				TokenB common.Address
+			}	`yaml:"UniV3Path"`
 		}
 		ETHB struct {
-			Clipper        common.Address `yaml:"Clipper"`
-			GemJoinAdapter common.Address `yaml:"GemJoinAdapter"`
+			Erc20addr       common.Address `yaml:"Erc20addr"`
+			Decimals        *big.Int       `yaml:"Decimals"`
+			Clipper         common.Address `yaml:"Clipper"`
+			GemJoinAdapter  common.Address `yaml:"GemJoinAdapter"`
+			UniswapV3Callee common.Address `yaml:"UniswapV3Callee"`
+			UniV3Path       struct {
+				Fee    *big.Int `yaml:"Fee"`
+				TokenA common.Address
+				TokenB common.Address
+			}
 		}
 	}
 	Processor struct {

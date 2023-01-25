@@ -14,3 +14,18 @@ eh-gen
 
 # IDEA
 .idea
+
+#Hardhat files
+cache
+artifacts
+
+#ts
+node_modules
+coverage
+coverage.json
+typechain
+typechain-types
+types
+
+#environment
+.env
