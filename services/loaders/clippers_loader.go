@@ -1,6 +1,7 @@
 package loaders
 
 import (
+	"github.com/IR-Digital-Token/auction-keeper/bindings/abacus"
 	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
 	"github.com/IR-Digital-Token/auction-keeper/entities"
 	"github.com/ethereum/go-ethereum/common"
@@ -9,22 +10,21 @@ import (
 )
 
 type ClipperLoader struct {
-	eth     *ethclient.Client
-	Name    string
-	Address common.Address
-	Clipper *clipper.Clipper
+	eth            *ethclient.Client
+	ClipperAddress common.Address
+	Clipper        *clipper.Clipper
 }
 
-func NewClipperLoader(eth *ethclient.Client, name string, clipperAddr common.Address) (*ClipperLoader, error) {
+func NewClipperLoader(eth *ethclient.Client, clipperAddr common.Address) (*ClipperLoader, error) {
 	_clipper, err := clipper.NewClipper(clipperAddr, eth)
 	if err != nil {
 		return nil, err
 	}
+
 	return &ClipperLoader{
-		eth:     eth,
-		Name:    name,
-		Address: clipperAddr,
-		Clipper: _clipper,
+		eth:            eth,
+		ClipperAddress: clipperAddr,
+		Clipper:        _clipper,
 	}, nil
 }
 
@@ -51,4 +51,36 @@ func (cp *ClipperLoader) GetSale(auctionId *big.Int) (*entities.Auction, error) 
 		Tic: sale.Tic.Uint64(),
 	}
 	return &auction, nil
+}
+
+func (cp *ClipperLoader) GetAuctionStatus(id *big.Int) (bool, error) {
+	status, err := cp.Clipper.ClipperCaller.GetStatus(nil, id)
+	if err != nil {
+		return false, err
+	}
+	return status.NeedsRedo, nil
+}
+
+func (cp *ClipperLoader) GetChost() (*big.Int, error) {
+	// chost = ilk.dust * ilk.chop(liquidation penalty) [rad] (fixed point decimal with 45 decimals )
+	chost, err := cp.Clipper.Chost(nil)
+	if err != nil {
+		return nil, err
+	}
+	return chost, nil
+}
+
+func (cp *ClipperLoader) GetAbacusInstance() (*abacus.Abacus, error) {
+	// clipper.calc() returns the abacus address of the collateral
+	abacusAddress, err := cp.Clipper.Calc(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	abacusInstance, err := abacus.NewAbacus(abacusAddress, cp.eth)
+	if err != nil {
+		return nil, err
+	}
+
+	return abacusInstance, nil
 }
