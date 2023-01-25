@@ -1,18 +1,28 @@
 import { ethers } from "hardhat";
 
+const hre = require("hardhat");
+
 async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
-  const unlockTime = currentTimestampInSeconds + ONE_YEAR_IN_SECS;
+  await hre.run('compile');
 
-  const lockedAmount = ethers.utils.parseEther("1");
+  const uniV3Router = "0xE592427A0AEce92De3Edee1F18E0157C05861564" //goerli and mainnet
+  const zarJoin = "0x0216C83b8C7984AF8c10d95A656a003DfF8D2266" //TODO: this is SimJoin on goerli (not ZarJoin)
 
-  const Lock = await ethers.getContractFactory("Lock");
-  const lock = await Lock.deploy(unlockTime, { value: lockedAmount });
+  const UniswapV3Callee = await ethers.getContractFactory("UniswapV3Callee");
+  const uniswapV3Callee = await UniswapV3Callee.deploy(uniV3Router, zarJoin);
 
-  await lock.deployed();
+  await uniswapV3Callee.deployed();
 
-  console.log(`Lock with 1 ETH and unlock timestamp ${unlockTime} deployed to ${lock.address}`);
+  console.log(`UniswapV3Callee contract deployed to ${uniswapV3Callee.address}`);
+
+  // verify price oracle
+  console.log('----- Verifying Contract ------')
+  await hre.run("verify:verify", {
+    address: uniswapV3Callee.address,
+    constructorArguments: [uniV3Router, zarJoin],
+  }).catch((error) => {
+    console.log("error in verifying: ", error)
+  });
 }
 
 // We recommend this pattern to be able to use async/await everywhere

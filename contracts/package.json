@@ -1,7 +1,15 @@
 {
-  "name": "hardhat-project",
+  "name": "uniswap-v3-callee",
+  "version": "1.0.0",
+  "files": [
+    "contracts",
+    "artifacts"
+  ],
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^2.0.0",
-    "hardhat": "^2.12.0"
+    "@nomicfoundation/hardhat-toolbox": "^2.0.1",
+    "hardhat": "^2.12.6"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3"
   }
 }

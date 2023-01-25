@@ -1,13 +1,15 @@
-# Sample Hardhat Project
+# Uniswap V3 Calle
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+### contracts .env template:
+```
+# Add wallet private key
+Private=
 
-Try running some of the following tasks:
+# Add Alchemy or Infura provider keys, alchemy takes preference at the config level
+ALCHEMY_KEY=
+INFURA_KEY=
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.ts
+# Optional Etherscan key, for automatize the verification of the contracts at Etherscan
+ETHERSCAN_KEY=
+
 ```
