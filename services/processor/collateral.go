@@ -51,8 +51,8 @@ func (cp *collateralProcessor) updateAuctionAfterRedo(id, top *big.Int, tic uint
 }
 
 func (cp *collateralProcessor) processCollateral(sender *transaction.Sender, minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address) {
-	fmt.Printf("processing opportunities for: %s", cp.collateral.Name)
-	fmt.Printf("%d active auctions qty: %d\n", cp.collateral.Name, len(cp.auctionCollection.auctions))
+	fmt.Printf("processing opportunities for: %s\n", cp.collateral.Name)
+	fmt.Printf("%s active auctions qty: %d\n", cp.collateral.Name, len(cp.auctionCollection.auctions))
 
 	blockNum, err := cp.eth.BlockNumber(context.Background())
 	if err != nil {
@@ -68,7 +68,7 @@ func (cp *collateralProcessor) processCollateral(sender *transaction.Sender, min
 	currentTime := block.Header().Time
 
 	for id, auction := range cp.auctionCollection.auctions {
-		fmt.Printf("\tprocessing auction id: %d", id)
+		fmt.Printf("\tprocessing auction id: %d\n", id)
 
 		// TODO
 		//needsRedo, err := c.clipperLoader.GetAuctionStatus(a.Id)
@@ -78,7 +78,7 @@ func (cp *collateralProcessor) processCollateral(sender *transaction.Sender, min
 
 		collateralPrice, err := cp.collateral.Clipper.Abacus.Price(nil, auction.Top, big.NewInt(int64(currentTime-auction.Tic)))
 		if err != nil {
-			fmt.Printf("error in get %s collateral price from abacus: %v\n", err)
+			fmt.Printf("error in get %s collateral price from abacus: %v\n", cp.collateral.Name, err)
 			continue
 		}
 
@@ -167,12 +167,12 @@ func (cp *collateralProcessor) executeAuction(sender *transaction.Sender, auctio
 	route := []byte{} // TODO
 	flashData, err := args.Pack(_profitAddr, _gemJoinAdapter, _minProfit, route, common.Address{0})
 	if err != nil {
-		fmt.Printf("error in pack flash data: ", err)
+		fmt.Println("error in pack flash data: ", err)
 	}
 
 	err = sender.SendTakeTx(cp.collateral.ClipperLoader.Clipper, auctionId, amt, maxPrice, exchangeCalleeAddress, flashData)
 	if err != nil {
-		fmt.Printf("error in sending take transaction: ", err)
+		fmt.Println("error in sending take transaction: ", err)
 	}
 
 }
