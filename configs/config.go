@@ -3,7 +3,6 @@ package configs
 import (
 	"github.com/ethereum/go-ethereum/common"
 	"log"
-	"math/big"
 	"reflect"
 	"time"
 
@@ -18,7 +17,7 @@ type Config struct {
 		BlockPtr      uint64        `yaml:"BlockPtr"`
 	} `yaml:"General"`
 	Network struct {
-		ChainId     *big.Int `yaml:"ChainId"`
+		ChainId     int64 `yaml:"ChainId"`
 		NativeAsset struct {
 			Name        string         `yaml:"Name"`
 			Symbol      string         `yaml:"Symbol"`
@@ -36,33 +35,33 @@ type Config struct {
 	Collaterals struct {
 		ETHA struct {
 			Erc20addr       common.Address `yaml:"Erc20addr"`
-			Decimals        *big.Int       `yaml:"Decimals"`
+			Decimals        int64          `yaml:"Decimals"`
 			Clipper         common.Address `yaml:"Clipper"`
 			GemJoinAdapter  common.Address `yaml:"GemJoinAdapter"`
 			UniswapV3Callee common.Address `yaml:"UniswapV3Callee"`
 			UniV3Path       []struct {
-				Fee    *big.Int `yaml:"Fee"`
+				Fee    int64 `yaml:"Fee"`
 				TokenA common.Address
 				TokenB common.Address
-			}	`yaml:"UniV3Path"`
+			} `yaml:"UniV3Path"`
 		}
 		ETHB struct {
 			Erc20addr       common.Address `yaml:"Erc20addr"`
-			Decimals        *big.Int       `yaml:"Decimals"`
+			Decimals        int64          `yaml:"Decimals"`
 			Clipper         common.Address `yaml:"Clipper"`
 			GemJoinAdapter  common.Address `yaml:"GemJoinAdapter"`
 			UniswapV3Callee common.Address `yaml:"UniswapV3Callee"`
-			UniV3Path       struct {
-				Fee    *big.Int `yaml:"Fee"`
+			UniV3Path       []struct {
+				Fee    int64 `yaml:"Fee"`
 				TokenA common.Address
 				TokenB common.Address
 			}
 		}
 	}
 	Processor struct {
-		MinProfitPercentage *big.Int `yaml:"MinProfitPercentage"`
-		MinLotZarValue      *big.Int `yaml:"MinLotZarValue"`
-		MaxLotZarValue      *big.Int `yaml:"MaxLotZarValue"`
+		MinProfitPercentage int64 `yaml:"MinProfitPercentage"`
+		MinLotZarValue      int64 `yaml:"MinLotZarValue"`
+		MaxLotZarValue      int64 `yaml:"MaxLotZarValue"`
 	}
 }
 

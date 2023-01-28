@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"github.com/IR-Digital-Token/auction-keeper/collateral"
 	"github.com/IR-Digital-Token/auction-keeper/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"github.com/ethereum/go-ethereum/common"
@@ -23,10 +24,11 @@ type LiquidatorProcessor struct {
 	processing           sync.Mutex
 }
 
-func NewLiquidatorProcessor(eth *ethclient.Client, sender *transaction.Sender, collaterals map[string]entities.Collateral, liquidatorConfig *LiquidatorConfig) *LiquidatorProcessor {
+func NewLiquidatorProcessor(eth *ethclient.Client, sender *transaction.Sender, collaterals map[string]collateral.Collateral, liquidatorConfig *LiquidatorConfig) *LiquidatorProcessor {
 	liquidatorProcessor := &LiquidatorProcessor{
-		config: liquidatorConfig,
-		sender: sender,
+		collateralsProcessor: make(map[string]collateralProcessor),
+		config:               liquidatorConfig,
+		sender:               sender,
 	}
 
 	for key, collateral := range collaterals {

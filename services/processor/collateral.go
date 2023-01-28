@@ -3,6 +3,7 @@ package processor
 import (
 	"context"
 	"fmt"
+	"github.com/IR-Digital-Token/auction-keeper/collateral"
 	"github.com/IR-Digital-Token/auction-keeper/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -21,7 +22,7 @@ var (
 
 type collateralProcessor struct {
 	eth               *ethclient.Client
-	collateral        entities.Collateral
+	collateral        collateral.Collateral
 	auctionCollection AuctionCollection
 }
 
@@ -133,8 +134,7 @@ func (cp *collateralProcessor) processCollateral(sender *transaction.Sender, min
 
 		// TODO: print Auction Summary
 
-		exchangeCalleeAddress := common.Address{0xdB9C76109d102d2A1E645dCa3a7E671EBfd8e11A} // TODO: UniswapV3Callee
-		cp.executeAuction(sender, auction.Id, amt, collateralPrice, minProfit, profitAddress, cp.collateral.GemJoinAdapter, exchangeCalleeAddress)
+		cp.executeAuction(sender, auction.Id, amt, collateralPrice, minProfit, profitAddress, cp.collateral.GemJoinAdapter, cp.collateral.UniswapV3Callee)
 	}
 }
 
@@ -162,7 +162,7 @@ func (cp *collateralProcessor) executeAuction(sender *transaction.Sender, auctio
 		fmt.Printf("error in pack flash data: ", err)
 	}
 
-	err = sender.SendTakeTx(cp.collateral.Clipper.Loader.Clipper, auctionId, amt, maxPrice, exchangeCalleeAddress, flashData)
+	err = sender.SendTakeTx(cp.collateral.ClipperLoader.Clipper, auctionId, amt, maxPrice, exchangeCalleeAddress, flashData)
 	if err != nil {
 		fmt.Printf("error in sending take transaction: ", err)
 	}
