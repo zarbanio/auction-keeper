@@ -8,7 +8,14 @@ import (
 
 type AuctionCollection struct {
 	auctions       map[*big.Int]entities.Auction
-	updateAuctions sync.Locker
+	updateAuctions sync.Mutex
+}
+
+func NewAuctionCollection() *AuctionCollection {
+	return &AuctionCollection{
+		auctions:       make(map[*big.Int]entities.Auction),
+		updateAuctions: sync.Mutex{},
+	}
 }
 
 func (ai *AuctionCollection) AuctionIsExist(Id *big.Int) bool {

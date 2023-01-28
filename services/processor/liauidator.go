@@ -18,7 +18,7 @@ type LiquidatorConfig struct {
 }
 
 type LiquidatorProcessor struct {
-	collateralsProcessor map[string]collateralProcessor
+	collateralsProcessor map[string]*collateralProcessor
 	config               *LiquidatorConfig
 	sender               *transaction.Sender
 	processing           sync.Mutex
@@ -26,16 +26,14 @@ type LiquidatorProcessor struct {
 
 func NewLiquidatorProcessor(eth *ethclient.Client, sender *transaction.Sender, collaterals map[string]collateral.Collateral, liquidatorConfig *LiquidatorConfig) *LiquidatorProcessor {
 	liquidatorProcessor := &LiquidatorProcessor{
-		collateralsProcessor: make(map[string]collateralProcessor),
+		collateralsProcessor: make(map[string]*collateralProcessor),
 		config:               liquidatorConfig,
 		sender:               sender,
+		processing:           sync.Mutex{},
 	}
 
 	for key, collateral := range collaterals {
-		cp := collateralProcessor{
-			eth:        eth,
-			collateral: collateral,
-		}
+		cp := NewCollateralProcessor(eth, collateral)
 		liquidatorProcessor.collateralsProcessor[key] = cp
 	}
 

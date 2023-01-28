@@ -23,7 +23,15 @@ var (
 type collateralProcessor struct {
 	eth               *ethclient.Client
 	collateral        collateral.Collateral
-	auctionCollection AuctionCollection
+	auctionCollection *AuctionCollection
+}
+
+func NewCollateralProcessor(eth *ethclient.Client, collateral collateral.Collateral) *collateralProcessor {
+	return &collateralProcessor{
+		eth:               eth,
+		collateral:        collateral,
+		auctionCollection: NewAuctionCollection(),
+	}
 }
 
 func (cp *collateralProcessor) addAuction(auction entities.Auction) {
