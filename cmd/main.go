@@ -12,7 +12,6 @@ import (
 	"github.com/IR-Digital-Token/auction-keeper/services/router"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"github.com/IR-Digital-Token/x/chain"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
 	"math/big"
@@ -59,54 +58,8 @@ func getActiveAuctions(collaterals map[string]collateral.Collateral, liquidatorP
 func getCollaterals(cfg configs.Config, eth *ethclient.Client) (map[string]collateral.Collateral, error) {
 	collaterals := make(map[string]collateral.Collateral)
 
-	type cConfig struct {
-		name                 string
-		clipperAddress       common.Address
-		gemJoinAdapter       common.Address
-		UniswapV3Callee      common.Address
-		UniswapV3CalleeRoute []entities.UniswapRoute
-	}
-	collateralsConfig := make([]cConfig, 0)
-
-	collateralsConfig = append(collateralsConfig, cConfig{
-		"ETHA",
-		cfg.Collaterals.ETHA.Clipper,
-		cfg.Collaterals.ETHA.GemJoinAdapter,
-		cfg.Collaterals.ETHA.UniswapV3Callee,
-		[]entities.UniswapRoute{
-			{
-				cfg.Collaterals.ETHA.UniV3Path[0].Fee,
-				cfg.Collaterals.ETHA.UniV3Path[0].TokenA,
-				cfg.Collaterals.ETHA.UniV3Path[0].TokenB,
-			},
-			{
-				cfg.Collaterals.ETHA.UniV3Path[1].Fee,
-				cfg.Collaterals.ETHA.UniV3Path[1].TokenA,
-				cfg.Collaterals.ETHA.UniV3Path[1].TokenB,
-			},
-		},
-	})
-	collateralsConfig = append(collateralsConfig, cConfig{
-		"ETHB",
-		cfg.Collaterals.ETHB.Clipper,
-		cfg.Collaterals.ETHB.GemJoinAdapter,
-		cfg.Collaterals.ETHB.UniswapV3Callee,
-		[]entities.UniswapRoute{
-			{
-				cfg.Collaterals.ETHA.UniV3Path[0].Fee,
-				cfg.Collaterals.ETHA.UniV3Path[0].TokenA,
-				cfg.Collaterals.ETHA.UniV3Path[0].TokenB,
-			},
-			{
-				cfg.Collaterals.ETHA.UniV3Path[1].Fee,
-				cfg.Collaterals.ETHA.UniV3Path[1].TokenA,
-				cfg.Collaterals.ETHA.UniV3Path[1].TokenB,
-			},
-		},
-	})
-
-	for _, collateralConfig := range collateralsConfig {
-		clipperLoader, err := loaders.NewClipperLoader(eth, collateralConfig.clipperAddress)
+	for _, collateralConfig := range cfg.Collaterals {
+		clipperLoader, err := loaders.NewClipperLoader(eth, collateralConfig.Clipper)
 		if err != nil {
 			return nil, err
 		}
@@ -121,20 +74,20 @@ func getCollaterals(cfg configs.Config, eth *ethclient.Client) (map[string]colla
 			return nil, err
 		}
 
-		uniswapV3CalleeRoute, err := router.GetUniswapV3Router(collateralConfig.UniswapV3CalleeRoute)
+		uniswapV3CalleeRoute, err := router.GetUniswapV3Router(collateralConfig.UniswapV3Path)
 		if err != nil {
 			return nil, err
 		}
 
-		collaterals[collateralConfig.name] = collateral.Collateral{
-			Name: collateralConfig.name,
+		collaterals[collateralConfig.Name] = collateral.Collateral{
+			Name: collateralConfig.Name,
 			Clipper: entities.Clipper{
-				Address: collateralConfig.clipperAddress,
+				Address: collateralConfig.Clipper,
 				Chost:   chost,
 				Abacus:  abacus,
 			},
 			ClipperLoader:        clipperLoader,
-			GemJoinAdapter:       collateralConfig.gemJoinAdapter,
+			GemJoinAdapter:       collateralConfig.GemJoinAdapter,
 			UniswapV3Callee:      collateralConfig.UniswapV3Callee,
 			UniswapV3CalleeRoute: uniswapV3CalleeRoute,
 		}

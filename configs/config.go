@@ -1,6 +1,7 @@
 package configs
 
 import (
+	"github.com/IR-Digital-Token/auction-keeper/entities"
 	"github.com/ethereum/go-ethereum/common"
 	"log"
 	"reflect"
@@ -32,31 +33,14 @@ type Config struct {
 		Private string         `yaml:"Private"`
 		Address common.Address `yaml:"Address"`
 	}
-	Collaterals struct {
-		ETHA struct {
-			Erc20addr       common.Address `yaml:"Erc20addr"`
-			Decimals        int64          `yaml:"Decimals"`
-			Clipper         common.Address `yaml:"Clipper"`
-			GemJoinAdapter  common.Address `yaml:"GemJoinAdapter"`
-			UniswapV3Callee common.Address `yaml:"UniswapV3Callee"`
-			UniV3Path       []struct {
-				Fee    uint64 `yaml:"Fee"`
-				TokenA string `yaml:"tokenA"`
-				TokenB string `yaml:"tokenB"`
-			} `yaml:"UniV3Path"`
-		}
-		ETHB struct {
-			Erc20addr       common.Address `yaml:"Erc20addr"`
-			Decimals        int64          `yaml:"Decimals"`
-			Clipper         common.Address `yaml:"Clipper"`
-			GemJoinAdapter  common.Address `yaml:"GemJoinAdapter"`
-			UniswapV3Callee common.Address `yaml:"UniswapV3Callee"`
-			UniV3Path       []struct {
-				Fee    uint64 `yaml:"Fee"`
-				TokenA string `yaml:"tokenA"`
-				TokenB string `yaml:"tokenB"`
-			}
-		}
+	Collaterals []struct {
+		Name            string                  `yaml:"Name"`
+		Erc20addr       common.Address          `yaml:"Erc20addr"`
+		Decimals        int64                   `yaml:"Decimals"`
+		Clipper         common.Address          `yaml:"Clipper"`
+		GemJoinAdapter  common.Address          `yaml:"GemJoinAdapter"`
+		UniswapV3Callee common.Address          `yaml:"UniswapV3Callee"`
+		UniswapV3Path   []entities.UniswapRoute `yaml:"UniswapV3Path"`
 	}
 	Processor struct {
 		MinProfitPercentage int64 `yaml:"MinProfitPercentage"`
