@@ -7,9 +7,10 @@ import (
 )
 
 type Collateral struct {
-	Name            string
-	Clipper         entities.Clipper
-	ClipperLoader   *loaders.ClipperLoader
-	GemJoinAdapter  common.Address
-	UniswapV3Callee common.Address
+	Name                 string
+	Clipper              entities.Clipper
+	ClipperLoader        *loaders.ClipperLoader
+	GemJoinAdapter       common.Address
+	UniswapV3Callee      common.Address
+	UniswapV3CalleeRoute []byte
 }

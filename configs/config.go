@@ -40,9 +40,9 @@ type Config struct {
 			GemJoinAdapter  common.Address `yaml:"GemJoinAdapter"`
 			UniswapV3Callee common.Address `yaml:"UniswapV3Callee"`
 			UniV3Path       []struct {
-				Fee    int64 `yaml:"Fee"`
-				TokenA common.Address
-				TokenB common.Address
+				Fee    uint64 `yaml:"Fee"`
+				TokenA string `yaml:"tokenA"`
+				TokenB string `yaml:"tokenB"`
 			} `yaml:"UniV3Path"`
 		}
 		ETHB struct {
@@ -52,9 +52,9 @@ type Config struct {
 			GemJoinAdapter  common.Address `yaml:"GemJoinAdapter"`
 			UniswapV3Callee common.Address `yaml:"UniswapV3Callee"`
 			UniV3Path       []struct {
-				Fee    int64 `yaml:"Fee"`
-				TokenA common.Address
-				TokenB common.Address
+				Fee    uint64 `yaml:"Fee"`
+				TokenA string `yaml:"tokenA"`
+				TokenB string `yaml:"tokenB"`
 			}
 		}
 	}

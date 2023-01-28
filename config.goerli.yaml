@@ -31,8 +31,8 @@ Collaterals:
     GemJoinAdapter: '0x5b844f6276582ed8bB6D47A3B0c7001D1F47aAED'
     UniswapV3Callee: '0x2C481220362df6a2FBCadaF1F7ff4D4C579A8b5d' # TODO: this is for Sim (not Zar)
     UniV3Path:
-      - { Fee: 0, TokenA: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6', TokenB: '0x7df1d674021792630e15eca46467516660e021af' } # WETH -> DAI
-      - { Fee: 0, TokenA: '0x7df1d674021792630e15eca46467516660e021af', TokenB: '0xC7021F15D7Ac6a6c76C9EfA662Fa3BADC62B2a52' } # DAI -> SIM
+      - { Fee: 1000, TokenA: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6', TokenB: '0x7df1d674021792630e15eca46467516660e021af' } # WETH -> DAI
+      - { Fee: 1000, TokenA: '0x7df1d674021792630e15eca46467516660e021af', TokenB: '0xC7021F15D7Ac6a6c76C9EfA662Fa3BADC62B2a52' } # DAI -> SIM
 Processor:
   MinProfitPercentage: 1.025
   MinLotZarValue: 0

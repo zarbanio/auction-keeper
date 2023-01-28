@@ -164,8 +164,7 @@ func (cp *collateralProcessor) executeAuction(sender *transaction.Sender, auctio
 		{Name: "charterManager", Type: Address},
 	}
 
-	route := []byte{} // TODO
-	flashData, err := args.Pack(_profitAddr, _gemJoinAdapter, _minProfit, route, common.Address{0})
+	flashData, err := args.Pack(_profitAddr, _gemJoinAdapter, _minProfit, cp.collateral.UniswapV3CalleeRoute, common.Address{0})
 	if err != nil {
 		fmt.Println("error in pack flash data: ", err)
 	}
@@ -174,5 +173,4 @@ func (cp *collateralProcessor) executeAuction(sender *transaction.Sender, auctio
 	if err != nil {
 		fmt.Println("error in sending take transaction: ", err)
 	}
-
 }
