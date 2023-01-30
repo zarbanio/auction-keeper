@@ -1,0 +1,31 @@
+# binding files
+bindings/*/*.go
+bindings/*/*/*.go
+
+# config file
+config.yaml
+
+# block pointer files
+goerli.ptr
+mainnet.ptr
+
+# ethereume generator
+eh-gen
+
+# IDEA
+.idea
+
+#Hardhat files
+cache
+artifacts
+
+#ts
+node_modules
+coverage
+coverage.json
+typechain
+typechain-types
+types
+
+#environment
+.env
