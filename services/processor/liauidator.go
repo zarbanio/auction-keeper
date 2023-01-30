@@ -64,7 +64,7 @@ func (lp *LiquidatorProcessor) StartProcessing() {
 	lp.processing.Lock()
 	defer lp.processing.Unlock()
 
-	minProfitPercentage := new(big.Int).Mul(lp.config.MinProfitPercentage, Decimals18)
+	minProfitPercentage := new(big.Int).Mul(lp.config.MinProfitPercentage, Decimals15)
 
 	for _, cp := range lp.collateralsProcessor {
 		cp.processCollateral(lp.sender, minProfitPercentage, lp.config.MinLotZarValue, lp.config.MaxLotZarValue, lp.config.ProfitAddress)
