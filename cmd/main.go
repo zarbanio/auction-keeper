@@ -10,6 +10,7 @@ import (
 	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
 	"github.com/IR-Digital-Token/auction-keeper/services/processor"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
+	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
 	"github.com/IR-Digital-Token/x/chain"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -56,21 +57,15 @@ func getActiveAuctions(collaterals map[string]collateral.Collateral, liquidatorP
 }
 
 func getCollaterals(cfg configs.Config, eth *ethclient.Client) (map[string]collateral.Collateral, error) {
+	uniswapV3Quoter, err := uniswap_v3.NewUniswapV3Quoter(eth, cfg.UniswapV3QuoterAddress)
+	if err != nil {
+		return nil, err
+	}
+
 	collaterals := make(map[string]collateral.Collateral)
 
-	type cConfig struct {
-		name            string
-		clipperAddress  common.Address
-		gemJoinAdapter  common.Address
-		UniswapV3Callee common.Address
-	}
-	collateralsConfig := make([]cConfig, 0)
-
-	collateralsConfig = append(collateralsConfig, cConfig{"ETHA", cfg.Collaterals.ETHA.Clipper, cfg.Collaterals.ETHA.GemJoinAdapter, cfg.Collaterals.ETHA.UniswapV3Callee})
-	collateralsConfig = append(collateralsConfig, cConfig{"ETHB", cfg.Collaterals.ETHB.Clipper, cfg.Collaterals.ETHB.GemJoinAdapter, cfg.Collaterals.ETHB.UniswapV3Callee})
-
-	for _, collateralConfig := range collateralsConfig {
-		clipperLoader, err := loaders.NewClipperLoader(eth, collateralConfig.clipperAddress)
+	for _, collateralConfig := range cfg.Collaterals {
+		clipperLoader, err := loaders.NewClipperLoader(eth, collateralConfig.Clipper)
 		if err != nil {
 			return nil, err
 		}
@@ -85,16 +80,19 @@ func getCollaterals(cfg configs.Config, eth *ethclient.Client) (map[string]colla
 			return nil, err
 		}
 
-		collaterals[collateralConfig.name] = collateral.Collateral{
-			Name: collateralConfig.name,
+		collaterals[collateralConfig.Name] = collateral.Collateral{
+			Name:    collateralConfig.Name,
+			Decimal: big.NewInt(collateralConfig.Decimals),
 			Clipper: entities.Clipper{
-				Address: collateralConfig.clipperAddress,
+				Address: collateralConfig.Clipper,
 				Chost:   chost,
 				Abacus:  abacus,
 			},
 			ClipperLoader:   clipperLoader,
-			GemJoinAdapter:  collateralConfig.gemJoinAdapter,
+			GemJoinAdapter:  collateralConfig.GemJoinAdapter,
 			UniswapV3Callee: collateralConfig.UniswapV3Callee,
+			UniswapV3Path:   collateralConfig.UniswapV3Path,
+			UniswapV3Quoter: uniswapV3Quoter,
 		}
 	}
 
