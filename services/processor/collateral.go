@@ -178,7 +178,7 @@ var (
 	Address, _ = abi.NewType("address", "", nil)
 )
 
-func (cp *collateralProcessor) executeAuction(sender *transaction.Sender, auctionId, amt, maxPrice, _minProfit *big.Int, _profitAddr, _gemJoinAdapter, exchangeCalleeAddress common.Address) {
+func (cp *collateralProcessor) executeAuction(sender *transaction.Sender, auctionId, amt, maxPrice, minProfit *big.Int, profitAddr, gemJoinAdapter, exchangeCalleeAddress common.Address) {
 
 	// Uniswap v3 swap
 	// typesArray := ['address', 'address', 'uint256', 'bytes', 'address'];
@@ -195,7 +195,7 @@ func (cp *collateralProcessor) executeAuction(sender *transaction.Sender, auctio
 		fmt.Println("error in get route: ", err)
 	}
 
-	flashData, err := args.Pack(_profitAddr, _gemJoinAdapter, _minProfit, route, common.Address{0})
+	flashData, err := args.Pack(profitAddr, gemJoinAdapter, minProfit, route, common.Address{0})
 	if err != nil {
 		fmt.Println("error in pack flash data: ", err)
 	}
