@@ -33,14 +33,15 @@ type Config struct {
 		Private string         `yaml:"Private"`
 		Address common.Address `yaml:"Address"`
 	}
-	Collaterals []struct {
-		Name            string                  `yaml:"Name"`
-		Erc20addr       common.Address          `yaml:"Erc20addr"`
-		Decimals        int64                   `yaml:"Decimals"`
-		Clipper         common.Address          `yaml:"Clipper"`
-		GemJoinAdapter  common.Address          `yaml:"GemJoinAdapter"`
-		UniswapV3Callee common.Address          `yaml:"UniswapV3Callee"`
-		UniswapV3Path   []entities.UniswapRoute `yaml:"UniswapV3Path"`
+	UniswapV3QuoterAddress common.Address `yaml:"UniswapV3QuoterAddress"`
+	Collaterals            []struct {
+		Name            string                    `yaml:"Name"`
+		Erc20addr       common.Address            `yaml:"Erc20addr"`
+		Decimals        int64                     `yaml:"Decimals"`
+		Clipper         common.Address            `yaml:"Clipper"`
+		GemJoinAdapter  common.Address            `yaml:"GemJoinAdapter"`
+		UniswapV3Callee common.Address            `yaml:"UniswapV3Callee"`
+		UniswapV3Path   []entities.UniswapV3Route `yaml:"UniswapV3Path"`
 	}
 	Processor struct {
 		MinProfitPercentage int64 `yaml:"MinProfitPercentage"`

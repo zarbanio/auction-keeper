@@ -6,6 +6,7 @@ import (
 	"github.com/IR-Digital-Token/auction-keeper/collateral"
 	"github.com/IR-Digital-Token/auction-keeper/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
+	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -81,6 +82,10 @@ func (cp *collateralProcessor) processCollateral(sender *transaction.Sender, min
 			fmt.Printf("error in get %s collateral price from abacus: %v\n", cp.collateral.Name, err)
 			continue
 		}
+		if collateralPrice.Cmp(big.NewInt(0)) <= 0 {
+			fmt.Printf("Collateral price is zero")
+			continue
+		}
 
 		// determine configured lot sizes in Gem terms
 		minLotZarValue18 := new(big.Int).Mul(minLotZarValue, Decimals18)
@@ -134,15 +139,29 @@ func (cp *collateralProcessor) processCollateral(sender *transaction.Sender, min
 		totalMinProfit45 := new(big.Int).Sub(calcMinProfit45, new(big.Int).Mul(owe27, Decimals18))
 		minProfit := new(big.Int).Div(totalMinProfit45, Decimals27)
 
-		//debtToCover := new(big.Int).Div(owe27, Decimals9) // TODO
+		debtToCover := new(big.Int).Div(owe27, Decimals9)
+
+		// Determine proceeds from swapping gem for Zar on Uniswap
+		uniswapV3Proceeds, err := cp.collateral.UniswapV3Quoter.GetQuotedAmountOut(lot, cp.collateral.UniswapV3Path, cp.collateral.Decimal)
+		if err != nil {
+			fmt.Printf("error in get uniswapV3 proceeds: %v\n", err)
+			continue
+		}
+		minUniV3Proceeds := new(big.Int).Sub(uniswapV3Proceeds, new(big.Int).Mul(minProfit, Decimals18))
 
 		// Increase actual take amount to account for rounding errors and edge cases.
 		// Do not increase too much to not significantly go over configured maxAmt.
 		amt := new(big.Int).Div(lot, big.NewInt(1000001))
 
-		// TODO: print Auction Summary
+		if new(big.Int).Mul(debtToCover, Decimals18).Cmp(minUniV3Proceeds) <= 0 {
+			// Uniswap tx executes only if the return amount also covers the minProfit %
 
-		cp.executeAuction(sender, auction.Id, amt, collateralPrice, minProfit, profitAddress, cp.collateral.GemJoinAdapter, cp.collateral.UniswapV3Callee)
+			// TODO: print Auction Summary
+
+			cp.executeAuction(sender, auction.Id, amt, collateralPrice, minProfit, profitAddress, cp.collateral.GemJoinAdapter, cp.collateral.UniswapV3Callee)
+		} else {
+			fmt.Println("Uniswap V3 proceeds - profit amount is less than cost.")
+		}
 	}
 }
 
@@ -164,7 +183,12 @@ func (cp *collateralProcessor) executeAuction(sender *transaction.Sender, auctio
 		{Name: "charterManager", Type: Address},
 	}
 
-	flashData, err := args.Pack(_profitAddr, _gemJoinAdapter, _minProfit, cp.collateral.UniswapV3CalleeRoute, common.Address{0})
+	route, err := uniswap_v3.GetRouter(cp.collateral.UniswapV3Path)
+	if err != nil {
+		fmt.Println("error in get route: ", err)
+	}
+
+	flashData, err := args.Pack(_profitAddr, _gemJoinAdapter, _minProfit, route, common.Address{0})
 	if err != nil {
 		fmt.Println("error in pack flash data: ", err)
 	}

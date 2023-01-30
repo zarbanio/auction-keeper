@@ -9,9 +9,10 @@ import (
 	"github.com/IR-Digital-Token/auction-keeper/services/callbacks"
 	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
 	"github.com/IR-Digital-Token/auction-keeper/services/processor"
-	"github.com/IR-Digital-Token/auction-keeper/services/router"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
+	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
 	"github.com/IR-Digital-Token/x/chain"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
 	"math/big"
@@ -56,6 +57,11 @@ func getActiveAuctions(collaterals map[string]collateral.Collateral, liquidatorP
 }
 
 func getCollaterals(cfg configs.Config, eth *ethclient.Client) (map[string]collateral.Collateral, error) {
+	uniswapV3Quoter, err := uniswap_v3.NewUniswapV3Quoter(eth, cfg.UniswapV3QuoterAddress)
+	if err != nil {
+		return nil, err
+	}
+
 	collaterals := make(map[string]collateral.Collateral)
 
 	for _, collateralConfig := range cfg.Collaterals {
@@ -74,22 +80,19 @@ func getCollaterals(cfg configs.Config, eth *ethclient.Client) (map[string]colla
 			return nil, err
 		}
 
-		uniswapV3CalleeRoute, err := router.GetUniswapV3Router(collateralConfig.UniswapV3Path)
-		if err != nil {
-			return nil, err
-		}
-
 		collaterals[collateralConfig.Name] = collateral.Collateral{
-			Name: collateralConfig.Name,
+			Name:    collateralConfig.Name,
+			Decimal: big.NewInt(collateralConfig.Decimals),
 			Clipper: entities.Clipper{
 				Address: collateralConfig.Clipper,
 				Chost:   chost,
 				Abacus:  abacus,
 			},
-			ClipperLoader:        clipperLoader,
-			GemJoinAdapter:       collateralConfig.GemJoinAdapter,
-			UniswapV3Callee:      collateralConfig.UniswapV3Callee,
-			UniswapV3CalleeRoute: uniswapV3CalleeRoute,
+			ClipperLoader:   clipperLoader,
+			GemJoinAdapter:  collateralConfig.GemJoinAdapter,
+			UniswapV3Callee: collateralConfig.UniswapV3Callee,
+			UniswapV3Path:   collateralConfig.UniswapV3Path,
+			UniswapV3Quoter: uniswapV3Quoter,
 		}
 	}
 

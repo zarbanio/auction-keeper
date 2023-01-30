@@ -14,9 +14,10 @@ Network:
 Wallet:
   Private: ''
   Address: ''
+UniswapV3QuoterAddress: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6'
 Collaterals:
   -
-    Neme: 'ETHA'
+    Name: 'ETHA'
     Erc20addr: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
     Decimals: 18
     Clipper: '0x7Dfd4834d5731dC45da97E561931dFBEF0dCc2FA'
@@ -24,15 +25,15 @@ Collaterals:
     UniswapV3Callee: '0x2C481220362df6a2FBCadaF1F7ff4D4C579A8b5d' # TODO: this is for Sim (not Zar)
     UniswapV3Path:
       -
-        Fee: 1000
+        Fee: 10000
         TokenA: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
         TokenB: '0x7df1d674021792630e15eca46467516660e021af' # WETH -> DAI
       -
-        Fee: 1000
+        Fee: 10000
         TokenA: '0x7df1d674021792630e15eca46467516660e021af'
         TokenB: '0xC7021F15D7Ac6a6c76C9EfA662Fa3BADC62B2a52' # DAI -> SIM # TODO: this is for Sim (not Zar)
   -
-    Neme: 'ETHB'
+    Name: 'ETHB'
     Erc20addr: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
     Decimals: 18
     Clipper: '0x92a8F182E27692f8EcCc08C80642Ad24735DB4bf'
@@ -40,11 +41,11 @@ Collaterals:
     UniswapV3Callee: '0x2C481220362df6a2FBCadaF1F7ff4D4C579A8b5d' # TODO: this is for Sim (not Zar)
     UniswapV3Path:
       -
-        Fee: 1000
+        Fee: 10000
         TokenA: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
         TokenB: '0x7df1d674021792630e15eca46467516660e021af' # WETH -> DAI
       -
-        Fee: 1000
+        Fee: 10000
         TokenA: '0x7df1d674021792630e15eca46467516660e021af'
         TokenB: '0xC7021F15D7Ac6a6c76C9EfA662Fa3BADC62B2a52' # DAI -> SIM # TODO: this is for Sim (not Zar)
 Processor:
