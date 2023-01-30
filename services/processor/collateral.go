@@ -156,7 +156,7 @@ func (cp *collateralProcessor) processCollateral(sender *transaction.Sender, min
 
 		// Increase actual take amount to account for rounding errors and edge cases.
 		// Do not increase too much to not significantly go over configured maxAmt.
-		amt := new(big.Int).Div(lot, big.NewInt(1000001))
+		amt := new(big.Int).Div(new(big.Int).Mul(lot, big.NewInt(1000001)), big.NewInt(1000000))
 
 		if debtToCover.Cmp(minUniV3Proceeds) <= 0 {
 			// Uniswap tx executes only if the return amount also covers the minProfit %
