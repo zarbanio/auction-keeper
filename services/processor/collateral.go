@@ -200,7 +200,7 @@ func (cp *collateralProcessor) executeAuction(sender *transaction.Sender, auctio
 		fmt.Println("error in pack flash data: ", err)
 	}
 
-	err = sender.SendTakeTx(cp.collateral.ClipperLoader.Clipper, auctionId, amt, maxPrice, exchangeCalleeAddress, flashData)
+	_, err = sender.SendTakeTx(cp.collateral.ClipperLoader.Clipper, auctionId, amt, maxPrice, exchangeCalleeAddress, flashData)
 	if err != nil {
 		fmt.Println("error in sending take transaction: ", err)
 	}

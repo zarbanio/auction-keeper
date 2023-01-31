@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/clip"
+	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
 	"github.com/IR-Digital-Token/auction-keeper/collateral"
 	"github.com/IR-Digital-Token/auction-keeper/configs"
 	"github.com/IR-Digital-Token/auction-keeper/entities"
@@ -99,6 +101,50 @@ func getCollaterals(cfg configs.Config, eth *ethclient.Client) (map[string]colla
 	return collaterals, nil
 }
 
+func clipperAllowance(eth *ethclient.Client, vatAddr, clipperAddr common.Address, sender *transaction.Sender) error {
+	vatInstance, err := vat.NewVat(vatAddr, eth)
+	if err != nil {
+		return err
+	}
+
+	allowance, err := vatInstance.Can(nil, sender.Address, clipperAddr)
+	if err != nil {
+		return err
+	}
+
+	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
+		fmt.Println("HOPING CLIPPER IN VAT")
+		txHash, err := sender.SendVatHopeTx(vatInstance, clipperAddr)
+		if err != nil {
+			return err
+		}
+		fmt.Println("Hoped Clipper Contract in VAT ", txHash)
+	}
+	return nil
+}
+
+func zarJoinAllowance(eth *ethclient.Client, vatAddr, zarJoinAddr common.Address, sender *transaction.Sender) error {
+	vatInstance, err := vat.NewVat(vatAddr, eth)
+	if err != nil {
+		return err
+	}
+
+	allowance, err := vatInstance.Can(nil, sender.Address, zarJoinAddr)
+	if err != nil {
+		return err
+	}
+
+	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
+		fmt.Println("HOPING ZAR_JOIN IN VAT")
+		txHash, err := sender.SendVatHopeTx(vatInstance, zarJoinAddr)
+		if err != nil {
+			return err
+		}
+		fmt.Println("Hoped ZAR_JOIN Contract in VAT ", txHash)
+	}
+	return nil
+}
+
 func Execute() {
 	cfg := configs.ReadConfig("config.yaml")
 
@@ -136,6 +182,20 @@ func Execute() {
 	 			import wallet
 	***************************************/
 	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
+	if err != nil {
+		panic(err)
+	}
+
+	/***************************************
+	  clipper and zarJoin Allowance
+	***************************************/
+	for _, c := range collaterals {
+		err = clipperAllowance(eth, cfg.Vat, c.Clipper.Address, sender)
+		if err != nil {
+			panic(err)
+		}
+	}
+	err = zarJoinAllowance(eth, cfg.Vat, cfg.ZarJoin, sender)
 	if err != nil {
 		panic(err)
 	}

@@ -14,6 +14,8 @@ Network:
 Wallet:
   Private: ''
   Address: ''
+ZarJoin: '0x0216C83b8C7984AF8c10d95A656a003DfF8D2266' # TODO: this is for Sim (not Zar)
+Vat: '0x14708C939B71A9686568EA5c8E16C5e65B899347' # TODO: this is for Sim (not Zar)
 UniswapV3QuoterAddress: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6'
 Collaterals:
   -

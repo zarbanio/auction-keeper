@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
+	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -15,7 +16,7 @@ import (
 type Sender struct {
 	eth        *ethclient.Client
 	privateKey *ecdsa.PrivateKey
-	address    common.Address
+	Address    common.Address
 	chainId    *big.Int
 }
 
@@ -37,14 +38,14 @@ func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int) (*Sen
 	return &Sender{
 		eth:        eth,
 		privateKey: prvKey,
-		address:    address,
+		Address:    address,
 		chainId:    chainId,
 	}, nil
 }
 
 func (s *Sender) getOpts() (*bind.TransactOpts, error) {
 
-	nonce, err := s.eth.PendingNonceAt(context.Background(), s.address)
+	nonce, err := s.eth.PendingNonceAt(context.Background(), s.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -66,19 +67,34 @@ func (s *Sender) getOpts() (*bind.TransactOpts, error) {
 	return opts, nil
 }
 
-func (s *Sender) SendTakeTx(clipper *clipper.Clipper, id, amt, maxPrice *big.Int, exchangeCalleeAddress common.Address, flashData []byte) error {
+func (s *Sender) SendTakeTx(clipper *clipper.Clipper, id, amt, maxPrice *big.Int, exchangeCalleeAddress common.Address, flashData []byte) (string, error) {
 
 	opts, err := s.getOpts()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	tx, err := clipper.ClipperTransactor.Take(opts, id, amt, maxPrice, exchangeCalleeAddress, flashData)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	fmt.Printf("Take Transaction Sent: %s\n", tx.Hash().Hex())
 
-	return nil
+	return tx.Hash().Hex(), nil
+}
+
+func (s *Sender) SendVatHopeTx(vat *vat.Vat, usr common.Address) (string, error) {
+
+	opts, err := s.getOpts()
+	if err != nil {
+		return "", err
+	}
+
+	tx, err := vat.VatTransactor.Hope(opts, usr)
+	if err != nil {
+		return "", err
+	}
+
+	return tx.Hash().Hex(), nil
 }
