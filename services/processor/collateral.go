@@ -76,11 +76,18 @@ func (cp *collateralProcessor) processCollateral(sender *transaction.Sender, min
 	for id, auction := range cp.auctionCollection.auctions {
 		fmt.Printf("\tprocessing auction id: %d\n", id)
 
-		// TODO
-		//needsRedo, err := c.clipperLoader.GetAuctionStatus(a.Id)
-		//if err != nil {
-		//	continue
-		//}
+		needsRedo, err := cp.collateral.ClipperLoader.GetAuctionStatus(auction.Id)
+		if err != nil {
+			fmt.Printf("error in get auction status: %v\n", err)
+			continue
+		}
+		if needsRedo {
+			_, err = sender.SendRedoTx(cp.collateral.ClipperLoader.Clipper, auction.Id)
+			if err != nil {
+				fmt.Printf("error in sending redo transaction: %v\n", err)
+			}
+			continue
+		}
 
 		collateralPrice, err := cp.collateral.Clipper.Abacus.Price(nil, auction.Top, big.NewInt(int64(currentTime-auction.Tic)))
 		if err != nil {
