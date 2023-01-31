@@ -33,6 +33,8 @@ type Config struct {
 		Private string         `yaml:"Private"`
 		Address common.Address `yaml:"Address"`
 	}
+	ZarJoin                common.Address `yaml:"ZarJoin"`
+	Vat                    common.Address `yaml:"Vat"`
 	UniswapV3QuoterAddress common.Address `yaml:"UniswapV3QuoterAddress"`
 	Collaterals            []struct {
 		Name            string                    `yaml:"Name"`
