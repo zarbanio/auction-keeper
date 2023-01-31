@@ -101,7 +101,7 @@ func getCollaterals(cfg configs.Config, eth *ethclient.Client) (map[string]colla
 	return collaterals, nil
 }
 
-func clipperAllowance(eth *ethclient.Client, vatAddr, clipperAddr common.Address, sender *transaction.Sender) error {
+func clipperAllowance(eth *ethclient.Client, collateralName string, vatAddr, clipperAddr common.Address, sender *transaction.Sender) error {
 	vatInstance, err := vat.NewVat(vatAddr, eth)
 	if err != nil {
 		return err
@@ -113,12 +113,15 @@ func clipperAllowance(eth *ethclient.Client, vatAddr, clipperAddr common.Address
 	}
 
 	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
-		fmt.Println("HOPING CLIPPER IN VAT")
+		fmt.Printf("HOPING %s CLIPPER IN VAT\n", collateralName)
 		txHash, err := sender.SendVatHopeTx(vatInstance, clipperAddr)
 		if err != nil {
 			return err
 		}
-		fmt.Println("Hoped Clipper Contract in VAT ", txHash)
+
+		fmt.Printf("Hoped %s Clipper in VAT: %s\n", collateralName, txHash)
+	} else {
+		fmt.Printf("%s Clipper is Hoped in VAT \n", collateralName)
 	}
 	return nil
 }
@@ -140,7 +143,9 @@ func zarJoinAllowance(eth *ethclient.Client, vatAddr, zarJoinAddr common.Address
 		if err != nil {
 			return err
 		}
-		fmt.Println("Hoped ZAR_JOIN Contract in VAT ", txHash)
+		fmt.Println("Hoped ZAR_JOIN in VAT ", txHash)
+	} else {
+		fmt.Println("ZAR_JOIN is Hoped in VAT ")
 	}
 	return nil
 }
@@ -190,7 +195,7 @@ func Execute() {
 	  clipper and zarJoin Allowance
 	***************************************/
 	for _, c := range collaterals {
-		err = clipperAllowance(eth, cfg.Vat, c.Clipper.Address, sender)
+		err = clipperAllowance(eth, c.Name, cfg.Vat, c.Clipper.Address, sender)
 		if err != nil {
 			panic(err)
 		}
