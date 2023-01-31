@@ -84,6 +84,23 @@ func (s *Sender) SendTakeTx(clipper *clipper.Clipper, id, amt, maxPrice *big.Int
 	return tx.Hash().Hex(), nil
 }
 
+func (s *Sender) SendRedoTx(clipper *clipper.Clipper, id *big.Int) (string, error) {
+
+	opts, err := s.getOpts()
+	if err != nil {
+		return "", err
+	}
+
+	tx, err := clipper.ClipperTransactor.Redo(opts, id, s.Address)
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Printf("Redo Transaction Sent: %s\n", tx.Hash().Hex())
+
+	return tx.Hash().Hex(), nil
+}
+
 func (s *Sender) SendVatHopeTx(vat *vat.Vat, usr common.Address) (string, error) {
 
 	opts, err := s.getOpts()
@@ -95,6 +112,8 @@ func (s *Sender) SendVatHopeTx(vat *vat.Vat, usr common.Address) (string, error)
 	if err != nil {
 		return "", err
 	}
+
+	fmt.Printf("VatHope Transaction Sent: %s\n", tx.Hash().Hex())
 
 	return tx.Hash().Hex(), nil
 }
