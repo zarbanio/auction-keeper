@@ -101,20 +101,20 @@ func getCollaterals(cfg configs.Config, eth *ethclient.Client) (map[string]colla
 	return collaterals, nil
 }
 
-func clipperAllowance(eth *ethclient.Client, collateralName string, vatAddr, clipperAddr common.Address, sender *transaction.Sender) error {
+func clipperAllowance(eth *ethclient.Client, collateralName string, vatAddr, clipperAddr common.Address, sender transaction.ISender) error {
 	vatInstance, err := vat.NewVat(vatAddr, eth)
 	if err != nil {
 		return err
 	}
 
-	allowance, err := vatInstance.Can(nil, sender.Address, clipperAddr)
+	allowance, err := vatInstance.Can(nil, sender.GetAddress(), clipperAddr)
 	if err != nil {
 		return err
 	}
 
 	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
 		fmt.Printf("HOPING %s CLIPPER IN VAT\n", collateralName)
-		txHash, err := sender.SendVatHopeTx(vatInstance, clipperAddr)
+		txHash, err := sender.Hope(vatInstance, clipperAddr)
 		if err != nil {
 			return err
 		}
@@ -126,20 +126,20 @@ func clipperAllowance(eth *ethclient.Client, collateralName string, vatAddr, cli
 	return nil
 }
 
-func zarJoinAllowance(eth *ethclient.Client, vatAddr, zarJoinAddr common.Address, sender *transaction.Sender) error {
+func zarJoinAllowance(eth *ethclient.Client, vatAddr, zarJoinAddr common.Address, sender transaction.ISender) error {
 	vatInstance, err := vat.NewVat(vatAddr, eth)
 	if err != nil {
 		return err
 	}
 
-	allowance, err := vatInstance.Can(nil, sender.Address, zarJoinAddr)
+	allowance, err := vatInstance.Can(nil, sender.GetAddress(), zarJoinAddr)
 	if err != nil {
 		return err
 	}
 
 	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
 		fmt.Println("HOPING ZAR_JOIN IN VAT")
-		txHash, err := sender.SendVatHopeTx(vatInstance, zarJoinAddr)
+		txHash, err := sender.Hope(vatInstance, zarJoinAddr)
 		if err != nil {
 			return err
 		}
