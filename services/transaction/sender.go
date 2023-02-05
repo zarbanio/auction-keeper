@@ -4,8 +4,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
-	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -16,11 +14,11 @@ import (
 type Sender struct {
 	eth        *ethclient.Client
 	privateKey *ecdsa.PrivateKey
-	Address    common.Address
+	address    common.Address
 	chainId    *big.Int
 }
 
-func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int) (*Sender, error) {
+func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int) (ISender, error) {
 
 	prvKey, err := crypto.HexToECDSA(privateKey)
 	if err != nil {
@@ -38,14 +36,18 @@ func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int) (*Sen
 	return &Sender{
 		eth:        eth,
 		privateKey: prvKey,
-		Address:    address,
+		address:    address,
 		chainId:    chainId,
 	}, nil
 }
 
-func (s *Sender) getOpts() (*bind.TransactOpts, error) {
+func (s Sender) GetAddress() common.Address {
+	return s.address
+}
 
-	nonce, err := s.eth.PendingNonceAt(context.Background(), s.Address)
+func (s Sender) getOpts() (*bind.TransactOpts, error) {
+
+	nonce, err := s.eth.PendingNonceAt(context.Background(), s.GetAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -61,59 +63,8 @@ func (s *Sender) getOpts() (*bind.TransactOpts, error) {
 	}
 
 	opts.Nonce = big.NewInt(int64(nonce))
-	opts.GasLimit = uint64(300000) // in units //TODO
+	//opts.GasLimit = uint64(300000) // in units //TODO
 	opts.GasPrice = gasPrice
 
 	return opts, nil
-}
-
-func (s *Sender) SendTakeTx(clipper *clipper.Clipper, id, amt, maxPrice *big.Int, exchangeCalleeAddress common.Address, flashData []byte) (string, error) {
-
-	opts, err := s.getOpts()
-	if err != nil {
-		return "", err
-	}
-
-	tx, err := clipper.ClipperTransactor.Take(opts, id, amt, maxPrice, exchangeCalleeAddress, flashData)
-	if err != nil {
-		return "", err
-	}
-
-	fmt.Printf("Take Transaction Sent: %s\n", tx.Hash().Hex())
-
-	return tx.Hash().Hex(), nil
-}
-
-func (s *Sender) SendRedoTx(clipper *clipper.Clipper, id *big.Int) (string, error) {
-
-	opts, err := s.getOpts()
-	if err != nil {
-		return "", err
-	}
-
-	tx, err := clipper.ClipperTransactor.Redo(opts, id, s.Address)
-	if err != nil {
-		return "", err
-	}
-
-	fmt.Printf("Redo Transaction Sent: %s\n", tx.Hash().Hex())
-
-	return tx.Hash().Hex(), nil
-}
-
-func (s *Sender) SendVatHopeTx(vat *vat.Vat, usr common.Address) (string, error) {
-
-	opts, err := s.getOpts()
-	if err != nil {
-		return "", err
-	}
-
-	tx, err := vat.VatTransactor.Hope(opts, usr)
-	if err != nil {
-		return "", err
-	}
-
-	fmt.Printf("VatHope Transaction Sent: %s\n", tx.Hash().Hex())
-
-	return tx.Hash().Hex(), nil
 }
