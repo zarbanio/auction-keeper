@@ -1,7 +1,7 @@
 package processor
 
 import (
-	"github.com/IR-Digital-Token/auction-keeper/entities"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"math/big"
 	"sync"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/uniswap_v3_quoter"
-	"github.com/IR-Digital-Token/auction-keeper/entities"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"

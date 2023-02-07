@@ -1,3 +1,5 @@
+auction-keeper
+
 # binding files
 bindings/*/*.go
 bindings/*/*/*.go
@@ -16,8 +18,8 @@ eh-gen
 .idea
 
 #Hardhat files
-cache
-artifacts
+contracts/cache
+contracts/artifacts
 
 #ts
 node_modules

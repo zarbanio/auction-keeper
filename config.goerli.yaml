@@ -2,6 +2,8 @@ Indexer:
   BlockInterval: '10s'
   PoolSize: 2
   BlockPtr: 8233707
+Redis:
+  URL: 'auction-keeper-redis:6379'
 Network:
   ChainId: 5
   NativeAsset:
