@@ -13,11 +13,26 @@ import (
 func Frobs(msg *messages.Message, redisCache cache.ICache, loader *loaders.VaultLoader) error {
 	var ilkId [32]byte
 	copy(ilkId[:], msg.Metadata.Get("ilkName"))
-	urnU := common.HexToAddress(msg.Metadata.Get("urnU"))
-	urnV := common.HexToAddress(msg.Metadata.Get("urnV"))
-	urnW := common.HexToAddress(msg.Metadata.Get("urnW"))
+	urn := common.HexToAddress(msg.Metadata.Get("urn"))
 
-	return UrnManipulation(redisCache, loader, ilkId, urnU, urnV, urnW)
+	return UrnManipulation(redisCache, loader, ilkId, urn)
+}
+
+func Forks(msg *messages.Message, redisCache cache.ICache, loader *loaders.VaultLoader) error {
+	var ilkId [32]byte
+	copy(ilkId[:], msg.Metadata.Get("ilkName"))
+	urnSrc := common.HexToAddress(msg.Metadata.Get("urnSrc"))
+	urnDst := common.HexToAddress(msg.Metadata.Get("urnDst"))
+
+	return UrnManipulation(redisCache, loader, ilkId, urnSrc, urnDst)
+}
+
+func Grabs(msg *messages.Message, redisCache cache.ICache, loader *loaders.VaultLoader) error {
+	var ilkId [32]byte
+	copy(ilkId[:], msg.Metadata.Get("ilkName"))
+	urn := common.HexToAddress(msg.Metadata.Get("urn"))
+
+	return UrnManipulation(redisCache, loader, ilkId, urn)
 }
 
 func UrnManipulation(redisCache cache.ICache, loader *loaders.VaultLoader, ilkId [32]byte, urns ...common.Address) error {

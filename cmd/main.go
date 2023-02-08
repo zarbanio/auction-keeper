@@ -34,6 +34,12 @@ func startSubscribeEvents(ps pubsub.Pubsub, redisCache cache.ICache, vaultLoader
 	_ = ps.Subscribe(context.Background(), "events.vat.frobs", func(msg *messages.Message) error {
 		return jobs.Frobs(msg, redisCache, vaultLoader)
 	})
+	_ = ps.Subscribe(context.Background(), "events.vat.forks", func(msg *messages.Message) error {
+		return jobs.Forks(msg, redisCache, vaultLoader)
+	})
+	_ = ps.Subscribe(context.Background(), "events.vat.grabs", func(msg *messages.Message) error {
+		return jobs.Grabs(msg, redisCache, vaultLoader)
+	})
 }
 
 func registerEventHandlers(indexer *chain.Indexer, ps pubsub.Pubsub, eth *ethclient.Client, liquidatorProcessor *processor.LiquidatorProcessor, collaterals map[string]collateral.Collateral, vatAddress common.Address) {
@@ -47,6 +53,8 @@ func registerEventHandlers(indexer *chain.Indexer, ps pubsub.Pubsub, eth *ethcli
 
 	println("Register callbacks on vat event (frob, fork, grub) triggers come from the indexer.")
 	indexer.RegisterEventHandler(vat.NewFrobHandler(vatAddress, eth, callbacks.VatFrobCallback(ps)))
+	indexer.RegisterEventHandler(vat.NewForkHandler(vatAddress, eth, callbacks.VatForkCallback(ps)))
+	indexer.RegisterEventHandler(vat.NewGrabHandler(vatAddress, eth, callbacks.VatGrabCallback(ps)))
 
 	println("Done\n")
 }
