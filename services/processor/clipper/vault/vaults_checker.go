@@ -81,7 +81,7 @@ func (vc *VaultChecker) Start() {
 			dogIlks[ilkName] = dogIlk
 		}
 
-		// vatIlk.rate changes every block, so try to read from cache if it doesn't exist get ilk from vat and save it in cache for 10 seconds
+		// vatIlk.rate changes every block, so try to read from cache if it doesn't exist get ilk from vat and save it in cache for 12 seconds
 		vatIlk, err := vc.cache.GetVatIlkById(context.Background(), ilkId)
 		if errors.Is(err, cache.ErrIlkNotFound) {
 			vatIlk, err = vc.vatLoader.GetIlkById(context.Background(), ilkId)
@@ -89,7 +89,7 @@ func (vc *VaultChecker) Start() {
 				log.Printf("error in getting ilk from vat. ilkName:%s  error:%v", ilkName, err)
 				continue
 			}
-			err := vc.cache.SaveVatIlk(context.Background(), *vatIlk, 10*time.Second)
+			err := vc.cache.SaveVatIlk(context.Background(), *vatIlk, 12*time.Second)
 			if err != nil {
 				log.Printf("error in saving vat ilk to vat. ilkName:%s  error:%v", ilkName, err)
 				continue
