@@ -122,11 +122,11 @@ func canBark(urn entities.Urn, vatIlk entities.VatIlk, dogHole, dogDirt, ilkHole
 			Collateral value should be less than the product of our stablecoin debt and the debt multiplier
 		    require(spot > 0 && mul(ink, spot) < mul(art, rate), "Dog/not-unsafe");
 	*/
-	// TODO: in contract doesn't convert Ink and Art to RAY
-	inkRay := math.IntToRay(urn.Ink) // convert to RAY
-	artRay := math.IntToRay(urn.Art) // convert to RAY
+	if vatIlk.Spot.Cmp(big.NewInt(0)) <= 0 {
+		return false
+	}
 
-	safe := new(big.Int).Mul(inkRay, vatIlk.Spot).Cmp(new(big.Int).Mul(artRay, vatIlk.Rate)) >= 0
+	safe := new(big.Int).Mul(urn.Ink, vatIlk.Spot).Cmp(new(big.Int).Mul(urn.Art, vatIlk.Rate)) >= 0
 	if safe {
 		return false
 	}
@@ -153,11 +153,12 @@ func canBark(urn entities.Urn, vatIlk entities.VatIlk, dogHole, dogDirt, ilkHole
 	   Prevent dusty partial liquidation
 	*/
 	room := math.BigMin(dogRoom, ilkRoom)
-	dart := math.BigMin(urn.Art, new(big.Int).Div(new(big.Int).Div(room, vatIlk.Rate), chop)) // TODO: Wad & Rad
+	wadRoom := new(big.Int).Mul(room, math.Wad)
+	dart := math.BigMin(urn.Art, new(big.Int).Div(new(big.Int).Div(wadRoom, vatIlk.Rate), chop))
 	if urn.Art.Cmp(dart) > 0 {
-		if new(big.Int).Sub(new(big.Int).Mul(urn.Art, dart), vatIlk.Rate).Cmp(vatIlk.Dust) < 0 { // TODO: Rad
+		if new(big.Int).Mul(new(big.Int).Sub(urn.Art, dart), vatIlk.Rate).Cmp(vatIlk.Dust) < 0 {
 			return true
-		} else if new(big.Int).Mul(dart, vatIlk.Rate).Cmp(vatIlk.Dust) < 0 { // TODO: Rad
+		} else if new(big.Int).Mul(dart, vatIlk.Rate).Cmp(vatIlk.Dust) < 0 {
 			// require(mul(dart, rate) >= dust, "Dog/dusty-auction-from-partial-liquidation");
 			return false
 		}
