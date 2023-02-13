@@ -2,8 +2,8 @@ package entities
 
 import "math/big"
 
-type Ilk struct {
-	Id   [32]byte `json:"-"`
+type VatIlk struct {
+	Id   [32]byte `json:"id"`
 	Name string   `json:"name"`
 	Art  *big.Int `json:"art"`
 	Rate *big.Int `json:"rate"`

@@ -13,6 +13,7 @@ import (
 	"github.com/IR-Digital-Token/auction-keeper/services/jobs"
 	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
 	"github.com/IR-Digital-Token/auction-keeper/services/processor"
+	"github.com/IR-Digital-Token/auction-keeper/services/processor/clipper/vault"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
 	"github.com/IR-Digital-Token/x/chain"
@@ -137,7 +138,7 @@ func clipperAllowance(eth *ethclient.Client, collateralName string, vatAddr, cli
 
 	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
 		fmt.Printf("HOPING %s CLIPPER IN VAT\n", collateralName)
-		txHash, err := sender.Hope(vatInstance, clipperAddr)
+		txHash, err := sender.Hope(clipperAddr)
 		if err != nil {
 			return err
 		}
@@ -162,7 +163,7 @@ func zarJoinAllowance(eth *ethclient.Client, vatAddr, zarJoinAddr common.Address
 
 	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
 		fmt.Println("HOPING ZAR_JOIN IN VAT")
-		txHash, err := sender.Hope(vatInstance, zarJoinAddr)
+		txHash, err := sender.Hope(zarJoinAddr)
 		if err != nil {
 			return err
 		}
@@ -190,6 +191,10 @@ func Execute() {
 	vaultLoader := loaders.NewVaultLoader(
 		eth,
 		cfg.Vat,
+	)
+	dogLoader := loaders.NewDogLoader(
+		eth,
+		cfg.Dog,
 	)
 
 	blockPtr := chain.NewFileBlockPointer(".", "goerli.ptr", cfg.Indexer.BlockPtr)
@@ -220,7 +225,7 @@ func Execute() {
 	/***************************************
 	 			import wallet
 	***************************************/
-	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
+	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId), cfg.Vat, cfg.Dog)
 	if err != nil {
 		panic(err)
 	}
@@ -271,7 +276,22 @@ func Execute() {
 			}
 		}
 	}()
+
 	/* -------------------------------------------------------------------------- */
+	/*                       start checkin vaults                                 */
+	/* -------------------------------------------------------------------------- */
+	vaultsChecker := vault.NewVaultsChecker(redisCache, sender, dogLoader, vaultLoader)
+	vaultsCheckerTicker := time.NewTicker(60 * time.Second) // TODO: set time in config file
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-vaultsCheckerTicker.C:
+				vaultsChecker.Start()
+			}
+		}
+	}()
 
 	/* -------------------------------------------------------------------------- */
 	/*                     register contract events on indexer                    */

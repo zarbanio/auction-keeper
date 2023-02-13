@@ -34,3 +34,11 @@ func DecimalFromString(str string) decimal.Decimal {
 	ret, _ := decimal.NewFromString(str)
 	return ret
 }
+
+// BigMin returns the smaller of x or y.
+func BigMin(x, y *big.Int) *big.Int {
+	if x.Cmp(y) > 0 {
+		return y
+	}
+	return x
+}

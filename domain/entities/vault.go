@@ -7,5 +7,5 @@ import (
 type Vault struct {
 	UrnAddress common.Address `json:"urn_address"`
 	Urn        Urn            `json:"urn"`
-	Ilk        Ilk            `json:"ilk"`
+	IlkId      [32]byte       `json:"ilk_id"`
 }

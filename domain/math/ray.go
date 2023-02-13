@@ -34,6 +34,10 @@ var (
 	RadDecimals = 45
 )
 
+func IntToRay(a *big.Int) *big.Int {
+	return new(big.Int).Exp(a, Ray, nil)
+}
+
 func WadMul(a, b *big.Int) *big.Int {
 	mul := new(big.Int).Mul(a, b)
 	sum := new(big.Int).Add(HalfWad, mul)
