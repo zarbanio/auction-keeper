@@ -3,7 +3,6 @@ package loaders
 import (
 	"context"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
-	"github.com/IR-Digital-Token/auction-keeper/cache"
 	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -12,8 +11,7 @@ import (
 )
 
 type VaultLoader struct {
-	store cache.ICache
-	vat   *vat.Vat
+	vat *vat.Vat
 }
 
 func NewVaultLoader(eth *ethclient.Client, vatAddr common.Address) *VaultLoader {
