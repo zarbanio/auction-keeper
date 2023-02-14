@@ -21,7 +21,7 @@ type Sender struct {
 	chainId    *big.Int
 }
 
-func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int) (*Sender, error) {
+func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int) (ISender, error) {
 
 	prvKey, err := crypto.HexToECDSA(privateKey)
 	if err != nil {
@@ -44,9 +44,13 @@ func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int) (*Sen
 	}, nil
 }
 
-func (s *Sender) getOpts() (*bind.TransactOpts, error) {
+func (s Sender) GetAddress() common.Address {
+	return s.address
+}
 
-	nonce, err := s.eth.PendingNonceAt(context.Background(), s.address)
+func (s Sender) getOpts() (*bind.TransactOpts, error) {
+
+	nonce, err := s.eth.PendingNonceAt(context.Background(), s.GetAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +66,7 @@ func (s *Sender) getOpts() (*bind.TransactOpts, error) {
 	}
 
 	opts.Nonce = big.NewInt(int64(nonce))
-	opts.GasLimit = uint64(300000) // in units //TODO
+	//opts.GasLimit = uint64(300000) // in units //TODO
 	opts.GasPrice = gasPrice
 
 	return opts, nil

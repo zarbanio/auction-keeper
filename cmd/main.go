@@ -2,24 +2,29 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/clip"
+	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
+	"github.com/IR-Digital-Token/auction-keeper/collateral"
 	"github.com/IR-Digital-Token/auction-keeper/configs"
 	"github.com/IR-Digital-Token/auction-keeper/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/callbacks"
 	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
 	"github.com/IR-Digital-Token/auction-keeper/services/processor"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
+	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
 	"github.com/IR-Digital-Token/x/chain"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
+	"math/big"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 )
 
-func registerEventHandlers(indexer *chain.Indexer, eth *ethclient.Client, liquidatorProcessor *processor.LiquidatorProcessor, collaterals map[string]entities.Collateral) {
+func registerEventHandlers(indexer *chain.Indexer, eth *ethclient.Client, liquidatorProcessor *processor.LiquidatorProcessor, collaterals map[string]collateral.Collateral) {
 	println("Register callbacks on event triggers come from the indexer.")
 
 	for _, v := range collaterals {
@@ -31,17 +36,17 @@ func registerEventHandlers(indexer *chain.Indexer, eth *ethclient.Client, liquid
 	println("Done\n")
 }
 
-func getActiveAuctions(collaterals map[string]entities.Collateral, liquidatorProcessor *processor.LiquidatorProcessor) error {
+func getActiveAuctions(collaterals map[string]collateral.Collateral, liquidatorProcessor *processor.LiquidatorProcessor) error {
 	println("Get active auctions from clippers.")
 
 	for _, c := range collaterals {
-		auctionsIds, err := c.Clipper.Loader.GetActiveAuctions()
+		auctionsIds, err := c.ClipperLoader.GetActiveAuctions()
 		if err != nil {
 			return err
 		}
 
 		for _, auctionId := range auctionsIds {
-			sale, err := c.Clipper.Loader.GetSale(auctionId)
+			sale, err := c.ClipperLoader.GetSale(auctionId)
 			if err != nil {
 				return err
 			}
@@ -53,21 +58,16 @@ func getActiveAuctions(collaterals map[string]entities.Collateral, liquidatorPro
 	return nil
 }
 
-func getCollaterals(cfg configs.Config, eth *ethclient.Client) (map[string]entities.Collateral, error) {
-	collaterals := make(map[string]entities.Collateral)
-
-	type cConfig struct {
-		name           string
-		clipperAddress common.Address
-		gemJoinAdapter common.Address
+func getCollaterals(cfg configs.Config, eth *ethclient.Client) (map[string]collateral.Collateral, error) {
+	uniswapV3Quoter, err := uniswap_v3.NewUniswapV3Quoter(eth, cfg.UniswapV3QuoterAddress)
+	if err != nil {
+		return nil, err
 	}
-	collateralsConfig := make([]cConfig, 2)
 
-	collateralsConfig = append(collateralsConfig, cConfig{"ETHA", cfg.Collaterals.ETHA.Clipper, cfg.Collaterals.ETHA.GemJoinAdapter})
-	collateralsConfig = append(collateralsConfig, cConfig{"ETHB", cfg.Collaterals.ETHB.Clipper, cfg.Collaterals.ETHB.GemJoinAdapter})
+	collaterals := make(map[string]collateral.Collateral)
 
-	for _, collateralConfig := range collateralsConfig {
-		clipperLoader, err := loaders.NewClipperLoader(eth, collateralConfig.clipperAddress)
+	for _, collateralConfig := range cfg.Collaterals {
+		clipperLoader, err := loaders.NewClipperLoader(eth, collateralConfig.Clipper)
 		if err != nil {
 			return nil, err
 		}
@@ -82,19 +82,72 @@ func getCollaterals(cfg configs.Config, eth *ethclient.Client) (map[string]entit
 			return nil, err
 		}
 
-		collaterals[collateralConfig.name] = entities.Collateral{
-			Name: collateralConfig.name,
+		collaterals[collateralConfig.Name] = collateral.Collateral{
+			Name:    collateralConfig.Name,
+			Decimal: big.NewInt(collateralConfig.Decimals),
 			Clipper: entities.Clipper{
-				Loader:  clipperLoader,
-				Address: collateralConfig.clipperAddress,
+				Address: collateralConfig.Clipper,
 				Chost:   chost,
 				Abacus:  abacus,
 			},
-			GemJoinAdapter: collateralConfig.gemJoinAdapter,
+			ClipperLoader:   clipperLoader,
+			GemJoinAdapter:  collateralConfig.GemJoinAdapter,
+			UniswapV3Callee: collateralConfig.UniswapV3Callee,
+			UniswapV3Path:   collateralConfig.UniswapV3Path,
+			UniswapV3Quoter: uniswapV3Quoter,
 		}
 	}
 
 	return collaterals, nil
+}
+
+func clipperAllowance(eth *ethclient.Client, collateralName string, vatAddr, clipperAddr common.Address, sender transaction.ISender) error {
+	vatInstance, err := vat.NewVat(vatAddr, eth)
+	if err != nil {
+		return err
+	}
+
+	allowance, err := vatInstance.Can(nil, sender.GetAddress(), clipperAddr)
+	if err != nil {
+		return err
+	}
+
+	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
+		fmt.Printf("HOPING %s CLIPPER IN VAT\n", collateralName)
+		txHash, err := sender.Hope(vatInstance, clipperAddr)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Hoped %s Clipper in VAT: %s\n", collateralName, txHash)
+	} else {
+		fmt.Printf("%s Clipper is Hoped in VAT \n", collateralName)
+	}
+	return nil
+}
+
+func zarJoinAllowance(eth *ethclient.Client, vatAddr, zarJoinAddr common.Address, sender transaction.ISender) error {
+	vatInstance, err := vat.NewVat(vatAddr, eth)
+	if err != nil {
+		return err
+	}
+
+	allowance, err := vatInstance.Can(nil, sender.GetAddress(), zarJoinAddr)
+	if err != nil {
+		return err
+	}
+
+	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
+		fmt.Println("HOPING ZAR_JOIN IN VAT")
+		txHash, err := sender.Hope(vatInstance, zarJoinAddr)
+		if err != nil {
+			return err
+		}
+		fmt.Println("Hoped ZAR_JOIN in VAT ", txHash)
+	} else {
+		fmt.Println("ZAR_JOIN is Hoped in VAT ")
+	}
+	return nil
 }
 
 func Execute() {
@@ -133,7 +186,21 @@ func Execute() {
 	/***************************************
 	 			import wallet
 	***************************************/
-	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, cfg.Network.ChainId)
+	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
+	if err != nil {
+		panic(err)
+	}
+
+	/***************************************
+	  clipper and zarJoin Allowance
+	***************************************/
+	for _, c := range collaterals {
+		err = clipperAllowance(eth, c.Name, cfg.Vat, c.Clipper.Address, sender)
+		if err != nil {
+			panic(err)
+		}
+	}
+	err = zarJoinAllowance(eth, cfg.Vat, cfg.ZarJoin, sender)
 	if err != nil {
 		panic(err)
 	}
@@ -141,9 +208,9 @@ func Execute() {
 	/* -------------------------------------------------------------------------- */
 	/*  get active auctions and add them in auction processor and start processor */
 	liquidatorConfig := &processor.LiquidatorConfig{
-		MinProfitPercentage: cfg.Processor.MinProfitPercentage,
-		MinLotZarValue:      cfg.Processor.MinLotZarValue,
-		MaxLotZarValue:      cfg.Processor.MaxLotZarValue,
+		MinProfitPercentage: big.NewInt(cfg.Processor.MinProfitPercentage),
+		MinLotZarValue:      big.NewInt(cfg.Processor.MinLotZarValue),
+		MaxLotZarValue:      big.NewInt(cfg.Processor.MaxLotZarValue),
 		ProfitAddress:       cfg.Wallet.Address,
 	}
 	liquidatorProcessor := processor.NewLiquidatorProcessor(eth, sender, collaterals, liquidatorConfig)

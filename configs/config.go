@@ -1,9 +1,9 @@
 package configs
 
 import (
+	"github.com/IR-Digital-Token/auction-keeper/entities"
 	"github.com/ethereum/go-ethereum/common"
 	"log"
-	"math/big"
 	"reflect"
 	"time"
 
@@ -18,7 +18,7 @@ type Config struct {
 		BlockPtr      uint64        `yaml:"BlockPtr"`
 	} `yaml:"General"`
 	Network struct {
-		ChainId     *big.Int `yaml:"ChainId"`
+		ChainId     int64 `yaml:"ChainId"`
 		NativeAsset struct {
 			Name        string         `yaml:"Name"`
 			Symbol      string         `yaml:"Symbol"`
@@ -33,20 +33,22 @@ type Config struct {
 		Private string         `yaml:"Private"`
 		Address common.Address `yaml:"Address"`
 	}
-	Collaterals struct {
-		ETHA struct {
-			Clipper        common.Address `yaml:"Clipper"`
-			GemJoinAdapter common.Address `yaml:"GemJoinAdapter"`
-		}
-		ETHB struct {
-			Clipper        common.Address `yaml:"Clipper"`
-			GemJoinAdapter common.Address `yaml:"GemJoinAdapter"`
-		}
+	ZarJoin                common.Address `yaml:"ZarJoin"`
+	Vat                    common.Address `yaml:"Vat"`
+	UniswapV3QuoterAddress common.Address `yaml:"UniswapV3QuoterAddress"`
+	Collaterals            []struct {
+		Name            string                    `yaml:"Name"`
+		Erc20addr       common.Address            `yaml:"Erc20addr"`
+		Decimals        int64                     `yaml:"Decimals"`
+		Clipper         common.Address            `yaml:"Clipper"`
+		GemJoinAdapter  common.Address            `yaml:"GemJoinAdapter"`
+		UniswapV3Callee common.Address            `yaml:"UniswapV3Callee"`
+		UniswapV3Path   []entities.UniswapV3Route `yaml:"UniswapV3Path"`
 	}
 	Processor struct {
-		MinProfitPercentage *big.Int `yaml:"MinProfitPercentage"`
-		MinLotZarValue      *big.Int `yaml:"MinLotZarValue"`
-		MaxLotZarValue      *big.Int `yaml:"MaxLotZarValue"`
+		MinProfitPercentage int64 `yaml:"MinProfitPercentage"`
+		MinLotZarValue      int64 `yaml:"MinLotZarValue"`
+		MaxLotZarValue      int64 `yaml:"MaxLotZarValue"`
 	}
 }
 

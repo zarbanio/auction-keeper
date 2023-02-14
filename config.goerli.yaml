@@ -13,10 +13,43 @@ Network:
     Api: 'https://rpc.ankr.com/eth_goerli'
 Wallet:
   Private: ''
-  Address: '0xb94c551347D04DA5a815844f464AD48918E48686'
-Contracts:
-  ETHAClipper: ''
-  ETHBClipper: ''
+  Address: ''
+ZarJoin: '0x0216C83b8C7984AF8c10d95A656a003DfF8D2266' # TODO: this is for Sim (not Zar)
+Vat: '0x14708C939B71A9686568EA5c8E16C5e65B899347' # TODO: this is for Sim (not Zar)
+UniswapV3QuoterAddress: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6'
+Collaterals:
+  -
+    Name: 'ETHA'
+    Erc20addr: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
+    Decimals: 18
+    Clipper: '0x7Dfd4834d5731dC45da97E561931dFBEF0dCc2FA'
+    GemJoinAdapter: '0x03F6141bFda8e2925b46BB62a1Aa0Aeac904FfEB'
+    UniswapV3Callee: '0x2C481220362df6a2FBCadaF1F7ff4D4C579A8b5d' # TODO: this is for Sim (not Zar)
+    UniswapV3Path:
+      -
+        Fee: 10000
+        TokenA: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
+        TokenB: '0x7df1d674021792630e15eca46467516660e021af' # WETH -> DAI
+      -
+        Fee: 10000
+        TokenA: '0x7df1d674021792630e15eca46467516660e021af'
+        TokenB: '0xC7021F15D7Ac6a6c76C9EfA662Fa3BADC62B2a52' # DAI -> SIM # TODO: this is for Sim (not Zar)
+  -
+    Name: 'ETHB'
+    Erc20addr: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
+    Decimals: 18
+    Clipper: '0x92a8F182E27692f8EcCc08C80642Ad24735DB4bf'
+    GemJoinAdapter: '0x5b844f6276582ed8bB6D47A3B0c7001D1F47aAED'
+    UniswapV3Callee: '0x2C481220362df6a2FBCadaF1F7ff4D4C579A8b5d' # TODO: this is for Sim (not Zar)
+    UniswapV3Path:
+      -
+        Fee: 10000
+        TokenA: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
+        TokenB: '0x7df1d674021792630e15eca46467516660e021af' # WETH -> DAI
+      -
+        Fee: 10000
+        TokenA: '0x7df1d674021792630e15eca46467516660e021af'
+        TokenB: '0xC7021F15D7Ac6a6c76C9EfA662Fa3BADC62B2a52' # DAI -> SIM # TODO: this is for Sim (not Zar)
 Processor:
   MinProfitPercentage: 1.025
   MinLotZarValue: 0

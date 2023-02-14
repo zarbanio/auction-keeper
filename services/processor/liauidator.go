@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"github.com/IR-Digital-Token/auction-keeper/collateral"
 	"github.com/IR-Digital-Token/auction-keeper/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"github.com/ethereum/go-ethereum/common"
@@ -17,23 +18,22 @@ type LiquidatorConfig struct {
 }
 
 type LiquidatorProcessor struct {
-	collateralsProcessor map[string]collateralProcessor
+	collateralsProcessor map[string]*collateralProcessor
 	config               *LiquidatorConfig
-	sender               *transaction.Sender
+	sender               transaction.ISender
 	processing           sync.Mutex
 }
 
-func NewLiquidatorProcessor(eth *ethclient.Client, sender *transaction.Sender, collaterals map[string]entities.Collateral, liquidatorConfig *LiquidatorConfig) *LiquidatorProcessor {
+func NewLiquidatorProcessor(eth *ethclient.Client, sender transaction.ISender, collaterals map[string]collateral.Collateral, liquidatorConfig *LiquidatorConfig) *LiquidatorProcessor {
 	liquidatorProcessor := &LiquidatorProcessor{
-		config: liquidatorConfig,
-		sender: sender,
+		collateralsProcessor: make(map[string]*collateralProcessor),
+		config:               liquidatorConfig,
+		sender:               sender,
+		processing:           sync.Mutex{},
 	}
 
 	for key, collateral := range collaterals {
-		cp := collateralProcessor{
-			eth:        eth,
-			collateral: collateral,
-		}
+		cp := NewCollateralProcessor(eth, collateral)
 		liquidatorProcessor.collateralsProcessor[key] = cp
 	}
 
@@ -64,7 +64,7 @@ func (lp *LiquidatorProcessor) StartProcessing() {
 	lp.processing.Lock()
 	defer lp.processing.Unlock()
 
-	minProfitPercentage := new(big.Int).Mul(lp.config.MinProfitPercentage, Decimals18)
+	minProfitPercentage := new(big.Int).Mul(lp.config.MinProfitPercentage, Decimals15)
 
 	for _, cp := range lp.collateralsProcessor {
 		cp.processCollateral(lp.sender, minProfitPercentage, lp.config.MinLotZarValue, lp.config.MaxLotZarValue, lp.config.ProfitAddress)
