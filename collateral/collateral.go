@@ -1,7 +1,7 @@
 package collateral
 
 import (
-	"github.com/IR-Digital-Token/auction-keeper/entities"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
 	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
 	"github.com/ethereum/go-ethereum/common"

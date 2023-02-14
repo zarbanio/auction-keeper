@@ -1,7 +1,7 @@
 package configs
 
 import (
-	"github.com/IR-Digital-Token/auction-keeper/entities"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/ethereum/go-ethereum/common"
 	"log"
 	"reflect"
@@ -17,6 +17,9 @@ type Config struct {
 		PoolSize      int           `yaml:"PoolSize"`
 		BlockPtr      uint64        `yaml:"BlockPtr"`
 	} `yaml:"General"`
+	Redis struct {
+		URL string `yaml:"URL"`
+	}
 	Network struct {
 		ChainId     int64 `yaml:"ChainId"`
 		NativeAsset struct {
@@ -35,6 +38,7 @@ type Config struct {
 	}
 	ZarJoin                common.Address `yaml:"ZarJoin"`
 	Vat                    common.Address `yaml:"Vat"`
+	Dog                    common.Address `yaml:"Dog"`
 	UniswapV3QuoterAddress common.Address `yaml:"UniswapV3QuoterAddress"`
 	Collaterals            []struct {
 		Name            string                    `yaml:"Name"`

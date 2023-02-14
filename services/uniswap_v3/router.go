@@ -3,7 +3,7 @@ package uniswap_v3
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/IR-Digital-Token/auction-keeper/entities"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"strings"
 )
 
