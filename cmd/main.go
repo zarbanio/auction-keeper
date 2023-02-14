@@ -5,15 +5,21 @@ import (
 	"fmt"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/clip"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
+	"github.com/IR-Digital-Token/auction-keeper/cache"
 	"github.com/IR-Digital-Token/auction-keeper/collateral"
 	"github.com/IR-Digital-Token/auction-keeper/configs"
-	"github.com/IR-Digital-Token/auction-keeper/entities"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/callbacks"
+	"github.com/IR-Digital-Token/auction-keeper/services/jobs"
 	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
 	"github.com/IR-Digital-Token/auction-keeper/services/processor"
+	"github.com/IR-Digital-Token/auction-keeper/services/processor/clipper/vault"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
 	"github.com/IR-Digital-Token/x/chain"
+	"github.com/IR-Digital-Token/x/messages"
+	"github.com/IR-Digital-Token/x/pubsub"
+	"github.com/IR-Digital-Token/x/pubsub/gochannel"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
@@ -24,7 +30,20 @@ import (
 	"time"
 )
 
-func registerEventHandlers(indexer *chain.Indexer, eth *ethclient.Client, liquidatorProcessor *processor.LiquidatorProcessor, collaterals map[string]collateral.Collateral) {
+func startSubscribeEvents(ps pubsub.Pubsub, redisCache cache.ICache, vaultLoader *loaders.VaultLoader) {
+	log.Println("subscribe Jobs for goChanel PubSub events.")
+	_ = ps.Subscribe(context.Background(), "events.vat.frobs", func(msg *messages.Message) error {
+		return jobs.Frobs(msg, redisCache, vaultLoader)
+	})
+	_ = ps.Subscribe(context.Background(), "events.vat.forks", func(msg *messages.Message) error {
+		return jobs.Forks(msg, redisCache, vaultLoader)
+	})
+	_ = ps.Subscribe(context.Background(), "events.vat.grabs", func(msg *messages.Message) error {
+		return jobs.Grabs(msg, redisCache, vaultLoader)
+	})
+}
+
+func registerEventHandlers(indexer *chain.Indexer, ps pubsub.Pubsub, eth *ethclient.Client, liquidatorProcessor *processor.LiquidatorProcessor, collaterals map[string]collateral.Collateral, vatAddress common.Address) {
 	println("Register callbacks on event triggers come from the indexer.")
 
 	for _, v := range collaterals {
@@ -32,6 +51,11 @@ func registerEventHandlers(indexer *chain.Indexer, eth *ethclient.Client, liquid
 		indexer.RegisterEventHandler(clipper.NewRedoHandler(v.Clipper.Address, eth, callbacks.ClipperRedoCallback(liquidatorProcessor, v.Name)))
 		indexer.RegisterEventHandler(clipper.NewTakeHandler(v.Clipper.Address, eth, callbacks.ClipperTakeCallback(liquidatorProcessor, v.Name)))
 	}
+
+	println("Register callbacks on vat event (frob, fork, grub) triggers come from the indexer.")
+	indexer.RegisterEventHandler(vat.NewFrobHandler(vatAddress, eth, callbacks.VatFrobCallback(ps)))
+	indexer.RegisterEventHandler(vat.NewForkHandler(vatAddress, eth, callbacks.VatForkCallback(ps)))
+	indexer.RegisterEventHandler(vat.NewGrabHandler(vatAddress, eth, callbacks.VatGrabCallback(ps)))
 
 	println("Done\n")
 }
@@ -114,7 +138,7 @@ func clipperAllowance(eth *ethclient.Client, collateralName string, vatAddr, cli
 
 	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
 		fmt.Printf("HOPING %s CLIPPER IN VAT\n", collateralName)
-		txHash, err := sender.Hope(vatInstance, clipperAddr)
+		txHash, err := sender.Hope(clipperAddr)
 		if err != nil {
 			return err
 		}
@@ -139,7 +163,7 @@ func zarJoinAllowance(eth *ethclient.Client, vatAddr, zarJoinAddr common.Address
 
 	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
 		fmt.Println("HOPING ZAR_JOIN IN VAT")
-		txHash, err := sender.Hope(vatInstance, zarJoinAddr)
+		txHash, err := sender.Hope(zarJoinAddr)
 		if err != nil {
 			return err
 		}
@@ -151,12 +175,27 @@ func zarJoinAllowance(eth *ethclient.Client, vatAddr, zarJoinAddr common.Address
 }
 
 func Execute() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	cfg := configs.ReadConfig("config.yaml")
+
+	// get application connection
+	redisCache := cache.NewRedisStore(cfg.Redis.URL)
 
 	eth, err := ethclient.Dial(cfg.Network.Node.Api)
 	if err != nil {
 		panic(err)
 	}
+
+	// get loaders
+	vaultLoader := loaders.NewVaultLoader(
+		eth,
+		cfg.Vat,
+	)
+	dogLoader := loaders.NewDogLoader(
+		eth,
+		cfg.Dog,
+	)
 
 	blockPtr := chain.NewFileBlockPointer(".", "goerli.ptr", cfg.Indexer.BlockPtr)
 	if !blockPtr.Exists() {
@@ -186,7 +225,7 @@ func Execute() {
 	/***************************************
 	 			import wallet
 	***************************************/
-	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
+	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId), cfg.Vat, cfg.Dog)
 	if err != nil {
 		panic(err)
 	}
@@ -219,6 +258,12 @@ func Execute() {
 		panic(err)
 	}
 
+	// This GoChannel is not persistent.
+	//That means if you send a message to a topic to which no subscriber is subscribed, that message will be discarded.
+	ps := gochannel.NewGoChannel(128)
+	// start subscribe on chanels
+	startSubscribeEvents(ps, redisCache, vaultLoader)
+
 	ticker := time.NewTicker(60 * time.Second)
 	done := make(chan bool)
 	go func() {
@@ -231,12 +276,27 @@ func Execute() {
 			}
 		}
 	}()
+
 	/* -------------------------------------------------------------------------- */
+	/*                       start checkin vaults                                 */
+	/* -------------------------------------------------------------------------- */
+	vaultsChecker := vault.NewVaultsChecker(redisCache, sender, dogLoader, vaultLoader)
+	vaultsCheckerTicker := time.NewTicker(60 * time.Second) // TODO: set time in config file
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-vaultsCheckerTicker.C:
+				vaultsChecker.Start()
+			}
+		}
+	}()
 
 	/* -------------------------------------------------------------------------- */
 	/*                     register contract events on indexer                    */
 	indexer := chain.NewIndexer(eth, blockPtr, cfg.Indexer.PoolSize)
-	registerEventHandlers(indexer, eth, liquidatorProcessor, collaterals)
+	registerEventHandlers(indexer, ps, eth, liquidatorProcessor, collaterals, cfg.Vat)
 
 	for _, c := range collaterals {
 		indexer.RegisterAddress(c.Clipper.Address)

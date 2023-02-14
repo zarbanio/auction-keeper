@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/IR-Digital-Token/auction-keeper/collateral"
-	"github.com/IR-Digital-Token/auction-keeper/entities"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
 	"github.com/ethereum/go-ethereum/accounts/abi"

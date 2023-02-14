@@ -2,7 +2,7 @@ package processor
 
 import (
 	"github.com/IR-Digital-Token/auction-keeper/collateral"
-	"github.com/IR-Digital-Token/auction-keeper/entities"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"

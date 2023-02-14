@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"math/big"
 
+	"log"
+
 	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
-	"github.com/IR-Digital-Token/auction-keeper/store"
+	"github.com/IR-Digital-Token/auction-keeper/bindings/dog"
+	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -19,9 +22,11 @@ type Sender struct {
 	privateKey *ecdsa.PrivateKey
 	address    common.Address
 	chainId    *big.Int
+	vat        *vat.Vat
+	dog        *dog.Dog
 }
 
-func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int) (ISender, error) {
+func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int, vatAddr, dogAddr common.Address) (ISender, error) {
 
 	prvKey, err := crypto.HexToECDSA(privateKey)
 	if err != nil {
@@ -36,11 +41,23 @@ func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int) (ISen
 
 	address := crypto.PubkeyToAddress(*publicKeyECDSA)
 
+	v, err := vat.NewVat(vatAddr, eth)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	d, err := dog.NewDog(dogAddr, eth)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return &Sender{
 		eth:        eth,
 		privateKey: prvKey,
 		address:    address,
 		chainId:    chainId,
+		vat:        v,
+		dog:        d,
 	}, nil
 }
 
@@ -83,7 +100,7 @@ func (s *Sender) SendTakeTx(clipper *clipper.Clipper, id, amt, maxPrice *big.Int
 	if err != nil {
 		return err
 	}
-	store.StoreTakeTransaction()
+	// store.StoreTakeTransaction()
 
 	fmt.Printf("Take Transaction Sent: %s\n", tx.Hash().Hex())
 
