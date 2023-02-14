@@ -9,7 +9,7 @@ interface GemJoinLike {
 }
 
 interface ZarJoinLike {
-    function sim() external view returns (TokenLike); //TODO
+    function zar() external view returns (TokenLike);
     function join(address, uint256) external;
 }
 
@@ -58,7 +58,7 @@ contract UniswapV3Callee {
     constructor(address uniV3Router_, address zarJoin_) public {
         uniV3Router = UniV3RouterLike(uniV3Router_);
         zarJoin = ZarJoinLike(zarJoin_);
-        zar = zarJoin.sim(); // TODO
+        zar = zarJoin.zar();
 
         zar.approve(zarJoin_, uint256(-1));
     }
