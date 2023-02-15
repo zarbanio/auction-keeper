@@ -1,13 +1,14 @@
 package processor
 
 import (
-	"github.com/IR-Digital-Token/auction-keeper/collateral"
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
-	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"math/big"
 	"sync"
+
+	"github.com/IR-Digital-Token/auction-keeper/collateral"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
+	"github.com/IR-Digital-Token/auction-keeper/services/actions"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 type LiquidatorConfig struct {
@@ -20,15 +21,15 @@ type LiquidatorConfig struct {
 type LiquidatorProcessor struct {
 	collateralsProcessor map[string]*collateralProcessor
 	config               *LiquidatorConfig
-	sender               transaction.ISender
+	actions              actions.IAction
 	processing           sync.Mutex
 }
 
-func NewLiquidatorProcessor(eth *ethclient.Client, sender transaction.ISender, collaterals map[string]collateral.Collateral, liquidatorConfig *LiquidatorConfig) *LiquidatorProcessor {
+func NewLiquidatorProcessor(eth *ethclient.Client, actions actions.IAction, collaterals map[string]collateral.Collateral, liquidatorConfig *LiquidatorConfig) *LiquidatorProcessor {
 	liquidatorProcessor := &LiquidatorProcessor{
 		collateralsProcessor: make(map[string]*collateralProcessor),
 		config:               liquidatorConfig,
-		sender:               sender,
+		actions:              actions,
 		processing:           sync.Mutex{},
 	}
 
@@ -67,6 +68,6 @@ func (lp *LiquidatorProcessor) StartProcessing() {
 	minProfitPercentage := new(big.Int).Mul(lp.config.MinProfitPercentage, Decimals15)
 
 	for _, cp := range lp.collateralsProcessor {
-		cp.processCollateral(lp.sender, minProfitPercentage, lp.config.MinLotZarValue, lp.config.MaxLotZarValue, lp.config.ProfitAddress)
+		cp.processCollateral(lp.actions, minProfitPercentage, lp.config.MinLotZarValue, lp.config.MaxLotZarValue, lp.config.ProfitAddress)
 	}
 }

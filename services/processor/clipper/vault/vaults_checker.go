@@ -4,29 +4,30 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/IR-Digital-Token/auction-keeper/cache"
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
-	"github.com/IR-Digital-Token/auction-keeper/domain/math"
-	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
-	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"log"
 	"math/big"
 	"sync"
 	"time"
+
+	"github.com/IR-Digital-Token/auction-keeper/cache"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
+	"github.com/IR-Digital-Token/auction-keeper/domain/math"
+	"github.com/IR-Digital-Token/auction-keeper/services/actions"
+	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
 )
 
 type VaultChecker struct {
 	cache      cache.ICache
-	sender     transaction.ISender
+	actions    actions.IAction
 	dogLoader  *loaders.DogLoader
 	vatLoader  *loaders.VaultLoader
 	processing sync.Mutex
 }
 
-func NewVaultsChecker(cache cache.ICache, sender transaction.ISender, dogLoader *loaders.DogLoader, vatLoader *loaders.VaultLoader) *VaultChecker {
+func NewVaultsChecker(cache cache.ICache, actions actions.IAction, dogLoader *loaders.DogLoader, vatLoader *loaders.VaultLoader) *VaultChecker {
 	vaultChecker := &VaultChecker{
 		cache:      cache,
-		sender:     sender,
+		actions:    actions,
 		dogLoader:  dogLoader,
 		vatLoader:  vatLoader,
 		processing: sync.Mutex{},
@@ -102,7 +103,7 @@ func (vc *VaultChecker) Start() {
 
 		// check can call bark
 		if canBark(vault.Urn, *vatIlk, dogHole, dogDirt, dogIlk.Hole, dogIlk.Dirt, dogIlk.Chop) {
-			txHash, err := vc.sender.Bark(ilkId, vault.UrnAddress)
+			txHash, err := vc.actions.Bark(ilkId, vault.UrnAddress)
 			if err != nil {
 				log.Println("error in sending bark transaction.", err)
 				continue

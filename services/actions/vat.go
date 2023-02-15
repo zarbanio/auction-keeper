@@ -1,10 +1,10 @@
-package transaction
+package actions
 
 import "github.com/ethereum/go-ethereum/common"
 
-func (s Sender) Hope(usr common.Address) (string, error) {
+func (s Actions) Hope(usr common.Address) (string, error) {
 
-	opts, err := s.getOpts()
+	opts, err := s.sender.GetOpts()
 	if err != nil {
 		return "", err
 	}
