@@ -1,7 +1,7 @@
 Indexer:
   BlockInterval: '10s'
   PoolSize: 2
-  BlockPtr: 8233707
+  BlockPtr: 8485879
 Redis:
   URL: 'auction-keeper-redis:6379'
 Network:
@@ -16,43 +16,43 @@ Network:
 Wallet:
   Private: ''
   Address: ''
-ZarJoin: '0x0216C83b8C7984AF8c10d95A656a003DfF8D2266' # TODO: this is for Sim (not Zar)
-Vat: '0x14708C939B71A9686568EA5c8E16C5e65B899347' # TODO: this is for Sim (not Zar)
-Dog: '0x815142d8fEA161d14cd37145a3cedec83b5Ec4CC' # TODO: this is for Sim (not Zar)
+ZarJoin: '0xe752ba573bb3ee4840ad424f9c386f7696084e6a'
+Vat: '0xe33f43032db170bac2903115e3afb6db981ac822'
+Dog: '0xc61157c26cdcb5f88cd8d81d61c9fd97023c0cd0'
 UniswapV3QuoterAddress: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6'
 Collaterals:
   -
     Name: 'ETHA'
     Erc20addr: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
     Decimals: 18
-    Clipper: '0x7Dfd4834d5731dC45da97E561931dFBEF0dCc2FA'
-    GemJoinAdapter: '0x03F6141bFda8e2925b46BB62a1Aa0Aeac904FfEB'
-    UniswapV3Callee: '0x2C481220362df6a2FBCadaF1F7ff4D4C579A8b5d' # TODO: this is for Sim (not Zar)
+    Clipper: '0xE3FDbF840476c8A0A1cd327Ad5DBcd77Dd94fEb5'
+    GemJoinAdapter: '0x77C0154cF96039519e5BEffaDcfe6eD3c6354b6d'
+    UniswapV3Callee: '0x040bC072eE59551aFc67DDF3a265c42e762728fe'
     UniswapV3Path:
-      -
+      - # WETH -> DAI
         Fee: 10000
         TokenA: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
-        TokenB: '0x7df1d674021792630e15eca46467516660e021af' # WETH -> DAI
-      -
+        TokenB: '0x7df1d674021792630e15eca46467516660e021af'
+      - # DAI -> Zar
         Fee: 10000
         TokenA: '0x7df1d674021792630e15eca46467516660e021af'
-        TokenB: '0xC7021F15D7Ac6a6c76C9EfA662Fa3BADC62B2a52' # DAI -> SIM # TODO: this is for Sim (not Zar)
+        TokenB: '0x91f53a3c281cd82531ea540ebfbb9a64e13ebc8f'
   -
     Name: 'ETHB'
     Erc20addr: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
     Decimals: 18
-    Clipper: '0x92a8F182E27692f8EcCc08C80642Ad24735DB4bf'
-    GemJoinAdapter: '0x5b844f6276582ed8bB6D47A3B0c7001D1F47aAED'
-    UniswapV3Callee: '0x2C481220362df6a2FBCadaF1F7ff4D4C579A8b5d' # TODO: this is for Sim (not Zar)
+    Clipper: '0x5bfD87c9212738834B800FaCb58e073cb3E475c0'
+    GemJoinAdapter: '0x361eE781A33560BD8649EDf77ec65f49eB9C4542'
+    UniswapV3Callee: '0x040bC072eE59551aFc67DDF3a265c42e762728fe'
     UniswapV3Path:
-      -
+      - # WETH -> DAI
         Fee: 10000
         TokenA: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
-        TokenB: '0x7df1d674021792630e15eca46467516660e021af' # WETH -> DAI
-      -
+        TokenB: '0x7df1d674021792630e15eca46467516660e021af'
+      - # DAI -> ZAR
         Fee: 10000
         TokenA: '0x7df1d674021792630e15eca46467516660e021af'
-        TokenB: '0xC7021F15D7Ac6a6c76C9EfA662Fa3BADC62B2a52' # DAI -> SIM # TODO: this is for Sim (not Zar)
+        TokenB: '0x91f53a3c281cd82531ea540ebfbb9a64e13ebc8f'
 Processor:
   MinProfitPercentage: 1.025
   MinLotZarValue: 0
