@@ -4,7 +4,8 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/IR-Digital-Token/x/chain/bindings/vat"
+	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
+	"github.com/IR-Digital-Token/auction-keeper/domain/math"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"

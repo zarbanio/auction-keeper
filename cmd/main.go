@@ -3,7 +3,14 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/IR-Digital-Token/auction-keeper/bindings/clip"
+	"log"
+	"math/big"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
 	"github.com/IR-Digital-Token/auction-keeper/cache"
 	"github.com/IR-Digital-Token/auction-keeper/collateral"
@@ -22,12 +29,6 @@ import (
 	"github.com/IR-Digital-Token/x/pubsub/gochannel"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"log"
-	"math/big"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 func startSubscribeEvents(ps pubsub.Pubsub, redisCache cache.ICache, vaultLoader *loaders.VaultLoader) {
@@ -296,6 +297,7 @@ func Execute() {
 	/* -------------------------------------------------------------------------- */
 	/*                     register contract events on indexer                    */
 	indexer := chain.NewIndexer(eth, blockPtr, cfg.Indexer.PoolSize)
+
 	registerEventHandlers(indexer, ps, eth, liquidatorProcessor, collaterals, cfg.Vat)
 
 	for _, c := range collaterals {
