@@ -15,7 +15,7 @@ import (
 	"github.com/IR-Digital-Token/auction-keeper/cache"
 	"github.com/IR-Digital-Token/auction-keeper/collateral"
 	"github.com/IR-Digital-Token/auction-keeper/configs"
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
+	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/actions"
 	"github.com/IR-Digital-Token/auction-keeper/services/callbacks"
 	"github.com/IR-Digital-Token/auction-keeper/services/jobs"
@@ -24,6 +24,7 @@ import (
 	"github.com/IR-Digital-Token/auction-keeper/services/processor/clipper/vault"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
+	"github.com/IR-Digital-Token/auction-keeper/store"
 	"github.com/IR-Digital-Token/x/chain"
 	"github.com/IR-Digital-Token/x/messages"
 	"github.com/IR-Digital-Token/x/pubsub"
@@ -180,14 +181,21 @@ func Execute() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	cfg := configs.ReadConfig("config.yaml")
-
-	// get application connection
-	redisCache := cache.NewRedisStore(cfg.Redis.URL)
+	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
 
 	eth, err := ethclient.Dial(cfg.Network.Node.Api)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+
+	// do database migrations
+	err = postgresStore.Migrate(cfg.Postgres.MigrationsPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// get application connection
+	redisCache := cache.NewRedisStore(cfg.Redis.URL)
 
 	// get loaders
 	vaultLoader := loaders.NewVaultLoader(
@@ -235,7 +243,7 @@ func Execute() {
 		panic(err)
 	}
 
-	actions, err := actions.NewActions(eth, sender, cfg.Vat, cfg.Dog)
+	actions, err := actions.NewActions(eth, sender, postgresStore, cfg.Vat, cfg.Dog)
 
 	/***************************************
 	  clipper and zarJoin Allowance

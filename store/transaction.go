@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -30,8 +31,8 @@ type TransactionModel struct {
 // to 					TEXT,
 // RawSignatureValues 	TEXT
 
-func (p postgres) CreateTransaction(ctx context.Context, transaction *types.Transaction, from common.Address) (error, uint) {
-	var id uint
+func (p postgres) CreateTransaction(ctx context.Context, transaction *types.Transaction, from common.Address) (error, uint64) {
+	var id uint64
 	v, r, s := transaction.RawSignatureValues()
 	q := `
 	INSERT INTO transactions (hash, from, cost, data, value, gas_price, gas, nonce, to, chain_id, v, r, s)
@@ -72,7 +73,7 @@ func (p postgres) CreateTransaction(ctx context.Context, transaction *types.Tran
 	}
 	return nil, id
 }
-func (p postgres) UpdateTransactionBlock(ctx context.Context, id uint64, block *types.Block, recipt *types.Receipt) error {
+func (p postgres) UpdateTransactionBlock(ctx context.Context, id uint64, recipt *types.Receipt, blockTime uint64, blockNumber big.Int, blockHash common.Hash) error {
 	q := `UPDATE transactions 
 			SET block_timestamp = $1,
 				block_number = $2, 
@@ -81,11 +82,11 @@ func (p postgres) UpdateTransactionBlock(ctx context.Context, id uint64, block *
 				block_hash = $5
 			WHERE id = $6`
 	err := p.conn.QueryRow(ctx, q,
-		block.Time(),
-		block.Number(),
+		blockTime,
+		blockNumber,
 		recipt.Status,
 		recipt.CumulativeGasUsed,
-		block.Hash().String(),
+		blockHash.String(),
 		id,
 	)
 	if err != nil {
@@ -96,7 +97,7 @@ func (p postgres) UpdateTransactionBlock(ctx context.Context, id uint64, block *
 
 func (p postgres) GetTransactionById(ctx context.Context, id uint64) (*TransactionModel, error) {
 	row := p.conn.QueryRow(ctx, `
-		SELECT id, hash, from, block
+		SELECT *
 		FROM transactions
 		WHERE id = $1
 	`, id)

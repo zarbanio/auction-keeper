@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
+	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -14,7 +15,7 @@ type IAction interface {
 }
 
 type Clipper interface {
-	Take(clipper *clipper.Clipper, take ClipperTake) (string, error)
+	Take(clipper *clipper.Clipper, take *entities.ClipperTake) error
 	Redo(clipper *clipper.Clipper, id *big.Int) (string, error)
 }
 

@@ -2,6 +2,7 @@ package processor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math/big"
@@ -9,6 +10,7 @@ import (
 	"github.com/IR-Digital-Token/auction-keeper/collateral"
 	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/actions"
+	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -194,31 +196,28 @@ func (cp *collateralProcessor) executeAuction(actions actions.IAction, auctionId
 
 	// Uniswap v3 swap
 	// typesArray := ['address', 'address', 'uint256', 'bytes', 'address'];
-	// args := abi.Arguments{
-	// 	{Name: "to", Type: Address},
-	// 	{Name: "gemJoin", Type: Address},
-	// 	{Name: "minProfit", Type: Uint256},
-	// 	{Name: "path", Type: Bytes},
-	// 	{Name: "charterManager", Type: Address},
-	// }
+	args := abi.Arguments{
+		{Name: "to", Type: Address},
+		{Name: "gemJoin", Type: Address},
+		{Name: "minProfit", Type: Uint256},
+		{Name: "path", Type: Bytes},
+		{Name: "charterManager", Type: Address},
+	}
 
-	// route, err := uniswap_v3.GetRouter(cp.collateral.UniswapV3Path)
-	// if err != nil {
-	// 	return errors.New(fmt.Sprintf("error in get route: %v", err))
-	// }
+	route, err := uniswap_v3.GetRouter(cp.collateral.UniswapV3Path)
+	if err != nil {
+		return errors.New(fmt.Sprintf("error in get route: %v", err))
+	}
 
-	// flashData, err := args.Pack(profitAddr, gemJoinAdapter, minProfit, route, common.Address{0})
-	// if err != nil {
-	// 	return errors.New(fmt.Sprintf("error in pack flash data: : %v", err))
-	// }
-	// take := store.NewTake(auctionId, amt, maxPrice, exchangeCalleeAddress, flashData)
-
-	// txHash, err := actions.Take(cp.collateral.ClipperLoader.Clipper, take)
-	// if err != nil {
-	// 	return errors.New(fmt.Sprintf("error in sending take transaction: : %v", err))
-	// }
-
-	// fmt.Printf("\tTake Transaction Hash: %s\n", txHash)
+	flashData, err := args.Pack(profitAddr, gemJoinAdapter, minProfit, route, common.Address{0})
+	if err != nil {
+		return errors.New(fmt.Sprintf("error in pack flash data: : %v", err))
+	}
+	take := entities.NewTake(auctionId, amt, maxPrice, exchangeCalleeAddress, flashData).ToDomain()
+	err = actions.Take(cp.collateral.ClipperLoader.Clipper, take)
+	if err != nil {
+		return errors.New(fmt.Sprintf("error in sending take transaction: : %v", err))
+	}
 	return nil
 }
 

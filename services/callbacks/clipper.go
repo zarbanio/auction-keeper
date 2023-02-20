@@ -1,12 +1,13 @@
 package callbacks
 
 import (
+	"math/big"
+
 	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
 	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/processor"
 	"github.com/IR-Digital-Token/x/chain/events"
 	"github.com/ethereum/go-ethereum/core/types"
-	"math/big"
 )
 
 func ClipperKickCallback(liquidatorProcessor *processor.LiquidatorProcessor, clipperName string) events.CallbackFn[clipper.ClipperKick] {

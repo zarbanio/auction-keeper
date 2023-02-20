@@ -5,43 +5,43 @@ import (
 	"math/big"
 
 	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
-	"github.com/IR-Digital-Token/auction-keeper/store"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
+	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities"
+	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
+
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-type ClipperTake struct {
-	Auction_id  *big.Int
-	Amt         *big.Int
-	Max         *big.Int
-	Who         common.Address
-	Data        []byte
-	Opts        *bind.TransactOpts
-	Transaction types.Transaction
-}
-
-func (a Actions) Take(clipper *clipper.Clipper, take ClipperTake) (string, error) {
+func (a Actions) Take(clipper *clipper.Clipper, take *entities.ClipperTake) error {
 
 	opts, err := a.sender.GetOpts()
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	tx, err := clipper.ClipperTransactor.Take(opts, take.Auction_id, take.Amt, take.Max, take.Who, take.Data)
 	if err != nil {
-		return "", err
+		return err
 	}
-	store.CreateTransaction(context.Background(), tx, a.sender.GetAddress())
-	tx
-	cb := func(header types.Header, recipt *types.Receipt) error {
-		return nil
+	err, txId := a.store.CreateTransaction(context.Background(), tx, a.sender.GetAddress())
+	if err != nil {
+		return err
 	}
-	// txHandler := NewHandler(*tx, cb)
+	_, err = a.store.CreateTake(context.Background(), take, int64(txId))
+	if err != nil {
+		return err
+	}
+	txHandler := transaction.NewHandler(*tx, func(header types.Header, recipt *types.Receipt) error {
+		return a.store.UpdateTransactionBlock(
+			context.Background(),
+			uint64(txId),
+			recipt,
+			header.Time,
+			*recipt.BlockNumber,
+			recipt.BlockHash)
+	})
+	a.sender.WatchTransactionHash(txHandler)
 
-	// s.watchTransactionHash(txHandler)
-
-	return tx.Hash().Hex(), nil
+	return nil
 }
 
 func (a Actions) Redo(clipper *clipper.Clipper, id *big.Int) (string, error) {
