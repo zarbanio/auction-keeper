@@ -18,6 +18,7 @@ Wallet:
   Address: ''
 ZarJoin: '0xe752ba573bb3ee4840ad424f9c386f7696084e6a'
 Vat: '0xe33f43032db170bac2903115e3afb6db981ac822'
+Vow: '0x24020386d0162ee2d940111de81a89d0868a0b78'
 Dog: '0xc61157c26cdcb5f88cd8d81d61c9fd97023c0cd0'
 UniswapV3QuoterAddress: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6'
 Collaterals:

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/clip"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
+	"github.com/IR-Digital-Token/auction-keeper/bindings/vow"
 	"github.com/IR-Digital-Token/auction-keeper/cache"
 	"github.com/IR-Digital-Token/auction-keeper/collateral"
 	"github.com/IR-Digital-Token/auction-keeper/configs"
@@ -41,9 +42,15 @@ func startSubscribeEvents(ps pubsub.Pubsub, redisCache cache.ICache, vaultLoader
 	_ = ps.Subscribe(context.Background(), "events.vat.grabs", func(msg *messages.Message) error {
 		return jobs.Grabs(msg, redisCache, vaultLoader)
 	})
+	_ = ps.Subscribe(context.Background(), "events.vow.fess", func(msg *messages.Message) error {
+		return jobs.Fess(msg, redisCache)
+	})
+	_ = ps.Subscribe(context.Background(), "events.vow.flog", func(msg *messages.Message) error {
+		return jobs.Flog(msg, redisCache)
+	})
 }
 
-func registerEventHandlers(indexer *chain.Indexer, ps pubsub.Pubsub, eth *ethclient.Client, liquidatorProcessor *processor.LiquidatorProcessor, collaterals map[string]collateral.Collateral, vatAddress common.Address) {
+func registerEventHandlers(indexer *chain.Indexer, ps pubsub.Pubsub, eth *ethclient.Client, liquidatorProcessor *processor.LiquidatorProcessor, collaterals map[string]collateral.Collateral, vatAddress, vowAddress common.Address) {
 	println("Register callbacks on event triggers come from the indexer.")
 
 	for _, v := range collaterals {
@@ -56,6 +63,10 @@ func registerEventHandlers(indexer *chain.Indexer, ps pubsub.Pubsub, eth *ethcli
 	indexer.RegisterEventHandler(vat.NewFrobHandler(vatAddress, eth, callbacks.VatFrobCallback(ps)))
 	indexer.RegisterEventHandler(vat.NewForkHandler(vatAddress, eth, callbacks.VatForkCallback(ps)))
 	indexer.RegisterEventHandler(vat.NewGrabHandler(vatAddress, eth, callbacks.VatGrabCallback(ps)))
+
+	println("Register callbacks on vow event (fess, flog) triggers come from the indexer.")
+	indexer.RegisterEventHandler(vow.NewFessHandler(vowAddress, eth, callbacks.VowFessCallback(ps)))
+	indexer.RegisterEventHandler(vow.NewFlogHandler(vowAddress, eth, callbacks.VowFlogCallback(ps)))
 
 	println("Done\n")
 }
@@ -296,7 +307,7 @@ func Execute() {
 	/* -------------------------------------------------------------------------- */
 	/*                     register contract events on indexer                    */
 	indexer := chain.NewIndexer(eth, blockPtr, cfg.Indexer.PoolSize)
-	registerEventHandlers(indexer, ps, eth, liquidatorProcessor, collaterals, cfg.Vat)
+	registerEventHandlers(indexer, ps, eth, liquidatorProcessor, collaterals, cfg.Vat, cfg.Vow)
 
 	for _, c := range collaterals {
 		indexer.RegisterAddress(c.Clipper.Address)

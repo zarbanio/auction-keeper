@@ -26,26 +26,6 @@ func NewVaultLoader(eth *ethclient.Client, vatAddr common.Address) *VaultLoader 
 	}
 }
 
-func (vl *VaultLoader) GetIlkById(ctx context.Context, ilkId [32]byte) (*entities.VatIlk, error) {
-	ilkVatInfo, err := vl.vat.Ilks(&bind.CallOpts{Context: ctx}, ilkId)
-	if err != nil {
-		return nil, err
-	}
-
-	ilkName := string(ilkId[:])
-	ilk := &entities.VatIlk{
-		Id:   ilkId,
-		Name: ilkName,
-		Art:  ilkVatInfo.Art,
-		Rate: ilkVatInfo.Rate,
-		Spot: ilkVatInfo.Spot,
-		Line: ilkVatInfo.Line,
-		Dust: ilkVatInfo.Dust,
-	}
-
-	return ilk, nil
-}
-
 func (vl *VaultLoader) GetVaultByIlkUrn(ctx context.Context, ilkId [32]byte, urn common.Address) (*entities.Vault, error) {
 	urnInfo, err := vl.vat.Urns(&bind.CallOpts{Context: ctx}, ilkId, urn)
 	if err != nil {

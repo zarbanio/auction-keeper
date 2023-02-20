@@ -1,0 +1,171 @@
+package flopper
+
+import (
+	"context"
+	"github.com/IR-Digital-Token/auction-keeper/cache"
+	"github.com/IR-Digital-Token/auction-keeper/domain/math"
+	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
+	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"log"
+	"math/big"
+	"sync"
+)
+
+type FlopperChecker struct {
+	eth           *ethclient.Client
+	cache         cache.ICache
+	sender        transaction.ISender
+	vowAddress    common.Address
+	vowLoader     *loaders.VowLoader
+	vatLoader     *loaders.VatLoader
+	flopperLoader *loaders.FlopperLoader
+	processing    sync.Mutex
+}
+
+func NewFlopperChecker(eth *ethclient.Client, cache cache.ICache, sender transaction.ISender, vowAddr common.Address, vowLoader *loaders.VowLoader, vatLoader *loaders.VatLoader) *FlopperChecker {
+	flopperChecker := &FlopperChecker{
+		eth:        eth,
+		cache:      cache,
+		sender:     sender,
+		vowAddress: vowAddr,
+		vowLoader:  vowLoader,
+		vatLoader:  vatLoader,
+		processing: sync.Mutex{},
+	}
+
+	return flopperChecker
+}
+
+func (fc *FlopperChecker) Start() {
+	fc.processing.Lock()
+	defer fc.processing.Unlock()
+
+	isRely, err := fc.flopperLoader.IsRely(context.Background(), fc.vowAddress)
+	if err != nil {
+		log.Println("error in getting flop wards.", err)
+		return
+	}
+	if !isRely {
+		log.Println("vow is not authorized to kick on this flopper.")
+		return
+	}
+
+	vowZarBalance, err := fc.vatLoader.GetZarBalance(context.Background(), fc.vowAddress)
+	if err != nil {
+		log.Println("error in getting vow zar balance.", err)
+		return
+	}
+
+	vatSin, err := fc.vatLoader.GetSin(context.Background(), fc.vowAddress) // Total Deficit
+	if err != nil {
+		log.Println("error in getting vat.sin(vowAddress).", err)
+		return
+	}
+
+	// Check if Vow has bad debt in excess: vowZarBalance < vatSin
+	excessDebt := vowZarBalance.Cmp(vatSin) == -1
+	if !excessDebt {
+		return
+	}
+
+	vowSin, err := fc.vowLoader.GetSin(context.Background())
+	if err != nil {
+		log.Println("error in getting vow.Sin.", err)
+		return
+	}
+
+	ash, err := fc.vowLoader.GetAsh(context.Background())
+	if err != nil {
+		log.Println("error in getting vow.Ash.", err)
+		return
+	}
+
+	woe := new(big.Int).Sub(new(big.Int).Sub(vatSin, vowSin), ash) // Unqueued, pre-auction debt
+
+	sump, err := fc.vowLoader.GetSump(context.Background())
+	if err != nil {
+		log.Println("error in getting vow.sump.", err)
+		return
+	}
+
+	wait, err := fc.vowLoader.GetWait(context.Background())
+	if err != nil {
+		log.Println("error in getting vow.wait.", err)
+		return
+	}
+
+	// Check if Vow has enough bad debt and that we have enough dai balance
+	if new(big.Int).Add(woe, vowSin).Cmp(sump) >= 0 { // woe + vowSin >= sump
+		// We need to bring vowZarBalance to 0 and Woe to at least sump
+
+		if vowZarBalance.Cmp(big.NewInt(0)) > 1 {
+			err := fc.ReconcileDebt(vowZarBalance, ash, woe)
+			if err != nil {
+				log.Println("error in reconcile debt:", err)
+				return
+			}
+		}
+
+		// Convert enough sin in woe to have woe >= sump + vowZarBalance
+		if woe.Cmp(new(big.Int).Add(sump, vowZarBalance)) == -1 { // if woe < (sump + vowZarBalance)
+			eras, err := fc.cache.GetEras(context.Background())
+			if err != nil {
+				log.Println("error in get eras from redis:", err)
+				return
+			}
+			if len(eras) == 0 {
+				log.Println("eras length is zero", err)
+				return
+			}
+
+			for _, era := range eras {
+				latestBlock, err := fc.eth.BlockByNumber(context.Background(), nil)
+				if err != nil {
+					// Handle error
+				}
+				now := new(big.Int).SetUint64(latestBlock.Time())
+				eraSin, err := fc.vowLoader.GetSinOf(context.Background(), era)
+				if err != nil {
+					log.Println("error in get era sin.", err)
+					return
+				}
+
+				if eraSin.Cmp(math.Zero) > 0 && new(big.Int).Add(era, wait).Cmp(now) <= 0 { // if sin > 0 and era + wait <= now:
+					// TODO
+
+				}
+			}
+		}
+
+		// Reduce on-auction debt and reconcile remaining joy
+		// TODO
+	}
+
+}
+
+func (fc *FlopperChecker) ReconcileDebt(zarBalance, ash, woe *big.Int) error {
+	zero := big.NewInt(0)
+
+	if ash.Cmp(zero) > 0 {
+		if zarBalance.Cmp(ash) > 0 {
+			//self.vow.kiss(ash).transact(gas_price=self.gas_price)
+		} else {
+			//self.vow.kiss(joy).transact(gas_price=self.gas_price)
+		}
+	}
+	if woe.Cmp(zero) > 0 {
+		zarBalance, err := fc.vatLoader.GetZarBalance(context.Background(), fc.vowAddress)
+		if err != nil {
+			log.Println("[ReconcileDebt] error in getting vow zar balance.", err)
+			return err
+		}
+
+		if zarBalance.Cmp(woe) > 0 {
+			//self.vow.heal(woe).transact(gas_price=self.gas_price)
+		} else {
+			//self.vow.heal(joy).transact(gas_price=self.gas_price)
+		}
+	}
+}
