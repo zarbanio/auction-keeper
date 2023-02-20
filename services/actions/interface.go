@@ -4,7 +4,7 @@ import (
 	"math/big"
 
 	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/ethereum/go-ethereum/common"
 )
 

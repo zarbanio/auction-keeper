@@ -11,6 +11,7 @@ import (
 	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/actions"
 	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
+	"github.com/IR-Digital-Token/auction-keeper/store"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -213,7 +214,7 @@ func (cp *collateralProcessor) executeAuction(actions actions.IAction, auctionId
 	if err != nil {
 		return errors.New(fmt.Sprintf("error in pack flash data: : %v", err))
 	}
-	take := entities.NewTake(auctionId, amt, maxPrice, exchangeCalleeAddress, flashData).ToDomain()
+	take := store.NewTake(auctionId, amt, maxPrice, exchangeCalleeAddress, flashData).ToDomain()
 	err = actions.Take(cp.collateral.ClipperLoader.Clipper, take)
 	if err != nil {
 		return errors.New(fmt.Sprintf("error in sending take transaction: : %v", err))
