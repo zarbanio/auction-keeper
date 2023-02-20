@@ -34,15 +34,27 @@ func (p postgres) CreateTransaction(ctx context.Context, transaction *types.Tran
 	var id uint
 	v, r, s := transaction.RawSignatureValues()
 	q := `
-	INSERT INTO transactions (hash, from, cost, data, value, gas_price, gas, nonce, to, v, r, s)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+	INSERT INTO transactions (hash, from, cost, data, value, gas_price, gas, nonce, to, chain_id, v, r, s)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 	ON CONFLICT (hash)
 	DO UPDATE 
 		SET from = EXCLUDED.from
-		block = EXCLUDED.block
+		cost = EXCLUDED.cost
+		data = EXCLUDED.data
+		value = EXCLUDED.value
+		gas_price = EXCLUDED.gas_price
+		gas = EXCLUDED.gas
+		nonce = EXCLUDED.nonce
+		to = EXCLUDED.to
+		chain_id = EXCLUDED.chain_id
+		v = EXCLUDED.v
+		r = EXCLUDED.r
+		s = EXCLUDED.s
 	RETURNING id
 	`
-	err := p.conn.QueryRow(ctx, q, transaction.Hash(),
+	transaction.ChainId()
+	err := p.conn.QueryRow(ctx, q,
+		transaction.Hash(),
 		from.String(),
 		transaction.Cost(),
 		string(transaction.Data()),
@@ -51,6 +63,7 @@ func (p postgres) CreateTransaction(ctx context.Context, transaction *types.Tran
 		transaction.Gas(),
 		transaction.Nonce(),
 		transaction.To(),
+		transaction.ChainId(),
 		v.String(),
 		r.String(),
 		s.String()).Scan(&id)
@@ -65,11 +78,16 @@ func (p postgres) UpdateTransactionBlock(ctx context.Context, id uint64, block *
 				block_number = $2, 
 				status = $3, 
 				cumulative_gas_used = $4, 
-				block_hash = $5, 
-
+				block_hash = $5
 			WHERE id = $6`
-	err := p.conn.QueryRow(ctx, q, block.Time(), block.Number(), id)
-	test := recipt.Status
+	err := p.conn.QueryRow(ctx, q,
+		block.Time(),
+		block.Number(),
+		recipt.Status,
+		recipt.CumulativeGasUsed,
+		block.Hash().String(),
+		id,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to update block data in transaction: %w", err)
 	}
