@@ -15,6 +15,7 @@ import (
 	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
 	"github.com/IR-Digital-Token/auction-keeper/services/processor"
 	"github.com/IR-Digital-Token/auction-keeper/services/processor/clipper/vault"
+	"github.com/IR-Digital-Token/auction-keeper/services/processor/flopper"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
 	"github.com/IR-Digital-Token/x/chain"
@@ -203,9 +204,21 @@ func Execute() {
 		eth,
 		cfg.Vat,
 	)
+	vatLoader := loaders.NewVatLoader(
+		eth,
+		cfg.Vat,
+	)
+	vowLoader := loaders.NewVowLoader(
+		eth,
+		cfg.Vat,
+	)
 	dogLoader := loaders.NewDogLoader(
 		eth,
 		cfg.Dog,
+	)
+	flpperLoader := loaders.NewFlopperLoader(
+		eth,
+		cfg.Flopper,
 	)
 
 	blockPtr := chain.NewFileBlockPointer(".", "goerli.ptr", cfg.Indexer.BlockPtr)
@@ -218,12 +231,12 @@ func Execute() {
 
 		log.Println("new block pointer file created.")
 	}
-	// write last block number in block pointer file
-	lastBlack, err := eth.BlockNumber(context.Background())
-	err = blockPtr.Update(lastBlack)
-	if err != nil {
-		panic(err)
-	}
+	// // write last block number in block pointer file // TODO
+	//lastBlack, err := eth.BlockNumber(context.Background())
+	//err = blockPtr.Update(lastBlack)
+	//if err != nil {
+	//	panic(err)
+	//}
 
 	/***************************************
 	 			get collaterals
@@ -236,7 +249,7 @@ func Execute() {
 	/***************************************
 	 			import wallet
 	***************************************/
-	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId), cfg.Vat, cfg.Dog)
+	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId), cfg.Vat, cfg.Vow, cfg.Dog)
 	if err != nil {
 		panic(err)
 	}
@@ -289,9 +302,9 @@ func Execute() {
 	}()
 
 	/* -------------------------------------------------------------------------- */
-	/*                       start checkin vaults                                 */
+	/*                       start checking vaults                                 */
 	/* -------------------------------------------------------------------------- */
-	vaultsChecker := vault.NewVaultsChecker(redisCache, sender, dogLoader, vaultLoader)
+	vaultsChecker := vault.NewVaultsChecker(redisCache, sender, dogLoader, vatLoader)
 	vaultsCheckerTicker := time.NewTicker(60 * time.Second) // TODO: set time in config file
 	go func() {
 		for {
@@ -300,6 +313,22 @@ func Execute() {
 				return
 			case <-vaultsCheckerTicker.C:
 				vaultsChecker.Start()
+			}
+		}
+	}()
+
+	/* -------------------------------------------------------------------------- */
+	/*                       start checking flopper                               */
+	/* -------------------------------------------------------------------------- */
+	flopperChecker := flopper.NewFlopperChecker(eth, redisCache, sender, cfg.Vow, vowLoader, vatLoader, flpperLoader)
+	flopperCheckerTicker := time.NewTicker(60 * time.Second) // TODO: set time in config file
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-flopperCheckerTicker.C:
+				flopperChecker.Start()
 			}
 		}
 	}()

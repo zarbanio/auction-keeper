@@ -25,15 +25,16 @@ type FlopperChecker struct {
 	processing    sync.Mutex
 }
 
-func NewFlopperChecker(eth *ethclient.Client, cache cache.ICache, sender transaction.ISender, vowAddr common.Address, vowLoader *loaders.VowLoader, vatLoader *loaders.VatLoader) *FlopperChecker {
+func NewFlopperChecker(eth *ethclient.Client, cache cache.ICache, sender transaction.ISender, vowAddr common.Address, vowLoader *loaders.VowLoader, vatLoader *loaders.VatLoader, flopperLoader *loaders.FlopperLoader) *FlopperChecker {
 	flopperChecker := &FlopperChecker{
-		eth:        eth,
-		cache:      cache,
-		sender:     sender,
-		vowAddress: vowAddr,
-		vowLoader:  vowLoader,
-		vatLoader:  vatLoader,
-		processing: sync.Mutex{},
+		eth:           eth,
+		cache:         cache,
+		sender:        sender,
+		vowAddress:    vowAddr,
+		vowLoader:     vowLoader,
+		vatLoader:     vatLoader,
+		flopperLoader: flopperLoader,
+		processing:    sync.Mutex{},
 	}
 
 	return flopperChecker
