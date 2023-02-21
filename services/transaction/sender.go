@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/dog"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
+	"github.com/IR-Digital-Token/auction-keeper/bindings/vow"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -20,10 +21,11 @@ type Sender struct {
 	address    common.Address
 	chainId    *big.Int
 	vat        *vat.Vat
+	vow        *vow.Vow
 	dog        *dog.Dog
 }
 
-func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int, vatAddr, dogAddr common.Address) (ISender, error) {
+func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int, vatAddr, vowAddr, dogAddr common.Address) (ISender, error) {
 
 	prvKey, err := crypto.HexToECDSA(privateKey)
 	if err != nil {
@@ -38,12 +40,17 @@ func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int, vatAd
 
 	address := crypto.PubkeyToAddress(*publicKeyECDSA)
 
-	v, err := vat.NewVat(vatAddr, eth)
+	vatInstance, err := vat.NewVat(vatAddr, eth)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	d, err := dog.NewDog(dogAddr, eth)
+	vowInstance, err := vow.NewVow(vowAddr, eth)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	dogInstance, err := dog.NewDog(dogAddr, eth)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -53,8 +60,9 @@ func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int, vatAd
 		privateKey: prvKey,
 		address:    address,
 		chainId:    chainId,
-		vat:        v,
-		dog:        d,
+		vat:        vatInstance,
+		vow:        vowInstance,
+		dog:        dogInstance,
 	}, nil
 }
 

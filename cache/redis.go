@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/ethereum/go-ethereum/common"
+	"math/big"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -89,4 +90,41 @@ func (r redisStore) getVaultByKey(ctx context.Context, key string) (*entities.Va
 		return nil, err
 	}
 	return v, nil
+}
+
+func (r redisStore) SaveEra(ctx context.Context, era *big.Int, expiration time.Duration) error {
+	value, err := json.Marshal(era)
+	if err != nil {
+		return nil
+	}
+	return r.client.Set(ctx, fmt.Sprintf("Era:%s", era.String()), value, expiration).Err()
+}
+
+func (r redisStore) DeleteEra(ctx context.Context, era *big.Int) error {
+	return r.client.Del(ctx, fmt.Sprintf("Era:%s", era.String())).Err()
+}
+
+func (r redisStore) GetEras(ctx context.Context) ([]*big.Int, error) {
+	keys, err := r.client.Keys(ctx, "Era:*").Result()
+	if err != nil {
+		return nil, err
+	}
+
+	eras := make([]*big.Int, len(keys))
+	for _, key := range keys {
+		res, err := r.client.Get(ctx, key).Result()
+		if err != nil {
+			if errors.Is(err, redis.Nil) {
+				return nil, ErrEraNotFound
+			}
+			return nil, err
+		}
+		var era big.Int
+		err = json.Unmarshal([]byte(res), era)
+		if err != nil {
+			return nil, err
+		}
+		eras = append(eras, &era)
+	}
+	return eras, nil
 }

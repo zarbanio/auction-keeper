@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/clip"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
+	"github.com/IR-Digital-Token/auction-keeper/bindings/vow"
 	"github.com/IR-Digital-Token/auction-keeper/cache"
 	"github.com/IR-Digital-Token/auction-keeper/collateral"
 	"github.com/IR-Digital-Token/auction-keeper/configs"
@@ -14,6 +15,7 @@ import (
 	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
 	"github.com/IR-Digital-Token/auction-keeper/services/processor"
 	"github.com/IR-Digital-Token/auction-keeper/services/processor/clipper/vault"
+	"github.com/IR-Digital-Token/auction-keeper/services/processor/flopper"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
 	"github.com/IR-Digital-Token/x/chain"
@@ -41,9 +43,15 @@ func startSubscribeEvents(ps pubsub.Pubsub, redisCache cache.ICache, vaultLoader
 	_ = ps.Subscribe(context.Background(), "events.vat.grabs", func(msg *messages.Message) error {
 		return jobs.Grabs(msg, redisCache, vaultLoader)
 	})
+	_ = ps.Subscribe(context.Background(), "events.vow.fess", func(msg *messages.Message) error {
+		return jobs.Fess(msg, redisCache)
+	})
+	_ = ps.Subscribe(context.Background(), "events.vow.flog", func(msg *messages.Message) error {
+		return jobs.Flog(msg, redisCache)
+	})
 }
 
-func registerEventHandlers(indexer *chain.Indexer, ps pubsub.Pubsub, eth *ethclient.Client, liquidatorProcessor *processor.LiquidatorProcessor, collaterals map[string]collateral.Collateral, vatAddress common.Address) {
+func registerEventHandlers(indexer *chain.Indexer, ps pubsub.Pubsub, eth *ethclient.Client, liquidatorProcessor *processor.LiquidatorProcessor, collaterals map[string]collateral.Collateral, vatAddress, vowAddress common.Address) {
 	println("Register callbacks on event triggers come from the indexer.")
 
 	for _, v := range collaterals {
@@ -56,6 +64,10 @@ func registerEventHandlers(indexer *chain.Indexer, ps pubsub.Pubsub, eth *ethcli
 	indexer.RegisterEventHandler(vat.NewFrobHandler(vatAddress, eth, callbacks.VatFrobCallback(ps)))
 	indexer.RegisterEventHandler(vat.NewForkHandler(vatAddress, eth, callbacks.VatForkCallback(ps)))
 	indexer.RegisterEventHandler(vat.NewGrabHandler(vatAddress, eth, callbacks.VatGrabCallback(ps)))
+
+	println("Register callbacks on vow event (fess, flog) triggers come from the indexer.")
+	indexer.RegisterEventHandler(vow.NewFessHandler(vowAddress, eth, callbacks.VowFessCallback(ps)))
+	indexer.RegisterEventHandler(vow.NewFlogHandler(vowAddress, eth, callbacks.VowFlogCallback(ps)))
 
 	println("Done\n")
 }
@@ -192,9 +204,21 @@ func Execute() {
 		eth,
 		cfg.Vat,
 	)
+	vatLoader := loaders.NewVatLoader(
+		eth,
+		cfg.Vat,
+	)
+	vowLoader := loaders.NewVowLoader(
+		eth,
+		cfg.Vat,
+	)
 	dogLoader := loaders.NewDogLoader(
 		eth,
 		cfg.Dog,
+	)
+	flpperLoader := loaders.NewFlopperLoader(
+		eth,
+		cfg.Flopper,
 	)
 
 	blockPtr := chain.NewFileBlockPointer(".", "goerli.ptr", cfg.Indexer.BlockPtr)
@@ -207,12 +231,12 @@ func Execute() {
 
 		log.Println("new block pointer file created.")
 	}
-	// write last block number in block pointer file
-	lastBlack, err := eth.BlockNumber(context.Background())
-	err = blockPtr.Update(lastBlack)
-	if err != nil {
-		panic(err)
-	}
+	// // write last block number in block pointer file // TODO
+	//lastBlack, err := eth.BlockNumber(context.Background())
+	//err = blockPtr.Update(lastBlack)
+	//if err != nil {
+	//	panic(err)
+	//}
 
 	/***************************************
 	 			get collaterals
@@ -225,7 +249,7 @@ func Execute() {
 	/***************************************
 	 			import wallet
 	***************************************/
-	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId), cfg.Vat, cfg.Dog)
+	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId), cfg.Vat, cfg.Vow, cfg.Dog)
 	if err != nil {
 		panic(err)
 	}
@@ -278,9 +302,9 @@ func Execute() {
 	}()
 
 	/* -------------------------------------------------------------------------- */
-	/*                       start checkin vaults                                 */
+	/*                       start checking vaults                                 */
 	/* -------------------------------------------------------------------------- */
-	vaultsChecker := vault.NewVaultsChecker(redisCache, sender, dogLoader, vaultLoader)
+	vaultsChecker := vault.NewVaultsChecker(redisCache, sender, dogLoader, vatLoader)
 	vaultsCheckerTicker := time.NewTicker(60 * time.Second) // TODO: set time in config file
 	go func() {
 		for {
@@ -294,9 +318,25 @@ func Execute() {
 	}()
 
 	/* -------------------------------------------------------------------------- */
+	/*                       start checking flopper                               */
+	/* -------------------------------------------------------------------------- */
+	flopperChecker := flopper.NewFlopperChecker(eth, redisCache, sender, cfg.Vow, vowLoader, vatLoader, flpperLoader)
+	flopperCheckerTicker := time.NewTicker(60 * time.Second) // TODO: set time in config file
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-flopperCheckerTicker.C:
+				flopperChecker.Start()
+			}
+		}
+	}()
+
+	/* -------------------------------------------------------------------------- */
 	/*                     register contract events on indexer                    */
 	indexer := chain.NewIndexer(eth, blockPtr, cfg.Indexer.PoolSize)
-	registerEventHandlers(indexer, ps, eth, liquidatorProcessor, collaterals, cfg.Vat)
+	registerEventHandlers(indexer, ps, eth, liquidatorProcessor, collaterals, cfg.Vat, cfg.Vow)
 
 	for _, c := range collaterals {
 		indexer.RegisterAddress(c.Clipper.Address)
