@@ -2,6 +2,7 @@ package callbacks
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
 	"github.com/IR-Digital-Token/x/chain/events"
 	"github.com/IR-Digital-Token/x/messages"
@@ -12,33 +13,35 @@ import (
 func VatFrobCallback(pubsub pubsub.Pubsub) events.CallbackFn[vat.VatFrob] {
 	ps := pubsub
 	return func(header types.Header, frob vat.VatFrob) error {
-		msg := messages.NewMessage([]byte(``))
-		msg.Metadata.Set("ilkName", string(frob.I[:]))
-		msg.Metadata.Set("urn", frob.U.String())
+		payload, err := json.Marshal(frob)
+		if err != nil {
+			return err
+		}
 
-		return ps.Publish(context.Background(), "events.vat.frobs", msg)
+		return ps.Publish(context.Background(), "events.vat.frobs", messages.NewMessage(payload))
 	}
 }
 
 func VatForkCallback(pubsub pubsub.Pubsub) events.CallbackFn[vat.VatFork] {
 	ps := pubsub
 	return func(header types.Header, fork vat.VatFork) error {
-		msg := messages.NewMessage([]byte(``))
-		msg.Metadata.Set("ilkName", string(fork.Ilk[:]))
-		msg.Metadata.Set("urnSrc", fork.Src.String())
-		msg.Metadata.Set("urnDst", fork.Dst.String())
+		payload, err := json.Marshal(fork)
+		if err != nil {
+			return err
+		}
 
-		return ps.Publish(context.Background(), "events.vat.forks", msg)
+		return ps.Publish(context.Background(), "events.vat.forks", messages.NewMessage(payload))
 	}
 }
 
 func VatGrabCallback(pubsub pubsub.Pubsub) events.CallbackFn[vat.VatGrab] {
 	ps := pubsub
 	return func(header types.Header, grab vat.VatGrab) error {
-		msg := messages.NewMessage([]byte(``))
-		msg.Metadata.Set("ilkName", string(grab.I[:]))
-		msg.Metadata.Set("urn", grab.U.String())
+		payload, err := json.Marshal(grab)
+		if err != nil {
+			return err
+		}
 
-		return ps.Publish(context.Background(), "events.vat.grabs", msg)
+		return ps.Publish(context.Background(), "events.vat.grabs", messages.NewMessage(payload))
 	}
 }
