@@ -2,6 +2,7 @@ package flopper
 
 import (
 	"context"
+	"fmt"
 	"github.com/IR-Digital-Token/auction-keeper/cache"
 	"github.com/IR-Digital-Token/auction-keeper/domain/math"
 	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
@@ -133,7 +134,12 @@ func (fc *FlopperChecker) Start() {
 				}
 
 				if eraSin.Cmp(math.Zero) > 0 && new(big.Int).Add(era, wait).Cmp(now) <= 0 { // if sin > 0 and era + wait <= now:
-					// self.vow.flog(era).transact(gas_price=self.gas_price)
+					txHash, err := fc.sender.Flog(era)
+					if err != nil {
+						log.Println("error in sending flog transaction.", err)
+						return
+					}
+					fmt.Printf("\tFlog Transaction Hash: %s\n", txHash)
 
 					// flog() sin until woe is above sump + joy
 					vowZarBalance, err = fc.vatLoader.GetZarBalance(context.Background(), fc.vowAddress)
@@ -194,33 +200,53 @@ func (fc *FlopperChecker) Start() {
 		}
 
 		if sump.Cmp(woe) <= 0 && vowZarBalance.Cmp(math.Zero) == 0 {
-			//self.vow.flop().transact(gas_price=self.gas_price)
+			txHash, err := fc.sender.Flop()
+			if err != nil {
+				log.Println("error in sending flop transaction.", err)
+			}
+			fmt.Printf("\tFlop Transaction Hash: %s\n", txHash)
 		}
 	}
 
 }
 
 func (fc *FlopperChecker) ReconcileDebt(zarBalance, ash, woe *big.Int) error {
-	zero := big.NewInt(0)
+	var err error
 
-	if ash.Cmp(zero) > 0 {
+	if ash.Cmp(math.Zero) > 0 {
 		if zarBalance.Cmp(ash) > 0 {
-			//self.vow.kiss(ash).transact(gas_price=self.gas_price)
+			txHash, err := fc.sender.Kiss(ash)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("\tKiss Transaction Hash: %s\n", txHash)
 		} else {
-			//self.vow.kiss(joy).transact(gas_price=self.gas_price)
+			txHash, err := fc.sender.Kiss(zarBalance)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("\tKiss Transaction Hash: %s\n", txHash)
 		}
 	}
-	if woe.Cmp(zero) > 0 {
-		zarBalance, err := fc.vatLoader.GetZarBalance(context.Background(), fc.vowAddress)
+	if woe.Cmp(math.Zero) > 0 {
+		zarBalance, err = fc.vatLoader.GetZarBalance(context.Background(), fc.vowAddress)
 		if err != nil {
 			log.Println("[ReconcileDebt] error in getting vow zar balance.", err)
 			return err
 		}
 
 		if zarBalance.Cmp(woe) > 0 {
-			//self.vow.heal(woe).transact(gas_price=self.gas_price)
+			txHash, err := fc.sender.Heal(woe)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("\tHeal Transaction Hash: %s\n", txHash)
 		} else {
-			//self.vow.heal(joy).transact(gas_price=self.gas_price)
+			txHash, err := fc.sender.Heal(zarBalance)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("\tHeal Transaction Hash: %s\n", txHash)
 		}
 	}
 

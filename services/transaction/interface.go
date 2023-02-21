@@ -10,6 +10,7 @@ type ISender interface {
 	GetAddress() common.Address
 	Clipper
 	Vat
+	Vow
 	Dog
 }
 
@@ -20,6 +21,13 @@ type Clipper interface {
 
 type Vat interface {
 	Hope(usr common.Address) (string, error)
+}
+
+type Vow interface {
+	Flop() (string, error)
+	Flog(era *big.Int) (string, error)
+	Kiss(rad *big.Int) (string, error)
+	Heal(rad *big.Int) (string, error)
 }
 
 type Dog interface {
