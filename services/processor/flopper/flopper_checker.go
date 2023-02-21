@@ -82,7 +82,7 @@ func (fc *FlopperChecker) Start() {
 		return
 	}
 
-	woe := new(big.Int).Sub(new(big.Int).Sub(vatSin, vowSin), ash) // Unqueued, pre-auction debt
+	woe := calculateWoe(vatSin, vowSin, ash) // woe is unqueued, pre-auction debt
 
 	sump, err := fc.vowLoader.GetSump(context.Background())
 	if err != nil {
@@ -101,7 +101,7 @@ func (fc *FlopperChecker) Start() {
 		// We need to bring vowZarBalance to 0 and Woe to at least sump
 
 		if vowZarBalance.Cmp(big.NewInt(0)) > 1 {
-			err := fc.ReconcileDebt(vowZarBalance, ash, woe)
+			err = fc.ReconcileDebt(vowZarBalance, ash, woe)
 			if err != nil {
 				log.Println("error in reconcile debt:", err)
 				return
@@ -109,7 +109,7 @@ func (fc *FlopperChecker) Start() {
 		}
 
 		// Convert enough sin in woe to have woe >= sump + vowZarBalance
-		if woe.Cmp(new(big.Int).Add(sump, vowZarBalance)) == -1 { // if woe < (sump + vowZarBalance)
+		if woe.Cmp(new(big.Int).Add(sump, vowZarBalance)) < 0 { // if woe < (sump + vowZarBalance)
 			eras, err := fc.cache.GetEras(context.Background())
 			if err != nil {
 				log.Println("error in get eras from redis:", err)
@@ -133,14 +133,69 @@ func (fc *FlopperChecker) Start() {
 				}
 
 				if eraSin.Cmp(math.Zero) > 0 && new(big.Int).Add(era, wait).Cmp(now) <= 0 { // if sin > 0 and era + wait <= now:
-					// TODO
+					// self.vow.flog(era).transact(gas_price=self.gas_price)
 
+					// flog() sin until woe is above sump + joy
+					vowZarBalance, err = fc.vatLoader.GetZarBalance(context.Background(), fc.vowAddress)
+					if err != nil {
+						log.Println("error in getting vow zar balance after flog.", err)
+						return
+					}
+
+					woe, err = fc.GetWoe()
+					if err != nil {
+						log.Println("error in getting woe after flog.", err)
+						return
+					}
+					if new(big.Int).Sub(woe, vowZarBalance).Cmp(sump) >= 0 {
+						break
+					}
 				}
 			}
 		}
 
 		// Reduce on-auction debt and reconcile remaining joy
-		// TODO
+		vowZarBalance, err = fc.vatLoader.GetZarBalance(context.Background(), fc.vowAddress)
+		if err != nil {
+			log.Println("error in getting vow zar balance.", err)
+			return
+		}
+
+		if vowZarBalance.Cmp(math.Zero) > 0 {
+			ash, err = fc.vowLoader.GetAsh(context.Background())
+			if err != nil {
+				log.Println("error in getting vow.Ash.", err)
+				return
+			}
+
+			woe, err = fc.GetWoe()
+			if err != nil {
+				log.Println("error in getting woe after flog.", err)
+				return
+			}
+
+			err = fc.ReconcileDebt(vowZarBalance, ash, woe)
+			if err != nil {
+				log.Println("error in reconcile debt:", err)
+				return
+			}
+
+			vowZarBalance, err = fc.vatLoader.GetZarBalance(context.Background(), fc.vowAddress)
+			if err != nil {
+				log.Println("error in getting vow zar balance.", err)
+				return
+			}
+		}
+
+		woe, err = fc.GetWoe()
+		if err != nil {
+			log.Println("error in getting woe after flog.", err)
+			return
+		}
+
+		if sump.Cmp(woe) <= 0 && vowZarBalance.Cmp(math.Zero) == 0 {
+			//self.vow.flop().transact(gas_price=self.gas_price)
+		}
 	}
 
 }
@@ -168,4 +223,31 @@ func (fc *FlopperChecker) ReconcileDebt(zarBalance, ash, woe *big.Int) error {
 			//self.vow.heal(joy).transact(gas_price=self.gas_price)
 		}
 	}
+
+	return nil
+}
+
+func (fc *FlopperChecker) GetWoe() (*big.Int, error) {
+	// Woe is unqueued, pre-auction debt
+
+	vatSin, err := fc.vatLoader.GetSin(context.Background(), fc.vowAddress) // Total Deficit
+	if err != nil {
+		return nil, err
+	}
+
+	vowSin, err := fc.vowLoader.GetSin(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	ash, err := fc.vowLoader.GetAsh(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	return calculateWoe(vatSin, vowSin, ash), nil
+}
+
+func calculateWoe(vatSin, vowSin, ash *big.Int) *big.Int {
+	return new(big.Int).Sub(new(big.Int).Sub(vatSin, vowSin), ash)
 }
