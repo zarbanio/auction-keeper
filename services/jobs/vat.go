@@ -2,6 +2,9 @@ package jobs
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
 	"github.com/IR-Digital-Token/x/messages"
 
 	"github.com/IR-Digital-Token/auction-keeper/cache"
@@ -10,28 +13,32 @@ import (
 )
 
 func Frobs(msg *messages.Message, redisCache cache.ICache, loader *loaders.VaultLoader) error {
-	urn := common.HexToAddress(msg.Metadata.Get("urn"))
 
-	return UrnManipulation(redisCache, loader, msg.Metadata.Get("ilkName"), urn)
+	var frob vat.VatFrob
+	if err := json.Unmarshal(msg.Payload, &frob); err != nil {
+		return fmt.Errorf("error in unmarshalling: %v", err)
+	}
+
+	return UrnManipulation(redisCache, loader, frob.I, frob.U)
 }
 
 func Forks(msg *messages.Message, redisCache cache.ICache, loader *loaders.VaultLoader) error {
-	urnSrc := common.HexToAddress(msg.Metadata.Get("urnSrc"))
-	urnDst := common.HexToAddress(msg.Metadata.Get("urnDst"))
-
-	return UrnManipulation(redisCache, loader, msg.Metadata.Get("ilkName"), urnSrc, urnDst)
+	var fork vat.VatFork
+	if err := json.Unmarshal(msg.Payload, &fork); err != nil {
+		return fmt.Errorf("error in unmarshalling: %v", err)
+	}
+	return UrnManipulation(redisCache, loader, fork.Ilk, fork.Src, fork.Dst)
 }
 
 func Grabs(msg *messages.Message, redisCache cache.ICache, loader *loaders.VaultLoader) error {
-	urn := common.HexToAddress(msg.Metadata.Get("urn"))
-
-	return UrnManipulation(redisCache, loader, msg.Metadata.Get("ilkName"), urn)
+	var grab vat.VatGrab
+	if err := json.Unmarshal(msg.Payload, &grab); err != nil {
+		return fmt.Errorf("error in unmarshalling: %v", err)
+	}
+	return UrnManipulation(redisCache, loader, grab.I, grab.U)
 }
 
-func UrnManipulation(redisCache cache.ICache, loader *loaders.VaultLoader, ilkName string, urns ...common.Address) error {
-	var ilkId [32]byte
-	copy(ilkId[:], ilkName)
-
+func UrnManipulation(redisCache cache.ICache, loader *loaders.VaultLoader, ilkId [32]byte, urns ...common.Address) error {
 	// fetch urns from vat and update cache
 	for _, urn := range urns {
 		vault, err := loader.GetVaultByIlkUrn(context.Background(), ilkId, urn)
