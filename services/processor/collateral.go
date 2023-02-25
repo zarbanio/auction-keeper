@@ -85,11 +85,11 @@ func (cp *collateralProcessor) processCollateral(actions actions.IAction, minPro
 			continue
 		}
 		if needsRedo {
-			txHash, err := actions.Redo(cp.collateral.ClipperLoader.Clipper, auction.Id)
+			redo := store.NewRedo(*auction.Id).ToDomain()
+			err := actions.Redo(cp.collateral.ClipperLoader.Clipper, redo)
 			if err != nil {
 				fmt.Printf("error in sending redo transaction: %v\n", err)
 			}
-			fmt.Printf("\tRedo Transaction Hash: %s\n", txHash)
 			continue
 		}
 

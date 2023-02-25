@@ -12,7 +12,9 @@ import (
 type IStore interface {
 	Migrateable
 	ITranasaction
-	ITake
+	IClipper
+	IVat
+	IDog
 }
 
 type Migrateable interface {
@@ -25,9 +27,14 @@ type ITranasaction interface {
 	GetTransactionById(ctx context.Context, id uint64) (*TransactionModel, error)
 }
 
-type ITake interface {
+type IClipper interface {
 	CreateTake(ctx context.Context, take *entities.ClipperTake, tx_id int64) (int64, error)
-	// GetTakeById(ctx context.Context, id int64) (error, error)
-	// GetFrobsByOrder(ctx context.Context, cursor, limit int64) ([]vat.VatFrob, error)
-	// GetLastFrob(ctx context.Context) (*vat.VatFrob, error)
+	CreateRedo(ctx context.Context, redo entities.ClipperRedo, tx_id int64) (int64, error)
+}
+type IVat interface {
+	CreateHope(ctx context.Context, hope entities.VatHope, tx_id int64) (int64, error)
+}
+
+type IDog interface {
+	CreateBark(ctx context.Context, bark entities.DogBark, tx_id int64) (int64, error)
 }

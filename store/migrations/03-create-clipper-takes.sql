@@ -9,4 +9,4 @@ CREATE TABLE if not exists clipper_takes
     tx_id           INTEGER UNIQUE REFERENCES transactions (id)
 );
 
-CREATE INDEX if not exists init_log_id_index on vat_inits(log_id);
+CREATE INDEX if not exists clipper_take_who_index on clipper_takes(who);

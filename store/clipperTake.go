@@ -26,13 +26,11 @@ func (f takeModel) ToDomain() *entities.ClipperTake {
 	var D []byte
 	copy(D[:], common.Hex2Bytes(f.data))
 	return &entities.ClipperTake{
-		Auction_id:  math.BigIntFromString(f.auction_id),
-		Amt:         math.BigIntFromString(f.amt),
-		Max:         math.BigIntFromString(f.max),
-		Who:         common.HexToAddress(f.who),
-		Data:        D,
-		Opts:        f.opts,
-		Transaction: f.transaction,
+		Auction_id: math.BigIntFromString(f.auction_id),
+		Amt:        math.BigIntFromString(f.amt),
+		Max:        math.BigIntFromString(f.max),
+		Who:        common.HexToAddress(f.who),
+		Data:       D,
 	}
 }
 
@@ -61,7 +59,6 @@ func (p postgres) CreateTake(ctx context.Context, take *entities.ClipperTake, tx
 			data = EXCLUDED.data
         RETURNING id
     `, take.Auction_id, take.Amt, take.Max, take.Who, take.Data, tx_id).Scan(&id)
-	// common.Bytes2Hex(init.Ilk[:]), logId
 	if err != nil {
 		return 0, fmt.Errorf("failed to upsert . %w", err)
 	}

@@ -3,7 +3,6 @@ package vault
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"math/big"
 	"sync"
@@ -14,6 +13,7 @@ import (
 	"github.com/IR-Digital-Token/auction-keeper/domain/math"
 	"github.com/IR-Digital-Token/auction-keeper/services/actions"
 	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
+	"github.com/IR-Digital-Token/auction-keeper/store"
 )
 
 type VaultChecker struct {
@@ -103,7 +103,8 @@ func (vc *VaultChecker) Start() {
 
 		// check can call bark
 		if canBark(vault.Urn, *vatIlk, dogHole, dogDirt, dogIlk.Hole, dogIlk.Dirt, dogIlk.Chop) {
-			txHash, err := vc.actions.Bark(ilkId, vault.UrnAddress)
+			bark := store.NewBark(ilkId, vault.UrnAddress).ToDomain()
+			err := vc.actions.Bark(bark)
 			if err != nil {
 				log.Println("error in sending bark transaction.", err)
 				continue
@@ -111,7 +112,6 @@ func (vc *VaultChecker) Start() {
 
 			// contract update ilk.dirt after bark
 			delete(dogIlks, ilkName)
-			fmt.Printf("\tBark Transaction Hash: %s\n", txHash)
 		}
 	}
 

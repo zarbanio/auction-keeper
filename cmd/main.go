@@ -141,12 +141,11 @@ func clipperAllowance(eth *ethclient.Client, collateralName string, vatAddr, cli
 
 	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
 		fmt.Printf("HOPING %s CLIPPER IN VAT\n", collateralName)
-		txHash, err := actions.Hope(clipperAddr)
+		hope := store.NewHope(clipperAddr).ToDomain()
+		err := actions.Hope(hope)
 		if err != nil {
 			return err
 		}
-
-		fmt.Printf("Hoped %s Clipper in VAT: %s\n", collateralName, txHash)
 	} else {
 		fmt.Printf("%s Clipper is Hoped in VAT \n", collateralName)
 	}
@@ -166,11 +165,11 @@ func zarJoinAllowance(eth *ethclient.Client, vatAddr, zarJoinAddr common.Address
 
 	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
 		fmt.Println("HOPING ZAR_JOIN IN VAT")
-		txHash, err := actions.Hope(zarJoinAddr)
+		hope := store.NewHope(zarJoinAddr).ToDomain()
+		err := actions.Hope(hope)
 		if err != nil {
 			return err
 		}
-		fmt.Println("Hoped ZAR_JOIN in VAT ", txHash)
 	} else {
 		fmt.Println("ZAR_JOIN is Hoped in VAT ")
 	}
