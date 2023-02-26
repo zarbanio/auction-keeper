@@ -20,11 +20,11 @@ type VaultChecker struct {
 	cache      cache.ICache
 	actions    actions.IAction
 	dogLoader  *loaders.DogLoader
-	vatLoader  *loaders.VaultLoader
+	vatLoader  *loaders.VatLoader
 	processing sync.Mutex
 }
 
-func NewVaultsChecker(cache cache.ICache, actions actions.IAction, dogLoader *loaders.DogLoader, vatLoader *loaders.VaultLoader) *VaultChecker {
+func NewVaultsChecker(cache cache.ICache, actions actions.IAction, dogLoader *loaders.DogLoader, vatLoader *loaders.VatLoader) *VaultChecker {
 	vaultChecker := &VaultChecker{
 		cache:      cache,
 		actions:    actions,

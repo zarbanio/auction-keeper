@@ -12,16 +12,18 @@ import (
 
 	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
 	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
+	"github.com/IR-Digital-Token/auction-keeper/bindings/vow"
 	"github.com/IR-Digital-Token/auction-keeper/cache"
 	"github.com/IR-Digital-Token/auction-keeper/collateral"
 	"github.com/IR-Digital-Token/auction-keeper/configs"
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/IR-Digital-Token/auction-keeper/services/actions"
 	"github.com/IR-Digital-Token/auction-keeper/services/callbacks"
 	"github.com/IR-Digital-Token/auction-keeper/services/jobs"
 	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
 	"github.com/IR-Digital-Token/auction-keeper/services/processor"
 	"github.com/IR-Digital-Token/auction-keeper/services/processor/clipper/vault"
+	"github.com/IR-Digital-Token/auction-keeper/services/processor/flopper"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
 	"github.com/IR-Digital-Token/auction-keeper/store"
@@ -44,9 +46,15 @@ func startSubscribeEvents(ps pubsub.Pubsub, redisCache cache.ICache, vaultLoader
 	_ = ps.Subscribe(context.Background(), "events.vat.grabs", func(msg *messages.Message) error {
 		return jobs.Grabs(msg, redisCache, vaultLoader)
 	})
+	_ = ps.Subscribe(context.Background(), "events.vow.fess", func(msg *messages.Message) error {
+		return jobs.Fess(msg, redisCache)
+	})
+	_ = ps.Subscribe(context.Background(), "events.vow.flog", func(msg *messages.Message) error {
+		return jobs.Flog(msg, redisCache)
+	})
 }
 
-func registerEventHandlers(indexer *chain.Indexer, ps pubsub.Pubsub, eth *ethclient.Client, liquidatorProcessor *processor.LiquidatorProcessor, collaterals map[string]collateral.Collateral, vatAddress common.Address) {
+func registerEventHandlers(indexer *chain.Indexer, ps pubsub.Pubsub, eth *ethclient.Client, liquidatorProcessor *processor.LiquidatorProcessor, collaterals map[string]collateral.Collateral, vatAddress, vowAddress common.Address) {
 	println("Register callbacks on event triggers come from the indexer.")
 
 	for _, v := range collaterals {
@@ -59,6 +67,10 @@ func registerEventHandlers(indexer *chain.Indexer, ps pubsub.Pubsub, eth *ethcli
 	indexer.RegisterEventHandler(vat.NewFrobHandler(vatAddress, eth, callbacks.VatFrobCallback(ps)))
 	indexer.RegisterEventHandler(vat.NewForkHandler(vatAddress, eth, callbacks.VatForkCallback(ps)))
 	indexer.RegisterEventHandler(vat.NewGrabHandler(vatAddress, eth, callbacks.VatGrabCallback(ps)))
+
+	println("Register callbacks on vow event (fess, flog) triggers come from the indexer.")
+	indexer.RegisterEventHandler(vow.NewFessHandler(vowAddress, eth, callbacks.VowFessCallback(ps)))
+	indexer.RegisterEventHandler(vow.NewFlogHandler(vowAddress, eth, callbacks.VowFlogCallback(ps)))
 
 	println("Done\n")
 }
@@ -201,9 +213,21 @@ func Execute() {
 		eth,
 		cfg.Vat,
 	)
+	vatLoader := loaders.NewVatLoader(
+		eth,
+		cfg.Vat,
+	)
+	vowLoader := loaders.NewVowLoader(
+		eth,
+		cfg.Vat,
+	)
 	dogLoader := loaders.NewDogLoader(
 		eth,
 		cfg.Dog,
+	)
+	flopperLoader := loaders.NewFlopperLoader(
+		eth,
+		cfg.Flopper,
 	)
 
 	blockPtr := chain.NewFileBlockPointer(".", "goerli.ptr", cfg.Indexer.BlockPtr)
@@ -211,24 +235,24 @@ func Execute() {
 		log.Println("block pointer file doest not exits. creating a new one.")
 		err = blockPtr.Create()
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		log.Println("new block pointer file created.")
 	}
-	// write last block number in block pointer file
-	lastBlack, err := eth.BlockNumber(context.Background())
-	err = blockPtr.Update(lastBlack)
-	if err != nil {
-		panic(err)
-	}
+	// // write last block number in block pointer file // TODO
+	//lastBlack, err := eth.BlockNumber(context.Background())
+	//err = blockPtr.Update(lastBlack)
+	//if err != nil {
+	//	panic(err)
+	//}
 
 	/***************************************
 	 			get collaterals
 	***************************************/
 	collaterals, err := getCollaterals(cfg, eth)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	/* -------------------------------------------------------------------------- */
@@ -237,9 +261,10 @@ func Execute() {
 	/***************************************
 	 			import wallet
 	***************************************/
-	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId), cfg.Vat, cfg.Dog, indexer)
+	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId), indexer)
+
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	actions, err := actions.NewActions(eth, sender, postgresStore, cfg.Vat, cfg.Dog)
@@ -250,12 +275,12 @@ func Execute() {
 	for _, c := range collaterals {
 		err = clipperAllowance(eth, c.Name, cfg.Vat, c.Clipper.Address, sender, actions)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 	}
 	err = zarJoinAllowance(eth, cfg.Vat, cfg.ZarJoin, sender, actions)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	/* -------------------------------------------------------------------------- */
@@ -269,7 +294,7 @@ func Execute() {
 	liquidatorProcessor := processor.NewLiquidatorProcessor(eth, actions, collaterals, liquidatorConfig)
 	err = getActiveAuctions(collaterals, liquidatorProcessor)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	// This GoChannel is not persistent.
@@ -292,9 +317,9 @@ func Execute() {
 	}()
 
 	/* -------------------------------------------------------------------------- */
-	/*                       start checkin vaults                                 */
+	/*                       start checking vaults                                 */
 	/* -------------------------------------------------------------------------- */
-	vaultsChecker := vault.NewVaultsChecker(redisCache, actions, dogLoader, vaultLoader)
+	vaultsChecker := vault.NewVaultsChecker(redisCache, actions, dogLoader, vatLoader)
 	vaultsCheckerTicker := time.NewTicker(60 * time.Second) // TODO: set time in config file
 	go func() {
 		for {
@@ -307,8 +332,30 @@ func Execute() {
 		}
 	}()
 
-	registerEventHandlers(indexer, ps, eth, liquidatorProcessor, collaterals, cfg.Vat)
+	registerEventHandlers(indexer, ps, eth, liquidatorProcessor, collaterals, cfg.Vat, cfg.Vow)
 
+	/* -------------------------------------------------------------------------- */
+	/*                       start checking flopper                               */
+	/* -------------------------------------------------------------------------- */
+	flopperChecker := flopper.NewFlopperChecker(eth, redisCache, sender, cfg.Vow, vowLoader, vatLoader, flopperLoader)
+	flopperCheckerTicker := time.NewTicker(60 * time.Second) // TODO: set time in config file
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-flopperCheckerTicker.C:
+				flopperChecker.Start()
+			}
+		}
+	}()
+
+	/* -------------------------------------------------------------------------- */
+	/*                     register contracts in indexer                    */
+	indexer.RegisterAddress(cfg.Vat)
+	indexer.RegisterAddress(cfg.Vow)
+	indexer.RegisterAddress(cfg.Dog)
+	indexer.RegisterAddress(cfg.Flopper)
 	for _, c := range collaterals {
 		indexer.RegisterAddress(c.Clipper.Address)
 	}
