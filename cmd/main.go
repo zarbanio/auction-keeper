@@ -303,7 +303,7 @@ func Execute() {
 	// start subscribe on chanels
 	startSubscribeEvents(ps, redisCache, vaultLoader)
 
-	ticker := time.NewTicker(time.Duration(cfg.Vault.Ticker) * time.Second)
+	ticker := time.NewTicker(time.Duration(cfg.Times.LiquidatorTicker) * time.Second)
 	done := make(chan bool)
 	go func() {
 		for {
@@ -320,7 +320,7 @@ func Execute() {
 	/*                       start checking vaults                                 */
 	/* -------------------------------------------------------------------------- */
 	vaultsChecker := vault.NewVaultsChecker(redisCache, actions, dogLoader, vatLoader)
-	vaultsCheckerTicker := time.NewTicker(60 * time.Second) // TODO: set time in config file
+	vaultsCheckerTicker := time.NewTicker(time.Duration(cfg.Times.VaultTicker) * time.Second) // TODO: set time in config file
 	go func() {
 		for {
 			select {
@@ -338,7 +338,7 @@ func Execute() {
 	/*                       start checking flopper                               */
 	/* -------------------------------------------------------------------------- */
 	flopperChecker := flopper.NewFlopperChecker(eth, redisCache, actions, cfg.Vow, vowLoader, vatLoader, flopperLoader)
-	flopperCheckerTicker := time.NewTicker(60 * time.Second) // TODO: set time in config file
+	flopperCheckerTicker := time.NewTicker(time.Duration(cfg.Times.FlopperTicker) * time.Second) // TODO: set time in config file
 	go func() {
 		for {
 			select {
