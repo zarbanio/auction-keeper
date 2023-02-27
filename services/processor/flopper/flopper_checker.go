@@ -2,22 +2,23 @@ package flopper
 
 import (
 	"context"
-	"fmt"
-	"github.com/IR-Digital-Token/auction-keeper/cache"
-	"github.com/IR-Digital-Token/auction-keeper/domain/math"
-	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
-	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
 	"math/big"
 	"sync"
+
+	"github.com/IR-Digital-Token/auction-keeper/cache"
+	"github.com/IR-Digital-Token/auction-keeper/domain/math"
+	"github.com/IR-Digital-Token/auction-keeper/services/actions"
+	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
+	"github.com/IR-Digital-Token/auction-keeper/store"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 type FlopperChecker struct {
 	eth           *ethclient.Client
 	cache         cache.ICache
-	sender        transaction.ISender
+	actions       actions.IAction
 	vowAddress    common.Address
 	vowLoader     *loaders.VowLoader
 	vatLoader     *loaders.VatLoader
@@ -25,12 +26,12 @@ type FlopperChecker struct {
 	processing    sync.Mutex
 }
 
-// NewFlopperChecker TODO: remove "sender" and add "auctions"
-func NewFlopperChecker(eth *ethclient.Client, cache cache.ICache, sender transaction.ISender, vowAddr common.Address, vowLoader *loaders.VowLoader, vatLoader *loaders.VatLoader, flopperLoader *loaders.FlopperLoader) *FlopperChecker {
+// NewFlopperChecker TODO: remove "actions" and add "auctions"
+func NewFlopperChecker(eth *ethclient.Client, cache cache.ICache, actions actions.IAction, vowAddr common.Address, vowLoader *loaders.VowLoader, vatLoader *loaders.VatLoader, flopperLoader *loaders.FlopperLoader) *FlopperChecker {
 	flopperChecker := &FlopperChecker{
 		eth:           eth,
 		cache:         cache,
-		sender:        sender,
+		actions:       actions,
 		vowAddress:    vowAddr,
 		vowLoader:     vowLoader,
 		vatLoader:     vatLoader,
@@ -136,12 +137,12 @@ func (fc *FlopperChecker) Start() {
 				}
 
 				if eraSin.Cmp(math.Zero) > 0 && new(big.Int).Add(era, wait).Cmp(now) <= 0 { // if sin > 0 and era + wait <= now:
-					txHash, err := fc.sender.Flog(era)
+					flog := store.NewFlog(era).ToDomain()
+					err := fc.actions.Flog(flog)
 					if err != nil {
 						log.Println("error in sending flog transaction.", err)
 						return
 					}
-					fmt.Printf("\tFlog Transaction Hash: %s\n", txHash)
 
 					// flog() sin until woe is above sump + joy
 					vowZarBalance, err = fc.vatLoader.GetZarBalance(context.Background(), fc.vowAddress)
@@ -202,11 +203,12 @@ func (fc *FlopperChecker) Start() {
 		}
 
 		if sump.Cmp(woe) <= 0 && vowZarBalance.Cmp(math.Zero) == 0 {
-			txHash, err := fc.sender.Flop()
+
+			err := fc.actions.Flop()
 			if err != nil {
 				log.Println("error in sending flop transaction.", err)
 			}
-			fmt.Printf("\tFlop Transaction Hash: %s\n", txHash)
+
 		}
 	}
 
@@ -216,19 +218,18 @@ func (fc *FlopperChecker) ReconcileDebt(zarBalance, ash, woe *big.Int) error {
 	var err error
 
 	if ash.Cmp(math.Zero) > 0 {
+		var rad big.Int
 		if zarBalance.Cmp(ash) > 0 {
-			txHash, err := fc.sender.Kiss(ash)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("\tKiss Transaction Hash: %s\n", txHash)
+			rad = *ash
 		} else {
-			txHash, err := fc.sender.Kiss(zarBalance)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("\tKiss Transaction Hash: %s\n", txHash)
+			rad = *zarBalance
 		}
+		kiss := store.NewKiss(&rad).ToDomain()
+		err := fc.actions.Kiss(kiss)
+		if err != nil {
+			return err
+		}
+
 	}
 	if woe.Cmp(math.Zero) > 0 {
 		zarBalance, err = fc.vatLoader.GetZarBalance(context.Background(), fc.vowAddress)
@@ -236,19 +237,16 @@ func (fc *FlopperChecker) ReconcileDebt(zarBalance, ash, woe *big.Int) error {
 			log.Println("[ReconcileDebt] error in getting vow zar balance.", err)
 			return err
 		}
-
+		var rad big.Int
 		if zarBalance.Cmp(woe) > 0 {
-			txHash, err := fc.sender.Heal(woe)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("\tHeal Transaction Hash: %s\n", txHash)
+			rad = *ash
 		} else {
-			txHash, err := fc.sender.Heal(zarBalance)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("\tHeal Transaction Hash: %s\n", txHash)
+			rad = *zarBalance
+		}
+		heal := store.NewHeal(&rad).ToDomain()
+		err := fc.actions.Heal(heal)
+		if err != nil {
+			return err
 		}
 	}
 

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
+	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 
 	"github.com/ethereum/go-ethereum/core/types"

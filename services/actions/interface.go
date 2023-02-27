@@ -2,13 +2,14 @@ package actions
 
 import (
 	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
+	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 )
 
 type IAction interface {
 	Clipper
 	Vat
 	Dog
+	Vow
 }
 
 type Clipper interface {
@@ -22,4 +23,11 @@ type Vat interface {
 
 type Dog interface {
 	Bark(bark *entities.DogBark) error
+}
+
+type Vow interface {
+	Heal(heal *entities.VowHeal) error
+	Kiss(kiss *entities.VowKiss) error
+	Flop() error
+	Flog(flog *entities.VowFlog) error
 }

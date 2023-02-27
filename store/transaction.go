@@ -17,20 +17,6 @@ type TransactionModel struct {
 	block uint64
 }
 
-// id      			BIGINT PRIMARY KEY,
-// hash    			TEXT,
-// from    			TEXT,
-// time    			timestamp default current_timestamp,
-// block   			BIGINT
-// cost 				TEXT,
-// data 				TEXT,
-// value 				TEXT,
-// gas_price			TEXT,
-// gas 				TEXT,
-// nonce 				TEXT,
-// to 					TEXT,
-// RawSignatureValues 	TEXT
-
 func (p postgres) CreateTransaction(ctx context.Context, transaction *types.Transaction, from common.Address) (error, uint64) {
 	var id uint64
 	v, r, s := transaction.RawSignatureValues()

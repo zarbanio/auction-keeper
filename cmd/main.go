@@ -267,7 +267,7 @@ func Execute() {
 		log.Fatal(err)
 	}
 
-	actions, err := actions.NewActions(eth, sender, postgresStore, cfg.Vat, cfg.Dog)
+	actions, err := actions.NewActions(eth, sender, postgresStore, cfg.Vat, cfg.Dog, cfg.Vow)
 
 	/***************************************
 	  clipper and zarJoin Allowance
@@ -337,7 +337,7 @@ func Execute() {
 	/* -------------------------------------------------------------------------- */
 	/*                       start checking flopper                               */
 	/* -------------------------------------------------------------------------- */
-	flopperChecker := flopper.NewFlopperChecker(eth, redisCache, sender, cfg.Vow, vowLoader, vatLoader, flopperLoader)
+	flopperChecker := flopper.NewFlopperChecker(eth, redisCache, actions, cfg.Vow, vowLoader, vatLoader, flopperLoader)
 	flopperCheckerTicker := time.NewTicker(60 * time.Second) // TODO: set time in config file
 	go func() {
 		for {

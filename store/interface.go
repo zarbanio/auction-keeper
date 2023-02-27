@@ -4,7 +4,7 @@ import (
 	"context"
 	"math/big"
 
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities"
+	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
@@ -15,6 +15,7 @@ type IStore interface {
 	IClipper
 	IVat
 	IDog
+	IVow
 }
 
 type Migrateable interface {
@@ -37,4 +38,11 @@ type IVat interface {
 
 type IDog interface {
 	CreateBark(ctx context.Context, bark entities.DogBark, tx_id int64) (int64, error)
+}
+
+type IVow interface {
+	CreateKiss(ctx context.Context, kiss *entities.VowKiss, tx_id int64) (int64, error)
+	CreateHeal(ctx context.Context, heal *entities.VowHeal, tx_id int64) (int64, error)
+	CreateFlog(ctx context.Context, flog *entities.VowFlog, tx_id int64) (int64, error)
+	CreateFlop(ctx context.Context, tx_id int64) (int64, error)
 }

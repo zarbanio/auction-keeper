@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities"
+	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 )
 
 type redoModel struct {

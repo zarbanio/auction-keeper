@@ -3,7 +3,7 @@ package actions
 import (
 	"context"
 
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
+	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"github.com/ethereum/go-ethereum/core/types"
 )

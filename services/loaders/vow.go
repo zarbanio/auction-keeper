@@ -2,12 +2,13 @@ package loaders
 
 import (
 	"context"
+	"log"
+	"math/big"
+
 	"github.com/IR-Digital-Token/auction-keeper/bindings/vow"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"log"
-	"math/big"
 )
 
 type VowLoader struct {
