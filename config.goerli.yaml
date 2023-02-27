@@ -4,6 +4,12 @@ Indexer:
   BlockPtr: 8485879
 Redis:
   URL: 'auction-keeper-redis:6379'
+postgres:
+  Host: 'localhost:5432'
+  User: 'postgres'
+  Password: 'postgres'
+  DB: 'postgres'
+  MigrationsPath: './store/migrations'
 Network:
   ChainId: 5
   NativeAsset:

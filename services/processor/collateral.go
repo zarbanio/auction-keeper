@@ -4,16 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"math/big"
+
 	"github.com/IR-Digital-Token/auction-keeper/collateral"
 	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
-	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
+	"github.com/IR-Digital-Token/auction-keeper/services/actions"
 	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
+	"github.com/IR-Digital-Token/auction-keeper/store"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"log"
-	"math/big"
 )
 
 var (
@@ -57,7 +59,7 @@ func (cp *collateralProcessor) updateAuctionAfterRedo(id, top *big.Int, tic uint
 	cp.auctionCollection.updateAuctionAfterRedo(id, top, tic)
 }
 
-func (cp *collateralProcessor) processCollateral(sender transaction.ISender, minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address) {
+func (cp *collateralProcessor) processCollateral(actions actions.IAction, minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address) {
 	fmt.Printf("processing opportunities for: %s\n", cp.collateral.Name)
 	fmt.Printf("%s active auctions qty: %d\n", cp.collateral.Name, len(cp.auctionCollection.auctions))
 
@@ -83,11 +85,11 @@ func (cp *collateralProcessor) processCollateral(sender transaction.ISender, min
 			continue
 		}
 		if needsRedo {
-			txHash, err := sender.Redo(cp.collateral.ClipperLoader.Clipper, auction.Id)
+			redo := store.NewRedo(*auction.Id).ToDomain()
+			err := actions.Redo(cp.collateral.ClipperLoader.Clipper, redo)
 			if err != nil {
 				fmt.Printf("error in sending redo transaction: %v\n", err)
 			}
-			fmt.Printf("\tRedo Transaction Hash: %s\n", txHash)
 			continue
 		}
 
@@ -172,7 +174,7 @@ func (cp *collateralProcessor) processCollateral(sender transaction.ISender, min
 
 			printAuctionSummary(cp.collateral.Name, auction, minLot, maxLot, lot, collateralPrice, debtToCover, minProfit, uniswapV3Proceeds, minUniV3Proceeds)
 
-			err = cp.executeAuction(sender, auction.Id, amt, collateralPrice, minProfit, profitAddress, cp.collateral.GemJoinAdapter, cp.collateral.UniswapV3Callee)
+			err = cp.executeAuction(actions, auction.Id, amt, collateralPrice, minProfit, profitAddress, cp.collateral.GemJoinAdapter, cp.collateral.UniswapV3Callee)
 			if err != nil {
 				fmt.Printf("error in executeAuction: %v\n", err)
 				continue
@@ -191,7 +193,7 @@ var (
 	Address, _ = abi.NewType("address", "", nil)
 )
 
-func (cp *collateralProcessor) executeAuction(sender transaction.ISender, auctionId, amt, maxPrice, minProfit *big.Int, profitAddr, gemJoinAdapter, exchangeCalleeAddress common.Address) error {
+func (cp *collateralProcessor) executeAuction(actions actions.IAction, auctionId, amt, maxPrice, minProfit *big.Int, profitAddr, gemJoinAdapter, exchangeCalleeAddress common.Address) error {
 
 	// Uniswap v3 swap
 	// typesArray := ['address', 'address', 'uint256', 'bytes', 'address'];
@@ -212,13 +214,11 @@ func (cp *collateralProcessor) executeAuction(sender transaction.ISender, auctio
 	if err != nil {
 		return errors.New(fmt.Sprintf("error in pack flash data: : %v", err))
 	}
-
-	txHash, err := sender.Take(cp.collateral.ClipperLoader.Clipper, auctionId, amt, maxPrice, exchangeCalleeAddress, flashData)
+	take := store.NewTake(auctionId, amt, maxPrice, exchangeCalleeAddress, flashData).ToDomain()
+	err = actions.Take(cp.collateral.ClipperLoader.Clipper, take)
 	if err != nil {
 		return errors.New(fmt.Sprintf("error in sending take transaction: : %v", err))
 	}
-
-	fmt.Printf("\tTake Transaction Hash: %s\n", txHash)
 	return nil
 }
 

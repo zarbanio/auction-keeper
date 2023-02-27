@@ -1,11 +1,12 @@
 package configs
 
 import (
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
-	"github.com/ethereum/go-ethereum/common"
 	"log"
 	"reflect"
 	"time"
+
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
@@ -20,6 +21,13 @@ type Config struct {
 	Redis struct {
 		URL string `yaml:"URL"`
 	}
+	Postgres struct {
+		Host           string `yaml:"Host"`
+		User           string `yaml:"User"`
+		Password       string `yaml:"Password"`
+		DB             string `yaml:"DB"`
+		MigrationsPath string `yaml:"MigrationsPath"`
+	} `yaml:"Postgres"`
 	Network struct {
 		ChainId     int64 `yaml:"ChainId"`
 		NativeAsset struct {

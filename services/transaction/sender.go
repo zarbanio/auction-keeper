@@ -4,15 +4,13 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/IR-Digital-Token/auction-keeper/bindings/dog"
-	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
-	"github.com/IR-Digital-Token/auction-keeper/bindings/vow"
+	"math/big"
+
+	"github.com/IR-Digital-Token/x/chain"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"log"
-	"math/big"
 )
 
 type Sender struct {
@@ -20,12 +18,10 @@ type Sender struct {
 	privateKey *ecdsa.PrivateKey
 	address    common.Address
 	chainId    *big.Int
-	vat        *vat.Vat
-	vow        *vow.Vow
-	dog        *dog.Dog
+	indexer    *chain.Indexer
 }
 
-func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int, vatAddr, vowAddr, dogAddr common.Address) (ISender, error) {
+func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int, indexer *chain.Indexer) (*Sender, error) {
 
 	prvKey, err := crypto.HexToECDSA(privateKey)
 	if err != nil {
@@ -40,29 +36,12 @@ func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int, vatAd
 
 	address := crypto.PubkeyToAddress(*publicKeyECDSA)
 
-	vatInstance, err := vat.NewVat(vatAddr, eth)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	vowInstance, err := vow.NewVow(vowAddr, eth)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	dogInstance, err := dog.NewDog(dogAddr, eth)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	return &Sender{
 		eth:        eth,
 		privateKey: prvKey,
 		address:    address,
 		chainId:    chainId,
-		vat:        vatInstance,
-		vow:        vowInstance,
-		dog:        dogInstance,
+		indexer:    indexer,
 	}, nil
 }
 
@@ -70,7 +49,7 @@ func (s Sender) GetAddress() common.Address {
 	return s.address
 }
 
-func (s Sender) getOpts() (*bind.TransactOpts, error) {
+func (s Sender) GetOpts() (*bind.TransactOpts, error) {
 
 	nonce, err := s.eth.PendingNonceAt(context.Background(), s.GetAddress())
 	if err != nil {

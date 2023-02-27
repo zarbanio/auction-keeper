@@ -1,9 +1,10 @@
 package entities
 
 import (
+	"math/big"
+
 	"github.com/IR-Digital-Token/auction-keeper/bindings/abacus"
 	"github.com/ethereum/go-ethereum/common"
-	"math/big"
 )
 
 type Clipper struct {
