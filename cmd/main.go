@@ -303,7 +303,7 @@ func Execute() {
 	// start subscribe on chanels
 	startSubscribeEvents(ps, redisCache, vaultLoader)
 
-	ticker := time.NewTicker(60 * time.Second)
+	ticker := time.NewTicker(time.Duration(cfg.Vault.Ticker) * time.Second)
 	done := make(chan bool)
 	go func() {
 		for {
