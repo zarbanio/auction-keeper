@@ -1,10 +1,11 @@
 package math
 
 import (
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/shopspring/decimal"
 	"math/big"
 	"sync"
+
+	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/shopspring/decimal"
 )
 
 var cache map[int64]*big.Int
