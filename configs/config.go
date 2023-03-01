@@ -29,7 +29,8 @@ type Config struct {
 		MigrationsPath string `yaml:"MigrationsPath"`
 	} `yaml:"Postgres"`
 	Network struct {
-		ChainId     int64 `yaml:"ChainId"`
+		Name        string `yaml:"Name"`
+		ChainId     int64  `yaml:"ChainId"`
 		NativeAsset struct {
 			Name        string         `yaml:"Name"`
 			Symbol      string         `yaml:"Symbol"`
@@ -43,11 +44,6 @@ type Config struct {
 	Wallet struct {
 		Private string         `yaml:"Private"`
 		Address common.Address `yaml:"Address"`
-	}
-	Times struct {
-		VaultTicker      int64 `yaml:"VaultTicker"`
-		FlopperTicker    int64 `yaml:"FlopperTicker"`
-		LiquidatorTicker int64 `yaml:"LiquidatorTicker"`
 	}
 	ZarJoin                common.Address `yaml:"ZarJoin"`
 	Vat                    common.Address `yaml:"Vat"`
@@ -68,6 +64,11 @@ type Config struct {
 		MinProfitPercentage int64 `yaml:"MinProfitPercentage"`
 		MinLotZarValue      int64 `yaml:"MinLotZarValue"`
 		MaxLotZarValue      int64 `yaml:"MaxLotZarValue"`
+	}
+	Times struct {
+		VaultTicker      int64 `yaml:"VaultTicker"`
+		FlopperTicker    int64 `yaml:"FlopperTicker"`
+		LiquidatorTicker int64 `yaml:"LiquidatorTicker"`
 	}
 }
 
