@@ -5,4 +5,4 @@ CREATE TABLE if not exists vow_flogs
     tx_id           INTEGER UNIQUE REFERENCES transactions (id)
 );
 
-CREATE INDEX if not exists vow_flog_era_index on vow_flogs(rad);
+CREATE INDEX if not exists vow_flog_era_index on vow_flogs(era);
