@@ -44,6 +44,11 @@ type Config struct {
 		Private string         `yaml:"Private"`
 		Address common.Address `yaml:"Address"`
 	}
+	Times struct {
+		VaultTicker      int64 `yaml:"VaultTicker"`
+		FlopperTicker    int64 `yaml:"FlopperTicker"`
+		LiquidatorTicker int64 `yaml:"LiquidatorTicker"`
+	}
 	ZarJoin                common.Address `yaml:"ZarJoin"`
 	Vat                    common.Address `yaml:"Vat"`
 	Vow                    common.Address `yaml:"Vow"`
