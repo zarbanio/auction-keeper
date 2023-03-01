@@ -2,7 +2,7 @@ CREATE TABLE if not exists transactions
 (
     id      				BIGINT PRIMARY KEY,
 	hash    				TEXT,
-	from    				TEXT,
+	"from"    				TEXT,
 	cost 					BIGINT,
 	data 					TEXT,
 	value 					BIGINT,
@@ -10,7 +10,7 @@ CREATE TABLE if not exists transactions
 	gas_price				BIGINT,
 	gas 					INT,
 	nonce 					INT,
-	to 						TEXT,
+	"to" 					TEXT,
 	v 						TEXT,
 	r 						TEXT,
 	s 						TEXT,
@@ -18,7 +18,7 @@ CREATE TABLE if not exists transactions
 	block_number	 		BIGINT,
 	cumulative_gas_used 	INT,
 	block_hash				TEXT,
-	status  				INT,
+	status  				INT
 );
 
 

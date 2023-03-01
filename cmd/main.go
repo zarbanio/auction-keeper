@@ -230,7 +230,7 @@ func Execute() {
 		cfg.Flopper,
 	)
 
-	blockPtr := chain.NewFileBlockPointer(".", "goerli.ptr", cfg.Indexer.BlockPtr)
+	blockPtr := chain.NewFileBlockPointer(".", fmt.Sprintf("%s.ptr", cfg.Network.Name), cfg.Indexer.BlockPtr)
 	if !blockPtr.Exists() {
 		log.Println("block pointer file doest not exits. creating a new one.")
 		err = blockPtr.Create()
