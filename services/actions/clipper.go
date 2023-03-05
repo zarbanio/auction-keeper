@@ -2,6 +2,7 @@ package actions
 
 import (
 	"context"
+	"log"
 
 	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
 	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
@@ -21,6 +22,8 @@ func (a Actions) Take(clipper *clipper.Clipper, take *entities.ClipperTake) erro
 	if err != nil {
 		return err
 	}
+	log.Println("Take Tx Hash: ", tx.Hash().String())
+
 	err, txId := a.store.CreateTransaction(context.Background(), tx, a.sender.GetAddress())
 	if err != nil {
 		return err
@@ -32,7 +35,7 @@ func (a Actions) Take(clipper *clipper.Clipper, take *entities.ClipperTake) erro
 	txHandler := transaction.NewHandler(*tx, func(header types.Header, recipt *types.Receipt) error {
 		return a.store.UpdateTransactionBlock(
 			context.Background(),
-			uint64(txId),
+			txId,
 			recipt,
 			header.Time,
 			*recipt.BlockNumber,
@@ -54,6 +57,8 @@ func (a Actions) Redo(clipper *clipper.Clipper, redo *entities.ClipperRedo) erro
 	if err != nil {
 		return err
 	}
+	log.Println("Redo Tx Hash: ", tx.Hash().String())
+
 	err, txId := a.store.CreateTransaction(context.Background(), tx, a.sender.GetAddress())
 	if err != nil {
 		return err
@@ -65,7 +70,7 @@ func (a Actions) Redo(clipper *clipper.Clipper, redo *entities.ClipperRedo) erro
 	txHandler := transaction.NewHandler(*tx, func(header types.Header, recipt *types.Receipt) error {
 		return a.store.UpdateTransactionBlock(
 			context.Background(),
-			uint64(txId),
+			txId,
 			recipt,
 			header.Time,
 			*recipt.BlockNumber,
