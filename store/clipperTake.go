@@ -23,14 +23,12 @@ type takeModel struct {
 }
 
 func (f takeModel) ToDomain() *entities.ClipperTake {
-	var D []byte
-	copy(D[:], common.Hex2Bytes(f.data))
 	return &entities.ClipperTake{
 		Auction_id: math.BigIntFromString(f.auction_id),
 		Amt:        math.BigIntFromString(f.amt),
 		Max:        math.BigIntFromString(f.max),
 		Who:        common.HexToAddress(f.who),
-		Data:       D,
+		Data:       []byte(f.data),
 	}
 }
 

@@ -15,7 +15,7 @@ type barkModel struct {
 
 func (f barkModel) ToDomain() *entities.DogBark {
 	var i [32]byte
-	copy(i[:], common.Hex2Bytes(f.ilk))
+	copy(i[:], f.ilk)
 
 	return &entities.DogBark{
 		Ilk: i,
