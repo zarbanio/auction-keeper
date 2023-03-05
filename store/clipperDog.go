@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -37,7 +37,7 @@ func (p postgres) Createdog(ctx context.Context, dog entities.DogBark, tx_id int
 		VALUES ($1, $2, $3)
 		ON CONFLICT (tx_id)
 		DO UPDATE 
-			SET ilk = EXCLUDED.ilk
+			SET ilk = EXCLUDED.ilk,
 			urn = EXCLUDED.urn
 		RETURNING id
 	`, string(dog.Ilk[:]), dog.Urn.String(), tx_id).Scan(&id)

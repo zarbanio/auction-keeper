@@ -5,24 +5,23 @@ import (
 	"fmt"
 	"math/big"
 
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
-	"github.com/IR-Digital-Token/auction-keeper/domain/math"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 )
 
 type flogModel struct {
-	era string
+	era *big.Int
 }
 
 func (f flogModel) ToDomain() *entities.VowFlog {
 
 	return &entities.VowFlog{
-		Era: math.BigIntFromString(f.era),
+		Era: f.era,
 	}
 }
 
 func NewFlog(era *big.Int) *flogModel {
 	return &flogModel{
-		era: era.String(),
+		era: era,
 	}
 }
 
@@ -36,7 +35,7 @@ func (p postgres) CreateFlog(ctx context.Context, flog *entities.VowFlog, tx_id 
         DO UPDATE 
 			SET era = EXCLUDED.era
         RETURNING id
-    `, flog.Era, tx_id).Scan(&id)
+    `, flog.Era.Uint64(), tx_id).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("failed to upsert . %w", err)
 	}

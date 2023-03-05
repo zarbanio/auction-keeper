@@ -1,24 +1,24 @@
 CREATE TABLE if not exists transactions
 (
-    id      				BIGINT PRIMARY KEY,
-	hash    				TEXT,
-	"from"    				TEXT,
-	cost 					BIGINT,
-	data 					TEXT,
-	value 					BIGINT,
-	chain_id 				BIGINT,
-	gas_price				BIGINT,
-	gas 					INT,
-	nonce 					INT,
-	"to" 					TEXT,
-	v 						TEXT,
-	r 						TEXT,
-	s 						TEXT,
-	block_timestamp 		INT,
-	block_number	 		BIGINT,
-	cumulative_gas_used 	INT,
-	block_hash				TEXT,
-	status  				INT
+    id                  SERIAL PRIMARY KEY,
+    hash                TEXT NOT NULL,
+    from_address        TEXT,
+    cost                BIGINT,
+    data                TEXT,
+    value               BIGINT,
+    chain_id            BIGINT,
+    gas_price           BIGINT,
+    gas                 INT,
+    nonce               INT,
+    to_address          TEXT,
+    v                   TEXT,
+    r                   TEXT,
+    s                   TEXT,
+    block_timestamp     INT,
+    block_number        BIGINT,
+    cumulative_gas_used INT,
+    block_hash          TEXT,
+    status              INT
 );
 
 

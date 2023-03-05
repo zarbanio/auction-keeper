@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -33,7 +33,7 @@ func (p postgres) CreateHope(ctx context.Context, hope entities.VatHope, tx_id i
 		DO UPDATE 
 			SET usr = EXCLUDED.usr
 		RETURNING id
-	`, hope.Usr, tx_id).Scan(&id)
+	`, hope.Usr.String(), tx_id).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("failed to upsert . %w", err)
 	}
