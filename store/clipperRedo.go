@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 )
 
 type redoModel struct {
@@ -35,7 +35,7 @@ func (p postgres) CreateRedo(ctx context.Context, redo entities.ClipperRedo, tx_
 		DO UPDATE 
 			SET sale_id = EXCLUDED.sale_id
 		RETURNING id
-	`, redo.SailId, tx_id).Scan(&id)
+	`, redo.SailId.Int64(), tx_id).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("failed to upsert . %w", err)
 	}

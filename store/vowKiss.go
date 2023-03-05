@@ -5,24 +5,23 @@ import (
 	"fmt"
 	"math/big"
 
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
-	"github.com/IR-Digital-Token/auction-keeper/domain/math"
+	"github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 )
 
 type kissModel struct {
-	rad string
+	rad *big.Int
 }
 
 func (f kissModel) ToDomain() *entities.VowKiss {
 
 	return &entities.VowKiss{
-		Rad: math.BigIntFromString(f.rad),
+		Rad: f.rad,
 	}
 }
 
 func NewKiss(rad *big.Int) *kissModel {
 	return &kissModel{
-		rad: rad.String(),
+		rad: rad,
 	}
 }
 
@@ -36,7 +35,7 @@ func (p postgres) CreateKiss(ctx context.Context, kiss *entities.VowKiss, tx_id 
         DO UPDATE 
 			SET rad = EXCLUDED.rad
         RETURNING id
-    `, kiss.Rad, tx_id).Scan(&id)
+    `, kiss.Rad.Int64(), tx_id).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("failed to upsert . %w", err)
 	}
