@@ -2,6 +2,7 @@ package actions
 
 import (
 	"context"
+	"log"
 
 	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
@@ -20,6 +21,8 @@ func (a Actions) Heal(heal *entities.VowHeal) error {
 	if err != nil {
 		return err
 	}
+	log.Println("Heal Tx Hash: ", tx.Hash().String())
+
 	err, txId := a.store.CreateTransaction(context.Background(), tx, a.sender.GetAddress())
 	if err != nil {
 		return err
@@ -31,7 +34,7 @@ func (a Actions) Heal(heal *entities.VowHeal) error {
 	txHandler := transaction.NewHandler(*tx, func(header types.Header, recipt *types.Receipt) error {
 		return a.store.UpdateTransactionBlock(
 			context.Background(),
-			uint64(txId),
+			txId,
 			recipt,
 			header.Time,
 			*recipt.BlockNumber,
@@ -53,6 +56,8 @@ func (a Actions) Kiss(kiss *entities.VowKiss) error {
 	if err != nil {
 		return err
 	}
+	log.Println("Kiss Tx Hash: ", tx.Hash().String())
+
 	err, txId := a.store.CreateTransaction(context.Background(), tx, a.sender.GetAddress())
 	if err != nil {
 		return err
@@ -64,7 +69,7 @@ func (a Actions) Kiss(kiss *entities.VowKiss) error {
 	txHandler := transaction.NewHandler(*tx, func(header types.Header, recipt *types.Receipt) error {
 		return a.store.UpdateTransactionBlock(
 			context.Background(),
-			uint64(txId),
+			txId,
 			recipt,
 			header.Time,
 			*recipt.BlockNumber,
@@ -86,6 +91,8 @@ func (a Actions) Flop() error {
 	if err != nil {
 		return err
 	}
+	log.Println("Flop Tx Hash: ", tx.Hash().String())
+
 	err, txId := a.store.CreateTransaction(context.Background(), tx, a.sender.GetAddress())
 	if err != nil {
 		return err
@@ -97,7 +104,7 @@ func (a Actions) Flop() error {
 	txHandler := transaction.NewHandler(*tx, func(header types.Header, recipt *types.Receipt) error {
 		return a.store.UpdateTransactionBlock(
 			context.Background(),
-			uint64(txId),
+			txId,
 			recipt,
 			header.Time,
 			*recipt.BlockNumber,
@@ -119,6 +126,8 @@ func (a Actions) Flog(flog *entities.VowFlog) error {
 	if err != nil {
 		return err
 	}
+	log.Println("Flog Tx Hash: ", tx.Hash().String())
+
 	err, txId := a.store.CreateTransaction(context.Background(), tx, a.sender.GetAddress())
 	if err != nil {
 		return err
@@ -130,7 +139,7 @@ func (a Actions) Flog(flog *entities.VowFlog) error {
 	txHandler := transaction.NewHandler(*tx, func(header types.Header, recipt *types.Receipt) error {
 		return a.store.UpdateTransactionBlock(
 			context.Background(),
-			uint64(txId),
+			txId,
 			recipt,
 			header.Time,
 			*recipt.BlockNumber,

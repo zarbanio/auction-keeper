@@ -2,6 +2,7 @@ package actions
 
 import (
 	"context"
+	"log"
 
 	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
@@ -19,6 +20,8 @@ func (a Actions) Bark(bark *entities.DogBark) error {
 	if err != nil {
 		return err
 	}
+	log.Println("Bark Tx Hash: ", tx.Hash().String())
+
 	err, txId := a.store.CreateTransaction(context.Background(), tx, a.sender.GetAddress())
 	if err != nil {
 		return err
@@ -31,7 +34,7 @@ func (a Actions) Bark(bark *entities.DogBark) error {
 	txHandler := transaction.NewHandler(*tx, func(header types.Header, recipt *types.Receipt) error {
 		return a.store.UpdateTransactionBlock(
 			context.Background(),
-			uint64(txId),
+			txId,
 			recipt,
 			header.Time,
 			*recipt.BlockNumber,
