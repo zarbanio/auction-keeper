@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -21,36 +22,36 @@ func (p postgres) CreateTransaction(ctx context.Context, transaction *types.Tran
 	var id uint64
 	v, r, s := transaction.RawSignatureValues()
 	q := `
-	INSERT INTO transactions (hash, from, cost, data, value, gas_price, gas, nonce, to, chain_id, v, r, s)
+	INSERT INTO transactions (hash, from_address, cost, data, value, gas_price, gas, nonce, to_address, chain_id, v, r, s)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 	ON CONFLICT (hash)
 	DO UPDATE 
-		SET from = EXCLUDED.from
-		cost = EXCLUDED.cost
-		data = EXCLUDED.data
-		value = EXCLUDED.value
-		gas_price = EXCLUDED.gas_price
-		gas = EXCLUDED.gas
-		nonce = EXCLUDED.nonce
-		to = EXCLUDED.to
-		chain_id = EXCLUDED.chain_id
-		v = EXCLUDED.v
-		r = EXCLUDED.r
+		SET from_address = EXCLUDED.from_address,
+		cost = EXCLUDED.cost,
+		data = EXCLUDED.data,
+		value = EXCLUDED.value,
+		gas_price = EXCLUDED.gas_price,
+		gas = EXCLUDED.gas,
+		nonce = EXCLUDED.nonce,
+		to_address = EXCLUDED.to_address,
+		chain_id = EXCLUDED.chain_id,
+		v = EXCLUDED.v,
+		r = EXCLUDED.r,
 		s = EXCLUDED.s
 	RETURNING id
 	`
 	transaction.ChainId()
 	err := p.conn.QueryRow(ctx, q,
-		transaction.Hash(),
+		transaction.Hash().String(),
 		from.String(),
-		transaction.Cost(),
-		string(transaction.Data()),
-		transaction.Value(),
-		transaction.GasPrice(),
+		transaction.Cost().Int64(),
+		hex.EncodeToString(transaction.Data()),
+		transaction.Value().Int64(),
+		transaction.GasPrice().Int64(),
 		transaction.Gas(),
 		transaction.Nonce(),
-		transaction.To(),
-		transaction.ChainId(),
+		transaction.To().String(),
+		transaction.ChainId().Int64(),
 		v.String(),
 		r.String(),
 		s.String()).Scan(&id)
