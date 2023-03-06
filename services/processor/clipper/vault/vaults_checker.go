@@ -158,11 +158,17 @@ func canBark(urn entities.Urn, vatIlk entities.VatIlk, dogHole, dogDirt, ilkHole
 	dart := math.BigMin(urn.Art, new(big.Int).Div(new(big.Int).Div(wadRoom, vatIlk.Rate), chop))
 	if urn.Art.Cmp(dart) > 0 {
 		if new(big.Int).Mul(new(big.Int).Sub(urn.Art, dart), vatIlk.Rate).Cmp(vatIlk.Dust) < 0 {
-			return true
+			dart = urn.Art
 		} else if new(big.Int).Mul(dart, vatIlk.Rate).Cmp(vatIlk.Dust) < 0 {
 			// require(mul(dart, rate) >= dust, "Dog/dusty-auction-from-partial-liquidation");
 			return false
 		}
 	}
+
+	dink := new(big.Int).Div(new(big.Int).Mul(urn.Ink, dart), urn.Art)
+	if dink.Cmp(math.Zero) <= 0 {
+		return false // require(dink > 0, "Dog/null-auction");
+	}
+
 	return true
 }
