@@ -1,11 +1,11 @@
 CREATE TABLE if not exists clipper_takes
 (
     id              SERIAL PRIMARY KEY,
-    auction_id      INTEGER NOT NULL,
-    amt             TEXT,
-	max             TEXT,
-	who             TEXT,
-	data            TEXT,    
+    auction_id      BIGINT NOT NULL,
+    amt             BIGINT,
+	max             BIGINT,
+	who             BIGINT,
+	data            TEXT,
     tx_id           INTEGER UNIQUE REFERENCES transactions (id)
 );
 

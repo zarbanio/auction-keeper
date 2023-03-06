@@ -6,39 +6,38 @@ import (
 	"math/big"
 
 	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
-	"github.com/IR-Digital-Token/auction-keeper/domain/math"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type takeModel struct {
-	auction_id  string
-	amt         string
-	max         string
-	who         string
-	data        string
+	auction_id  *big.Int
+	amt         *big.Int
+	max         *big.Int
+	who         common.Address
+	data        []byte
 	opts        *bind.TransactOpts
 	transaction types.Transaction
 }
 
 func (f takeModel) ToDomain() *entities.ClipperTake {
 	return &entities.ClipperTake{
-		Auction_id: math.BigIntFromString(f.auction_id),
-		Amt:        math.BigIntFromString(f.amt),
-		Max:        math.BigIntFromString(f.max),
-		Who:        common.HexToAddress(f.who),
-		Data:       []byte(f.data),
+		Auction_id: f.auction_id,
+		Amt:        f.amt,
+		Max:        f.max,
+		Who:        f.who,
+		Data:       f.data,
 	}
 }
 
 func NewTake(id *big.Int, amt *big.Int, max *big.Int, who common.Address, data []byte) *takeModel {
 	return &takeModel{
-		auction_id: id.String(),
-		amt:        amt.String(),
-		max:        max.String(),
-		who:        who.String(),
-		data:       string(data),
+		auction_id: id,
+		amt:        amt,
+		max:        max,
+		who:        who,
+		data:       data,
 	}
 }
 
