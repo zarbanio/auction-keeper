@@ -2,14 +2,15 @@ package uniswap_v3
 
 import (
 	"context"
-	"fmt"
+	"log"
+	"math/big"
+
 	"github.com/IR-Digital-Token/auction-keeper/bindings/uniswap_v3_quoter"
 	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"math/big"
 )
 
 type UniswapV3Quoter struct {
@@ -40,7 +41,7 @@ func (q *UniswapV3Quoter) GetQuotedAmountOut(amount *big.Int, path []entities.Un
 	for _, r := range path {
 		data, err := quoterABI.Pack("quoteExactInputSingle", r.TokenA, r.TokenB, big.NewInt(r.Fee), quotedAmountOut, big.NewInt(0))
 		if err != nil {
-			fmt.Println("error in pack quoteExactInputSingle data: ", err)
+			log.Println("error in pack quoteExactInputSingle data: ", err)
 			return nil, err
 		}
 
@@ -49,7 +50,7 @@ func (q *UniswapV3Quoter) GetQuotedAmountOut(amount *big.Int, path []entities.Un
 			Data: data,
 		}, nil)
 		if err != nil {
-			fmt.Println("error in get quoted amount: ", err)
+			log.Println("error in get quoted amount: ", err)
 			return nil, err
 		}
 

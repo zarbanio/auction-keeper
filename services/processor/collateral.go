@@ -60,8 +60,8 @@ func (cp *collateralProcessor) updateAuctionAfterRedo(id, top *big.Int, tic uint
 }
 
 func (cp *collateralProcessor) processCollateral(actions actions.IAction, minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address) {
-	fmt.Printf("processing opportunities for: %s\n", cp.collateral.Name)
-	fmt.Printf("%s active auctions qty: %d\n", cp.collateral.Name, len(cp.auctionCollection.auctions))
+	log.Printf("processing opportunities for: %s\n", cp.collateral.Name)
+	log.Printf("%s active auctions qty: %d\n", cp.collateral.Name, len(cp.auctionCollection.auctions))
 
 	blockNum, err := cp.eth.BlockNumber(context.Background())
 	if err != nil {
@@ -77,29 +77,29 @@ func (cp *collateralProcessor) processCollateral(actions actions.IAction, minPro
 	currentTime := block.Header().Time
 
 	for id, auction := range cp.auctionCollection.auctions {
-		fmt.Printf("\tprocessing auction id: %d\n", id)
+		log.Printf("\tprocessing auction id: %d\n", id)
 
 		needsRedo, err := cp.collateral.ClipperLoader.GetAuctionStatus(auction.Id)
 		if err != nil {
-			fmt.Printf("error in get auction status: %v\n", err)
+			log.Printf("error in get auction status: %v\n", err)
 			continue
 		}
 		if needsRedo {
 			redo := store.NewRedo(*auction.Id).ToDomain()
 			err := actions.Redo(cp.collateral.ClipperLoader.Clipper, redo)
 			if err != nil {
-				fmt.Printf("error in sending redo transaction: %v\n", err)
+				log.Printf("error in sending redo transaction: %v\n", err)
 			}
 			continue
 		}
 
 		collateralPrice, err := cp.collateral.Clipper.Abacus.Price(nil, auction.Top, big.NewInt(int64(currentTime-auction.Tic)))
 		if err != nil {
-			fmt.Printf("error in get %s collateral price from abacus: %v\n", cp.collateral.Name, err)
+			log.Printf("error in get %s collateral price from abacus: %v\n", cp.collateral.Name, err)
 			continue
 		}
 		if collateralPrice.Cmp(big.NewInt(0)) <= 0 {
-			fmt.Printf("Collateral price is zero")
+			log.Printf("Collateral price is zero")
 			continue
 		}
 
@@ -131,7 +131,7 @@ func (cp *collateralProcessor) processCollateral(actions actions.IAction, minPro
 				slice18 = new(big.Int).Div(owe27, new(big.Int).Div(collateralPrice, Decimals18))
 			}
 			if slice18.Cmp(maxLot) > 0 { // handle corner case where maxLotZarValue is set too low
-				fmt.Printf("Ignoring auction %d whose chost-adjusted slice of %d exceeds our maximum lot of %d}\n", auction.Id, slice18, maxLot)
+				log.Printf("Ignoring auction %d whose chost-adjusted slice of %d exceeds our maximum lot of %d}\n", auction.Id, slice18, maxLot)
 				continue
 			}
 		}
@@ -144,7 +144,7 @@ func (cp *collateralProcessor) processCollateral(actions actions.IAction, minPro
 
 		lot := slice18
 		if lot.Cmp(minLot) < 0 {
-			fmt.Printf("Ignoring auction %d while slice is smaller than our minimum lot\n", auction.Id)
+			log.Printf("Ignoring auction %d while slice is smaller than our minimum lot\n", auction.Id)
 			// slice approaches lot as auction price decreases towards owe == tab
 			continue
 		}
@@ -160,7 +160,7 @@ func (cp *collateralProcessor) processCollateral(actions actions.IAction, minPro
 		// Determine proceeds from swapping gem for Zar on Uniswap
 		uniswapV3Proceeds, err := cp.collateral.UniswapV3Quoter.GetQuotedAmountOut(lot, cp.collateral.UniswapV3Path, cp.collateral.Decimal)
 		if err != nil {
-			fmt.Printf("error in get uniswapV3 proceeds: %v\n", err)
+			log.Printf("error in get uniswapV3 proceeds: %v\n", err)
 			continue
 		}
 		minUniV3Proceeds := new(big.Int).Sub(uniswapV3Proceeds, minProfit)
@@ -169,20 +169,17 @@ func (cp *collateralProcessor) processCollateral(actions actions.IAction, minPro
 		// Do not increase too much to not significantly go over configured maxAmt.
 		amt := new(big.Int).Div(new(big.Int).Mul(lot, big.NewInt(1000001)), big.NewInt(1000000))
 
+		printAuctionSummary(cp.collateral.Name, auction, minLot, maxLot, lot, collateralPrice, debtToCover, minProfit, uniswapV3Proceeds, minUniV3Proceeds)
+
 		if debtToCover.Cmp(minUniV3Proceeds) <= 0 {
 			// Uniswap tx executes only if the return amount also covers the minProfit %
-
-			printAuctionSummary(cp.collateral.Name, auction, minLot, maxLot, lot, collateralPrice, debtToCover, minProfit, uniswapV3Proceeds, minUniV3Proceeds)
-
 			err = cp.executeAuction(actions, auction.Id, amt, collateralPrice, minProfit, profitAddress, cp.collateral.GemJoinAdapter, cp.collateral.UniswapV3Callee)
 			if err != nil {
-				fmt.Printf("error in executeAuction: %v\n", err)
+				log.Printf("error in executeAuction: %v\n", err)
 				continue
 			}
 		} else {
-			fmt.Println("Uniswap V3 proceeds - profit amount is less than cost.")
-			fmt.Printf("\tUniswapV3 proceeds: %d Zar\n", new(big.Int).Mul(uniswapV3Proceeds, Decimals18))
-			fmt.Printf("\tDebt to Cover:      %d Zar\n", new(big.Int).Mul(debtToCover, Decimals18))
+			log.Println("Uniswap V3 proceeds - profit amount is less than cost.")
 		}
 	}
 }
@@ -237,16 +234,16 @@ func printAuctionSummary(collateralName string, auction entities.Auction, minLot
 	fUniswapV3Proceeds := new(big.Float).SetInt(uniswapV3Proceeds)
 	fMinUniV3Proceeds := new(big.Float).SetInt(minUniV3Proceeds)
 
-	fmt.Printf("  #%s Auction\n", collateralName)
-	fmt.Printf("\tAuction Id:      %d\n", auction.Id)
-	fmt.Printf("\tAuction Tab:     %.18f Zar\n", new(big.Float).Quo(new(big.Float).Quo(fAuctionTab, FDecimals27), FDecimals18))
-	fmt.Printf("\tAuction Lot:     %.18f\n", new(big.Float).Quo(fAuctionLot, FDecimals18))
-	fmt.Printf("\tConfigured Lot:  between %.18ff and %.18ff\n", new(big.Float).Quo(fMinLot, FDecimals18), new(big.Float).Quo(fMaxLot, FDecimals18))
-	fmt.Printf("\tSlice to Take:   %.18f\n", new(big.Float).Quo(fLot, FDecimals18))
+	log.Printf("  #%s Auction\n", collateralName)
+	log.Printf("\tAuction Id:      %d\n", auction.Id)
+	log.Printf("\tAuction Tab:     %.18f Zar\n", new(big.Float).Quo(new(big.Float).Quo(fAuctionTab, FDecimals27), FDecimals18))
+	log.Printf("\tAuction Lot:     %.18f\n", new(big.Float).Quo(fAuctionLot, FDecimals18))
+	log.Printf("\tConfigured Lot:  between %.18f and %.18f\n", new(big.Float).Quo(fMinLot, FDecimals18), new(big.Float).Quo(fMaxLot, FDecimals18))
+	log.Printf("\tSlice to Take:   %.18f\n", new(big.Float).Quo(fLot, FDecimals18))
 
-	fmt.Printf("\tAuction Price:   %.18f Zar\n\n", new(big.Float).Quo(new(big.Float).Quo(fCollateralPrice, FDecimals9), FDecimals18))
-	fmt.Printf("\tDebt to Cover:   %.18f Zar\n", new(big.Float).Quo(fDebtToCover, FDecimals18))
-	fmt.Printf("\tMinimum profit:  %.18f Zar\n", new(big.Float).Quo(fMinProfit, FDecimals18))
-	fmt.Printf("\tUniswapV3 proceeds:  %.18f Zar\n", new(big.Float).Quo(fUniswapV3Proceeds, FDecimals18))
-	fmt.Printf("\tLess min profit:     %.18f\n", new(big.Float).Quo(fMinUniV3Proceeds, FDecimals18))
+	log.Printf("\tAuction Price:   %.18f Zar\n\n", new(big.Float).Quo(new(big.Float).Quo(fCollateralPrice, FDecimals9), FDecimals18))
+	log.Printf("\tDebt to Cover:   %.18f Zar\n", new(big.Float).Quo(fDebtToCover, FDecimals18))
+	log.Printf("\tMinimum profit:  %.18f Zar\n", new(big.Float).Quo(fMinProfit, FDecimals18))
+	log.Printf("\tUniswapV3 proceeds:  %.18f Zar\n", new(big.Float).Quo(fUniswapV3Proceeds, FDecimals18))
+	log.Printf("\tLess min profit:     %.18f\n", new(big.Float).Quo(fMinUniV3Proceeds, FDecimals18))
 }

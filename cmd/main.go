@@ -152,14 +152,14 @@ func clipperAllowance(eth *ethclient.Client, collateralName string, vatAddr, cli
 	}
 
 	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
-		fmt.Printf("HOPING %s CLIPPER IN VAT\n", collateralName)
+		log.Printf("HOPING %s CLIPPER IN VAT\n", collateralName)
 		hope := store.NewHope(clipperAddr).ToDomain()
 		err := actions.Hope(hope)
 		if err != nil {
 			return err
 		}
 	} else {
-		fmt.Printf("%s Clipper is Hoped in VAT \n", collateralName)
+		log.Printf("%s Clipper is Hoped in VAT \n", collateralName)
 	}
 	return nil
 }
@@ -176,14 +176,14 @@ func zarJoinAllowance(eth *ethclient.Client, vatAddr, zarJoinAddr common.Address
 	}
 
 	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
-		fmt.Println("HOPING ZAR_JOIN IN VAT")
+		log.Println("HOPING ZAR_JOIN IN VAT")
 		hope := store.NewHope(zarJoinAddr).ToDomain()
 		err := actions.Hope(hope)
 		if err != nil {
 			return err
 		}
 	} else {
-		fmt.Println("ZAR_JOIN is Hoped in VAT ")
+		log.Println("ZAR_JOIN is Hoped in VAT ")
 	}
 	return nil
 }
@@ -219,7 +219,7 @@ func Execute() {
 	)
 	vowLoader := loaders.NewVowLoader(
 		eth,
-		cfg.Vat,
+		cfg.Vow,
 	)
 	dogLoader := loaders.NewDogLoader(
 		eth,
@@ -320,7 +320,7 @@ func Execute() {
 	/*                       start checking vaults                                 */
 	/* -------------------------------------------------------------------------- */
 	vaultsChecker := vault.NewVaultsChecker(redisCache, actions, dogLoader, vatLoader)
-	vaultsCheckerTicker := time.NewTicker(time.Duration(cfg.Times.VaultTicker) * time.Second) // TODO: set time in config file
+	vaultsCheckerTicker := time.NewTicker(time.Duration(cfg.Times.VaultTicker) * time.Second)
 	go func() {
 		for {
 			select {
@@ -338,7 +338,7 @@ func Execute() {
 	/*                       start checking flopper                               */
 	/* -------------------------------------------------------------------------- */
 	flopperChecker := flopper.NewFlopperChecker(eth, redisCache, actions, cfg.Vow, vowLoader, vatLoader, flopperLoader)
-	flopperCheckerTicker := time.NewTicker(time.Duration(cfg.Times.FlopperTicker) * time.Second) // TODO: set time in config file
+	flopperCheckerTicker := time.NewTicker(time.Duration(cfg.Times.FlopperTicker) * time.Second)
 	go func() {
 		for {
 			select {
