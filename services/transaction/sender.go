@@ -67,7 +67,7 @@ func (s Sender) GetOpts() (*bind.TransactOpts, error) {
 	}
 
 	opts.Nonce = big.NewInt(int64(nonce))
-	//opts.GasLimit = uint64(300000) // in units //TODO
+	opts.GasLimit = uint64(800_000) //TODO
 	opts.GasPrice = gasPrice
 
 	return opts, nil
