@@ -63,7 +63,7 @@ Collaterals:
         TokenA: '0x7df1d674021792630e15eca46467516660e021af'
         TokenB: '0x91f53a3c281cd82531ea540ebfbb9a64e13ebc8f'
 Processor:
-  MinProfitPercentage: 1.025
+  MinProfitPercentage: 1025  # decimal is 3 -> float MinProfitPercentage = 1.025
   MinLotZarValue: 0
   MaxLotZarValue: 1000000
 Times:
