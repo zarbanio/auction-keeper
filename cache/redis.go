@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"time"
 
@@ -31,8 +30,8 @@ func (r redisStore) SaveVatIlk(ctx context.Context, ilk entities.VatIlk, expirat
 	return r.client.Set(ctx, fmt.Sprintf("ilks:%s", ilk.Name), value, expiration).Err()
 }
 
-func (r redisStore) GetVatIlkById(ctx context.Context, id [32]byte) (*entities.VatIlk, error) {
-	res, err := r.client.Get(ctx, fmt.Sprintf("ilks:%s", id)).Result()
+func (r redisStore) GetVatIlkByName(ctx context.Context, ilkName string) (*entities.VatIlk, error) {
+	res, err := r.client.Get(ctx, fmt.Sprintf("ilks:%s", ilkName)).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return nil, ErrIlkNotFound
@@ -52,7 +51,7 @@ func (r redisStore) SaveVault(ctx context.Context, vault entities.Vault, expirat
 	if err != nil {
 		return nil
 	}
-	return r.client.Set(ctx, fmt.Sprintf("vaults:ilk:%s:urn:%s", vault.IlkId, vault.UrnAddress), value, expiration).Err()
+	return r.client.Set(ctx, fmt.Sprintf("vaults:ilk:%s:urn:%s", vault.IlkName, vault.UrnAddress), value, expiration).Err()
 }
 
 func (r redisStore) GetVaults(ctx context.Context) ([]*entities.Vault, error) {
@@ -70,10 +69,6 @@ func (r redisStore) GetVaults(ctx context.Context) ([]*entities.Vault, error) {
 		vaults = append(vaults, vault)
 	}
 	return vaults, nil
-}
-
-func (r redisStore) GetVaultByIlkUrn(ctx context.Context, ilk [32]byte, urn common.Address) (*entities.Vault, error) {
-	return r.getVaultByKey(ctx, fmt.Sprintf("vaults:ilk:%s:urn:%s", ilk, urn))
 }
 
 func (r redisStore) getVaultByKey(ctx context.Context, key string) (*entities.Vault, error) {
@@ -120,7 +115,7 @@ func (r redisStore) GetEras(ctx context.Context) ([]*big.Int, error) {
 			return nil, err
 		}
 		var era big.Int
-		err = json.Unmarshal([]byte(res), era)
+		err = json.Unmarshal([]byte(res), &era)
 		if err != nil {
 			return nil, err
 		}

@@ -100,7 +100,7 @@ func (fc *FlopperChecker) Start() {
 		return
 	}
 
-	// Check if Vow has enough bad debt and that we have enough dai balance
+	// Check if Vow has enough bad debt and that we have enough zar balance
 	if new(big.Int).Add(woe, vowSin).Cmp(sump) >= 0 { // woe + vowSin >= sump
 		// We need to bring vowZarBalance to 0 and Woe to at least sump
 
