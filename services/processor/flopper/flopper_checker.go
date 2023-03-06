@@ -69,8 +69,9 @@ func (fc *FlopperChecker) Start() {
 	}
 
 	// Check if Vow has bad debt in excess: vowZarBalance < vatSin
-	excessDebt := vowZarBalance.Cmp(vatSin) == -1
+	excessDebt := vowZarBalance.Cmp(vatSin) < 0
 	if !excessDebt {
+		log.Println("Vow doesn't has bad debt in excess: vowZarBalance >= vatSin")
 		return
 	}
 

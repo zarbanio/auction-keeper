@@ -219,7 +219,7 @@ func Execute() {
 	)
 	vowLoader := loaders.NewVowLoader(
 		eth,
-		cfg.Vat,
+		cfg.Vow,
 	)
 	dogLoader := loaders.NewDogLoader(
 		eth,
@@ -320,7 +320,7 @@ func Execute() {
 	/*                       start checking vaults                                 */
 	/* -------------------------------------------------------------------------- */
 	vaultsChecker := vault.NewVaultsChecker(redisCache, actions, dogLoader, vatLoader)
-	vaultsCheckerTicker := time.NewTicker(time.Duration(cfg.Times.VaultTicker) * time.Second) // TODO: set time in config file
+	vaultsCheckerTicker := time.NewTicker(time.Duration(cfg.Times.VaultTicker) * time.Second)
 	go func() {
 		for {
 			select {
@@ -338,7 +338,7 @@ func Execute() {
 	/*                       start checking flopper                               */
 	/* -------------------------------------------------------------------------- */
 	flopperChecker := flopper.NewFlopperChecker(eth, redisCache, actions, cfg.Vow, vowLoader, vatLoader, flopperLoader)
-	flopperCheckerTicker := time.NewTicker(time.Duration(cfg.Times.FlopperTicker) * time.Second) // TODO: set time in config file
+	flopperCheckerTicker := time.NewTicker(time.Duration(cfg.Times.FlopperTicker) * time.Second)
 	go func() {
 		for {
 			select {
