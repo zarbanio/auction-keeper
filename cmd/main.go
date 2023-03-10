@@ -58,19 +58,19 @@ func registerEventHandlers(indexer *chain.Indexer, ps pubsub.Pubsub, eth *ethcli
 	println("Register callbacks on event triggers come from the indexer.")
 
 	for _, v := range collaterals {
-		indexer.RegisterEventHandler(clipper.NewKickHandler(v.Clipper.Address, eth, callbacks.ClipperKickCallback(liquidatorProcessor, v.Name)))
-		indexer.RegisterEventHandler(clipper.NewRedoHandler(v.Clipper.Address, eth, callbacks.ClipperRedoCallback(liquidatorProcessor, v.Name)))
-		indexer.RegisterEventHandler(clipper.NewTakeHandler(v.Clipper.Address, eth, callbacks.ClipperTakeCallback(liquidatorProcessor, v.Name)))
+		indexer.RegisterEventHandler(clipper.NewKickHandler(v.Clipper.Address, eth, callbacks.ClipperKickCallback(liquidatorProcessor, v.Name, 0)))
+		indexer.RegisterEventHandler(clipper.NewRedoHandler(v.Clipper.Address, eth, callbacks.ClipperRedoCallback(liquidatorProcessor, v.Name, 0)))
+		indexer.RegisterEventHandler(clipper.NewTakeHandler(v.Clipper.Address, eth, callbacks.ClipperTakeCallback(liquidatorProcessor, v.Name, 0)))
 	}
 
 	println("Register callbacks on vat event (frob, fork, grub) triggers come from the indexer.")
-	indexer.RegisterEventHandler(vat.NewFrobHandler(vatAddress, eth, callbacks.VatFrobCallback(ps)))
-	indexer.RegisterEventHandler(vat.NewForkHandler(vatAddress, eth, callbacks.VatForkCallback(ps)))
-	indexer.RegisterEventHandler(vat.NewGrabHandler(vatAddress, eth, callbacks.VatGrabCallback(ps)))
+	indexer.RegisterEventHandler(vat.NewFrobHandler(vatAddress, eth, callbacks.VatFrobCallback(ps, 0)))
+	indexer.RegisterEventHandler(vat.NewForkHandler(vatAddress, eth, callbacks.VatForkCallback(ps, 0)))
+	indexer.RegisterEventHandler(vat.NewGrabHandler(vatAddress, eth, callbacks.VatGrabCallback(ps, 0)))
 
 	println("Register callbacks on vow event (fess, flog) triggers come from the indexer.")
-	indexer.RegisterEventHandler(vow.NewFessHandler(vowAddress, eth, callbacks.VowFessCallback(ps)))
-	indexer.RegisterEventHandler(vow.NewFlogHandler(vowAddress, eth, callbacks.VowFlogCallback(ps)))
+	indexer.RegisterEventHandler(vow.NewFessHandler(vowAddress, eth, callbacks.VowFessCallback(ps, 0)))
+	indexer.RegisterEventHandler(vow.NewFlogHandler(vowAddress, eth, callbacks.VowFlogCallback(ps, 0)))
 
 	println("Done\n")
 }

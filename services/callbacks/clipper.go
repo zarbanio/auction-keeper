@@ -10,9 +10,11 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-func ClipperKickCallback(liquidatorProcessor *processor.LiquidatorProcessor, clipperName string) events.CallbackFn[clipper.ClipperKick] {
+func ClipperKickCallback(liquidatorProcessor *processor.LiquidatorProcessor, clipperName string, eventPtr uint64) events.CallbackFn[clipper.ClipperKick] {
 	return func(header types.Header, kick clipper.ClipperKick) error {
-
+		if eventPtr > uint64(header.Number.Int64()) {
+			return nil
+		}
 		liquidatorProcessor.AddAuction(entities.Auction{
 			Id:  kick.Id,
 			Top: kick.Top,
@@ -26,15 +28,21 @@ func ClipperKickCallback(liquidatorProcessor *processor.LiquidatorProcessor, cli
 	}
 }
 
-func ClipperRedoCallback(liquidatorProcessor *processor.LiquidatorProcessor, clipperName string) events.CallbackFn[clipper.ClipperRedo] {
+func ClipperRedoCallback(liquidatorProcessor *processor.LiquidatorProcessor, clipperName string, eventPtr uint64) events.CallbackFn[clipper.ClipperRedo] {
 	return func(header types.Header, redo clipper.ClipperRedo) error {
+		if eventPtr > uint64(header.Number.Int64()) {
+			return nil
+		}
 		liquidatorProcessor.UpdateAuctionAfterRedo(redo.Id, redo.Top, header.Time, clipperName)
 		return nil
 	}
 }
 
-func ClipperTakeCallback(liquidatorProcessor *processor.LiquidatorProcessor, clipperName string) events.CallbackFn[clipper.ClipperTake] {
+func ClipperTakeCallback(liquidatorProcessor *processor.LiquidatorProcessor, clipperName string, eventPtr uint64) events.CallbackFn[clipper.ClipperTake] {
 	return func(header types.Header, take clipper.ClipperTake) error {
+		if eventPtr > uint64(header.Number.Int64()) {
+			return nil
+		}
 		if take.Lot.Cmp(big.NewInt(0)) == 0 || take.Tab.Cmp(big.NewInt(0)) == 0 {
 			liquidatorProcessor.DeleteAuction(take.Id, clipperName)
 		} else {
