@@ -83,7 +83,7 @@ func (vc *VaultChecker) Start() {
 		}
 
 		// vatIlk.rate changes every block, so try to read from cache if it doesn't exist get ilk from vat and save it in cache for 12 seconds
-		vatIlk, err := vc.cache.GetVatIlkById(context.Background(), ilkId)
+		vatIlk, err := vc.cache.GetVatIlkByName(context.Background(), ilkName)
 		if errors.Is(err, cache.ErrIlkNotFound) {
 			vatIlk, err = vc.vatLoader.GetIlkById(context.Background(), ilkId)
 			if err != nil {

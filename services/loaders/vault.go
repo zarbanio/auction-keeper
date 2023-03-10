@@ -38,7 +38,8 @@ func (vl *VaultLoader) GetVaultByIlkUrn(ctx context.Context, ilkId [32]byte, urn
 			Ink: urnInfo.Ink,
 			Art: urnInfo.Art,
 		},
-		IlkId: ilkId,
+		IlkId:   ilkId,
+		IlkName: entities.IlkNameFromId(ilkId),
 	}
 	return vault, nil
 
