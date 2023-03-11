@@ -7,19 +7,15 @@ import (
 
 	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 	"github.com/IR-Digital-Token/auction-keeper/domain/math"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type takeModel struct {
-	auction_id  string
-	amt         string
-	max         string
-	who         string
-	data        string
-	opts        *bind.TransactOpts
-	transaction types.Transaction
+	auction_id string
+	amt        string
+	max        string
+	who        string
+	data       string
 }
 
 func (f takeModel) ToDomain() *entities.ClipperTake {
