@@ -27,7 +27,7 @@ go Install
 go mod tidy
 ```
 after make file need to config project.
-###### here is example file for goerli ethereum testnet network just create file and name it to config.goerli.yaml and copy and paste configs below.
+###### here is example file for goerli ethereum testnet network just create file and name it to config.yaml and copy and paste configs below.
 
 ```yaml
 
@@ -104,8 +104,14 @@ Processor:
   MaxLotZarValue: 1000000
 
 ```
+now we need to replace wallet.Private and wallet.Address with our wallet information.
 
-##### now we can build project by 
+```yaml
+Wallet:
+  Private: 'your private key'
+  Address: 'your public key'
+```
+##### then 
 ```bash 
 go build
 ```
