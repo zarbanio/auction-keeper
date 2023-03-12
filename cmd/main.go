@@ -54,23 +54,23 @@ func startSubscribeEvents(ps pubsub.Pubsub, redisCache cache.ICache, vaultLoader
 	})
 }
 
-func registerEventHandlers(indexer *chain.Indexer, ps pubsub.Pubsub, eth *ethclient.Client, liquidatorProcessor *processor.LiquidatorProcessor, collaterals map[string]collateral.Collateral, vatAddress, vowAddress common.Address) {
+func registerEventHandlers(indexer *chain.Indexer, ps pubsub.Pubsub, eth *ethclient.Client, liquidatorProcessor *processor.LiquidatorProcessor, collaterals map[string]collateral.Collateral, vatAddress, vowAddress common.Address, startBlockNumber uint64) {
 	println("Register callbacks on event triggers come from the indexer.")
 
 	for _, v := range collaterals {
-		indexer.RegisterEventHandler(clipper.NewKickHandler(v.Clipper.Address, eth, callbacks.ClipperKickCallback(liquidatorProcessor, v.Name)))
-		indexer.RegisterEventHandler(clipper.NewRedoHandler(v.Clipper.Address, eth, callbacks.ClipperRedoCallback(liquidatorProcessor, v.Name)))
-		indexer.RegisterEventHandler(clipper.NewTakeHandler(v.Clipper.Address, eth, callbacks.ClipperTakeCallback(liquidatorProcessor, v.Name)))
+		indexer.RegisterEventHandler(clipper.NewKickHandler(v.Clipper.Address, eth, callbacks.ClipperKickCallback(liquidatorProcessor, v.Name, startBlockNumber)))
+		indexer.RegisterEventHandler(clipper.NewRedoHandler(v.Clipper.Address, eth, callbacks.ClipperRedoCallback(liquidatorProcessor, v.Name, startBlockNumber)))
+		indexer.RegisterEventHandler(clipper.NewTakeHandler(v.Clipper.Address, eth, callbacks.ClipperTakeCallback(liquidatorProcessor, v.Name, startBlockNumber)))
 	}
 
 	println("Register callbacks on vat event (frob, fork, grub) triggers come from the indexer.")
-	indexer.RegisterEventHandler(vat.NewFrobHandler(vatAddress, eth, callbacks.VatFrobCallback(ps)))
-	indexer.RegisterEventHandler(vat.NewForkHandler(vatAddress, eth, callbacks.VatForkCallback(ps)))
-	indexer.RegisterEventHandler(vat.NewGrabHandler(vatAddress, eth, callbacks.VatGrabCallback(ps)))
+	indexer.RegisterEventHandler(vat.NewFrobHandler(vatAddress, eth, callbacks.VatFrobCallback(ps, 0)))
+	indexer.RegisterEventHandler(vat.NewForkHandler(vatAddress, eth, callbacks.VatForkCallback(ps, 0)))
+	indexer.RegisterEventHandler(vat.NewGrabHandler(vatAddress, eth, callbacks.VatGrabCallback(ps, 0)))
 
 	println("Register callbacks on vow event (fess, flog) triggers come from the indexer.")
-	indexer.RegisterEventHandler(vow.NewFessHandler(vowAddress, eth, callbacks.VowFessCallback(ps)))
-	indexer.RegisterEventHandler(vow.NewFlogHandler(vowAddress, eth, callbacks.VowFlogCallback(ps)))
+	indexer.RegisterEventHandler(vow.NewFessHandler(vowAddress, eth, callbacks.VowFessCallback(ps, 0)))
+	indexer.RegisterEventHandler(vow.NewFlogHandler(vowAddress, eth, callbacks.VowFlogCallback(ps, 0)))
 
 	println("Done\n")
 }
@@ -240,12 +240,6 @@ func Execute() {
 
 		log.Println("new block pointer file created.")
 	}
-	// // write last block number in block pointer file // TODO
-	//lastBlack, err := eth.BlockNumber(context.Background())
-	//err = blockPtr.Update(lastBlack)
-	//if err != nil {
-	//	panic(err)
-	//}
 
 	/***************************************
 	 			get collaterals
@@ -297,6 +291,9 @@ func Execute() {
 		log.Fatal(err)
 	}
 
+	// write last block number in block pointer file // TODO
+	lastBlack, err := eth.BlockNumber(context.Background())
+
 	// This GoChannel is not persistent.
 	//That means if you send a message to a topic to which no subscriber is subscribed, that message will be discarded.
 	ps := gochannel.NewGoChannel(128)
@@ -332,7 +329,7 @@ func Execute() {
 		}
 	}()
 
-	registerEventHandlers(indexer, ps, eth, liquidatorProcessor, collaterals, cfg.Vat, cfg.Vow)
+	registerEventHandlers(indexer, ps, eth, liquidatorProcessor, collaterals, cfg.Vat, cfg.Vow, lastBlack)
 
 	/* -------------------------------------------------------------------------- */
 	/*                       start checking flopper                               */
