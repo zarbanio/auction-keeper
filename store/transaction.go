@@ -14,7 +14,7 @@ import (
 type TransactionModel struct {
 	id    uint64
 	hash  string
-	from  common.Address
+	from  string
 	block uint64
 }
 

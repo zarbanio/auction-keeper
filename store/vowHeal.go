@@ -5,23 +5,24 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
+	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
+	"github.com/IR-Digital-Token/auction-keeper/domain/math"
 )
 
 type healModel struct {
-	rad *big.Int
+	rad string
 }
 
 func (f healModel) ToDomain() *entities.VowHeal {
 
 	return &entities.VowHeal{
-		Rad: f.rad,
+		Rad: math.BigIntFromString(f.rad),
 	}
 }
 
 func NewHeal(rad *big.Int) *healModel {
 	return &healModel{
-		rad: rad,
+		rad: rad.String(),
 	}
 }
 
@@ -35,7 +36,7 @@ func (p postgres) CreateHeal(ctx context.Context, heal *entities.VowHeal, tx_id 
         DO UPDATE 
 			SET rad = EXCLUDED.rad
         RETURNING id
-    `, heal.Rad.Uint64(), tx_id).Scan(&id)
+    `, heal.Rad.String(), tx_id).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("failed to upsert . %w", err)
 	}

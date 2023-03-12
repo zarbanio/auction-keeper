@@ -4,21 +4,21 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
+	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 type hopeModel struct {
-	usr common.Address
+	usr string
 }
 
 func (f hopeModel) ToDomain() *entities.VatHope {
-	return &entities.VatHope{Usr: f.usr}
+	return &entities.VatHope{Usr: common.HexToAddress(f.usr)}
 }
 
 func NewHope(usr common.Address) *hopeModel {
 	return &hopeModel{
-		usr: usr,
+		usr: usr.Hex(),
 	}
 
 }

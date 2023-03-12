@@ -5,23 +5,24 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
+	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
+	"github.com/IR-Digital-Token/auction-keeper/domain/math"
 )
 
 type flogModel struct {
-	era *big.Int
+	era string
 }
 
 func (f flogModel) ToDomain() *entities.VowFlog {
 
 	return &entities.VowFlog{
-		Era: f.era,
+		Era: math.BigIntFromString(f.era),
 	}
 }
 
 func NewFlog(era *big.Int) *flogModel {
 	return &flogModel{
-		era: era,
+		era: era.String(),
 	}
 }
 
