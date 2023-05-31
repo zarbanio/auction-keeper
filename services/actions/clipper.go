@@ -4,9 +4,9 @@ import (
 	"context"
 	"log"
 
-	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
-	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
+	clipper "github.com/zarbanio/auction-keeper/bindings/clip"
+	entities "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
+	"github.com/zarbanio/auction-keeper/services/transaction"
 
 	"github.com/ethereum/go-ethereum/core/types"
 )

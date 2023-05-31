@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/IR-Digital-Token/auction-keeper/bindings/vow"
-	"github.com/IR-Digital-Token/auction-keeper/cache"
-	"github.com/IR-Digital-Token/x/messages"
+
+	"github.com/zarbanio/auction-keeper/bindings/vow"
+	"github.com/zarbanio/auction-keeper/cache"
+	"github.com/zarbanio/auction-keeper/x/messages"
 )
 
 func Fess(msg *messages.Message, redisCache cache.ICache) error {

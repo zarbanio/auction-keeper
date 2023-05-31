@@ -1,5 +1,9 @@
 
 
+
+devtools:
+	cd x && go build codegen/events_handler.go && mv events_handler /usr/local/bin/ehgen
+
 code-gen:
 	abigen --abi=bindings/abacus/abacus.json --pkg=abacus --out=bindings/abacus/abacus.go
 	abigen --abi=bindings/clip/clipper.json --pkg=clipper --out=bindings/clip/clipper.go
@@ -9,10 +13,10 @@ code-gen:
 	abigen --abi=bindings/flopper/flopper.json --pkg=flopper --out=bindings/flopper/flopper.go
 	abigen --abi=bindings/uniswap_v3_quoter/uniswap_v3_quoter.json --pkg=uniswap_v3_quoter --out=bindings/uniswap_v3_quoter/uniswap_v3_quoter.go
 
-	./eh-gen --abi=bindings/clip/clipper.json  --output-dir=bindings/clip --contract=Clipper
-	./eh-gen --abi=bindings/vat/vat.json  --output-dir=bindings/vat --contract=Vat
-	./eh-gen --abi=bindings/vow/vow.json  --output-dir=bindings/vow --contract=Vow
-	./eh-gen --abi=bindings/uniswap_v3_quoter/uniswap_v3_quoter.json  --output-dir=bindings/uniswap_v3_quoter --contract=UniswapV3Quoter
+	ehgen --abi=bindings/clip/clipper.json  --output-dir=bindings/clip --contract=Clipper
+	ehgen --abi=bindings/vat/vat.json  --output-dir=bindings/vat --contract=Vat
+	ehgen --abi=bindings/vow/vow.json  --output-dir=bindings/vow --contract=Vow
+	ehgen --abi=bindings/uniswap_v3_quoter/uniswap_v3_quoter.json  --output-dir=bindings/uniswap_v3_quoter --contract=UniswapV3Quoter
 
 clean:
 	rm bindings/abacus/abacus.go

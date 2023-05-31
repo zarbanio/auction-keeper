@@ -7,15 +7,15 @@ import (
 	"log"
 	"math/big"
 
-	"github.com/IR-Digital-Token/auction-keeper/collateral"
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
-	"github.com/IR-Digital-Token/auction-keeper/services/actions"
-	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
-	"github.com/IR-Digital-Token/auction-keeper/store"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/zarbanio/auction-keeper/collateral"
+	"github.com/zarbanio/auction-keeper/domain/entities"
+	"github.com/zarbanio/auction-keeper/services/actions"
+	"github.com/zarbanio/auction-keeper/services/uniswap_v3"
+	"github.com/zarbanio/auction-keeper/store"
 )
 
 var (

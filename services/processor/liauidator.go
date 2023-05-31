@@ -4,11 +4,11 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/IR-Digital-Token/auction-keeper/collateral"
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
-	"github.com/IR-Digital-Token/auction-keeper/services/actions"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/zarbanio/auction-keeper/collateral"
+	"github.com/zarbanio/auction-keeper/domain/entities"
+	"github.com/zarbanio/auction-keeper/services/actions"
 )
 
 type LiquidatorConfig struct {

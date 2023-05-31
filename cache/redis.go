@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"math/big"
 	"time"
+
+	"github.com/zarbanio/auction-keeper/domain/entities"
 
 	"github.com/go-redis/redis/v8"
 )

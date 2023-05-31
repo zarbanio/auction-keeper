@@ -1,8 +1,8 @@
 package actions
 
 import (
-	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
+	clipper "github.com/zarbanio/auction-keeper/bindings/clip"
+	entities "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
 )
 
 type IAction interface {

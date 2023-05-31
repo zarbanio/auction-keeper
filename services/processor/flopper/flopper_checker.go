@@ -6,13 +6,13 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/IR-Digital-Token/auction-keeper/cache"
-	"github.com/IR-Digital-Token/auction-keeper/domain/math"
-	"github.com/IR-Digital-Token/auction-keeper/services/actions"
-	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
-	"github.com/IR-Digital-Token/auction-keeper/store"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/zarbanio/auction-keeper/cache"
+	"github.com/zarbanio/auction-keeper/domain/math"
+	"github.com/zarbanio/auction-keeper/services/actions"
+	"github.com/zarbanio/auction-keeper/services/loaders"
+	"github.com/zarbanio/auction-keeper/store"
 )
 
 type FlopperChecker struct {

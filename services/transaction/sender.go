@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/IR-Digital-Token/x/chain"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -18,11 +17,9 @@ type Sender struct {
 	privateKey *ecdsa.PrivateKey
 	address    common.Address
 	chainId    *big.Int
-	indexer    *chain.Indexer
 }
 
-func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int, indexer *chain.Indexer) (*Sender, error) {
-
+func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int) (*Sender, error) {
 	prvKey, err := crypto.HexToECDSA(privateKey)
 	if err != nil {
 		return nil, err
@@ -41,7 +38,6 @@ func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int, index
 		privateKey: prvKey,
 		address:    address,
 		chainId:    chainId,
-		indexer:    indexer,
 	}, nil
 }
 
@@ -50,7 +46,6 @@ func (s Sender) GetAddress() common.Address {
 }
 
 func (s Sender) GetOpts() (*bind.TransactOpts, error) {
-
 	nonce, err := s.eth.PendingNonceAt(context.Background(), s.GetAddress())
 	if err != nil {
 		return nil, err

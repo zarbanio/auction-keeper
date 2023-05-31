@@ -1,9 +1,10 @@
 package processor
 
 import (
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"math/big"
 	"sync"
+
+	"github.com/zarbanio/auction-keeper/domain/entities"
 )
 
 type AuctionCollection struct {

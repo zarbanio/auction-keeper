@@ -8,12 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/IR-Digital-Token/auction-keeper/cache"
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
-	"github.com/IR-Digital-Token/auction-keeper/domain/math"
-	"github.com/IR-Digital-Token/auction-keeper/services/actions"
-	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
-	"github.com/IR-Digital-Token/auction-keeper/store"
+	"github.com/zarbanio/auction-keeper/cache"
+	"github.com/zarbanio/auction-keeper/domain/entities"
+	"github.com/zarbanio/auction-keeper/domain/math"
+	"github.com/zarbanio/auction-keeper/services/actions"
+	"github.com/zarbanio/auction-keeper/services/loaders"
+	"github.com/zarbanio/auction-keeper/store"
 )
 
 type VaultChecker struct {

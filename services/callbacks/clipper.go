@@ -3,11 +3,11 @@ package callbacks
 import (
 	"math/big"
 
-	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
-	"github.com/IR-Digital-Token/auction-keeper/services/processor"
-	"github.com/IR-Digital-Token/x/chain/events"
 	"github.com/ethereum/go-ethereum/core/types"
+	clipper "github.com/zarbanio/auction-keeper/bindings/clip"
+	"github.com/zarbanio/auction-keeper/domain/entities"
+	"github.com/zarbanio/auction-keeper/services/processor"
+	"github.com/zarbanio/auction-keeper/x/events"
 )
 
 func ClipperKickCallback(liquidatorProcessor *processor.LiquidatorProcessor, clipperName string, eventPtr uint64) events.CallbackFn[clipper.ClipperKick] {

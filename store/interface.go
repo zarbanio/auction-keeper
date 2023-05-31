@@ -4,9 +4,9 @@ import (
 	"context"
 	"math/big"
 
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	entities "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
 )
 
 type IStore interface {
@@ -16,6 +16,7 @@ type IStore interface {
 	IVat
 	IDog
 	IVow
+	IBlockPtr
 }
 
 type Migrateable interface {
@@ -45,4 +46,14 @@ type IVow interface {
 	CreateHeal(ctx context.Context, heal *entities.VowHeal, tx_id int64) (int64, error)
 	CreateFlog(ctx context.Context, flog *entities.VowFlog, tx_id int64) (int64, error)
 	CreateFlop(ctx context.Context, tx_id int64) (int64, error)
+}
+
+type IBlockPtr interface {
+	ExistsBlockPtr(ctx context.Context) (bool, error)
+	CreateBlockPtr(ctx context.Context, ptr uint64) (int64, error)
+	GetBlockPtrById(ctx context.Context, id int64) (uint64, error)
+	GetLastBlockPtr(ctx context.Context) (int64, uint64, error)
+	UpdateBlockPtr(ctx context.Context, id int64, ptr uint64) (uint64, error)
+	IncBlockPtr(ctx context.Context, id int64) (uint64, error)
+	DeleteBlockPtr(ctx context.Context, id int64) error
 }

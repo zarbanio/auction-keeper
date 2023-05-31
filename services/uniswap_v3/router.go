@@ -3,8 +3,9 @@ package uniswap_v3
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"strings"
+
+	"github.com/zarbanio/auction-keeper/domain/entities"
 )
 
 func GetRouter(routes []entities.UniswapV3Route) ([]byte, error) {

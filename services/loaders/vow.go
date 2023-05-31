@@ -5,10 +5,10 @@ import (
 	"log"
 	"math/big"
 
-	"github.com/IR-Digital-Token/auction-keeper/bindings/vow"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/zarbanio/auction-keeper/bindings/vow"
 )
 
 type VowLoader struct {

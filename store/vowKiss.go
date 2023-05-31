@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
-	"github.com/IR-Digital-Token/auction-keeper/domain/math"
+	entities "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
+	"github.com/zarbanio/auction-keeper/domain/math"
 )
 
 type kissModel struct {

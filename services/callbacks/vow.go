@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/IR-Digital-Token/auction-keeper/bindings/vow"
-	"github.com/IR-Digital-Token/x/chain/events"
-	"github.com/IR-Digital-Token/x/messages"
-	"github.com/IR-Digital-Token/x/pubsub"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/zarbanio/auction-keeper/bindings/vow"
+	"github.com/zarbanio/auction-keeper/x/events"
+	"github.com/zarbanio/auction-keeper/x/messages"
+	"github.com/zarbanio/auction-keeper/x/pubsub"
 )
 
 func VowFessCallback(pubsub pubsub.Pubsub, eventPtr uint64) events.CallbackFn[vow.VowFess] {

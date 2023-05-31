@@ -3,13 +3,13 @@ package actions
 import (
 	"log"
 
-	"github.com/IR-Digital-Token/auction-keeper/bindings/dog"
-	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
-	"github.com/IR-Digital-Token/auction-keeper/bindings/vow"
-	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
-	"github.com/IR-Digital-Token/auction-keeper/store"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/zarbanio/auction-keeper/bindings/dog"
+	"github.com/zarbanio/auction-keeper/bindings/vat"
+	"github.com/zarbanio/auction-keeper/bindings/vow"
+	"github.com/zarbanio/auction-keeper/services/transaction"
+	"github.com/zarbanio/auction-keeper/store"
 )
 
 type Actions struct {

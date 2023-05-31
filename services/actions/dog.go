@@ -4,9 +4,9 @@ import (
 	"context"
 	"log"
 
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
-	"github.com/IR-Digital-Token/auction-keeper/services/transaction"
 	"github.com/ethereum/go-ethereum/core/types"
+	entities "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
+	"github.com/zarbanio/auction-keeper/services/transaction"
 )
 
 func (a Actions) Bark(bark *entities.DogBark) error {

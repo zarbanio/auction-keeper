@@ -1,11 +1,12 @@
 package collateral
 
 import (
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
-	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
-	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/zarbanio/auction-keeper/domain/entities"
+	"github.com/zarbanio/auction-keeper/services/loaders"
+	"github.com/zarbanio/auction-keeper/services/uniswap_v3"
 )
 
 type Collateral struct {

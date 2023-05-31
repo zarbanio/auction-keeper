@@ -13,7 +13,7 @@ clone project
   cd auction-keeper
 ```
 download realse of this lib depends on what system you use and extract it in the root project directory.
-  - [ X - library](https://github.com/IR-Digital-Token/x/releases)
+  - [ X - library](https://github.com/zarbanio/auction-keeper/x/releases)
 for example
 ```bash
   tar -xvf eh-gen-v0.3.5-darwin-amd64.tar.gz
