@@ -24,7 +24,7 @@ type Migrateable interface {
 }
 
 type ITranasaction interface {
-	CreateTransaction(ctx context.Context, transaction *types.Transaction, from common.Address) (error, uint64)
+	CreateTransaction(ctx context.Context, transaction *types.Transaction) (error, uint64)
 	UpdateTransactionBlock(ctx context.Context, id uint64, recipt *types.Receipt, blockTime uint64, blockNumber big.Int, blockHash common.Hash) error
 	GetTransactionById(ctx context.Context, id uint64) (*TransactionModel, error)
 }

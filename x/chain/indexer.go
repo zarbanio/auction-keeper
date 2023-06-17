@@ -14,7 +14,7 @@ import (
 	"github.com/zarbanio/auction-keeper/x/events"
 )
 
-type ReceiptCallbackFunc func(*types.Receipt) error
+type ReceiptCallbackFunc func(*types.Receipt, *types.Header) error
 
 type Indexer struct {
 	eth           *ethclient.Client
@@ -143,21 +143,29 @@ func (i *Indexer) trackBlockPtr() {
 	}()
 }
 
-func (i *Indexer) WaitForReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
+func (i *Indexer) WaitForReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, *types.Header, error) {
 	ticker := time.NewTicker(i.blockInterval)
 	defer ticker.Stop()
 
-	for {
+	var receipt *types.Receipt
+	var err error
+	for receipt == nil {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, nil, ctx.Err()
 		case <-ticker.C:
-			receipt, err := i.eth.TransactionReceipt(ctx, txHash)
-			if err == nil {
-				return receipt, nil
+			receipt, err = i.eth.TransactionReceipt(ctx, txHash)
+			if receipt != nil {
+				break
 			}
 		}
 	}
+
+	block, err := i.bcache.GetBlockByNumber(ctx, receipt.BlockNumber.Uint64())
+	if err != nil {
+		return nil, nil, err
+	}
+	return receipt, block.Header(), nil
 }
 
 func (i *Indexer) SubmitTxAndCallOnReceipt(ctx context.Context, tx *types.Transaction, callback ReceiptCallbackFunc) error {
@@ -166,10 +174,10 @@ func (i *Indexer) SubmitTxAndCallOnReceipt(ctx context.Context, tx *types.Transa
 		return fmt.Errorf("error sending transaction. %w", err)
 	}
 
-	receipt, err := i.WaitForReceipt(ctx, tx.Hash())
+	receipt, header, err := i.WaitForReceipt(ctx, tx.Hash())
 	if err != nil {
 		return fmt.Errorf("error waiting for receipt. %w", err)
 	}
 
-	return callback(receipt)
+	return callback(receipt, header)
 }

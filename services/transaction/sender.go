@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
@@ -66,4 +67,20 @@ func (s Sender) GetOpts() (*bind.TransactOpts, error) {
 	opts.GasPrice = gasPrice
 
 	return opts, nil
+}
+
+func SenderAddressFromTransaction(tx *types.Transaction) (common.Address, error) {
+	if tx == nil {
+		return common.Address{}, fmt.Errorf("transaction cannot be nil")
+	}
+
+	chainID := tx.ChainId() // replace this with actual chain ID if necessary
+
+	signer := types.NewEIP155Signer(chainID)
+	sender, err := types.Sender(signer, tx)
+	if err != nil {
+		return common.Address{}, fmt.Errorf("could not extract sender from transaction: %w", err)
+	}
+
+	return sender, nil
 }

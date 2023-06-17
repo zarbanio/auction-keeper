@@ -14,6 +14,7 @@ import (
 	"github.com/zarbanio/auction-keeper/services/actions"
 	"github.com/zarbanio/auction-keeper/services/loaders"
 	"github.com/zarbanio/auction-keeper/store"
+	"github.com/zarbanio/auction-keeper/x/chain"
 )
 
 type VaultChecker struct {
@@ -22,15 +23,19 @@ type VaultChecker struct {
 	dogLoader  *loaders.DogLoader
 	vatLoader  *loaders.VatLoader
 	processing sync.Mutex
+	indexer    *chain.Indexer
+	store      store.IStore
 }
 
-func NewVaultsChecker(cache cache.ICache, actions actions.IAction, dogLoader *loaders.DogLoader, vatLoader *loaders.VatLoader) *VaultChecker {
+func NewVaultsChecker(cache cache.ICache, actions actions.IAction, dogLoader *loaders.DogLoader, vatLoader *loaders.VatLoader, indexer *chain.Indexer, store store.IStore) *VaultChecker {
 	vaultChecker := &VaultChecker{
 		cache:      cache,
 		actions:    actions,
 		dogLoader:  dogLoader,
 		vatLoader:  vatLoader,
 		processing: sync.Mutex{},
+		indexer:    indexer,
+		store:      store,
 	}
 
 	return vaultChecker
@@ -104,9 +109,40 @@ func (vc *VaultChecker) Start() {
 		// check can call bark
 		if canBark(vault.Urn, *vatIlk, dogHole, dogDirt, dogIlk.Hole, dogIlk.Dirt, dogIlk.Chop) {
 			bark := store.NewBark(ilkId, vault.UrnAddress).ToDomain()
-			err := vc.actions.Bark(bark)
+			tx, err := vc.actions.Bark(bark)
 			if err != nil {
 				log.Println("error in sending bark transaction.", err)
+				continue
+			}
+
+			err, txId := vc.store.CreateTransaction(context.Background(), tx)
+			if err != nil {
+				log.Println("error in saving bark transaction.", err)
+				continue
+			}
+			_, err = vc.store.CreateBark(context.Background(), *bark, int64(txId))
+			if err != nil {
+				log.Println("error in saving bark.", err)
+				continue
+			}
+
+			receipt, header, err := vc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+			if err != nil {
+				log.Println("error in getting bark transaction receipt.", err)
+				continue
+			}
+			log.Printf("Bark transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
+
+			err = vc.store.UpdateTransactionBlock(
+				context.Background(),
+				txId,
+				receipt,
+				header.Time,
+				*receipt.BlockNumber,
+				receipt.BlockHash)
+
+			if err != nil {
+				log.Println("error in updating bark transaction receipt.", err)
 				continue
 			}
 

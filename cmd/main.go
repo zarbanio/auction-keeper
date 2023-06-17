@@ -261,19 +261,6 @@ func Execute() {
 		log.Fatal(err)
 	}
 
-	actions, err := actions.NewActions(eth, sender, postgresStore, cfg.Vat, cfg.Dog, cfg.Vow)
-
-	for _, c := range collaterals {
-		err = clipperAllowance(eth, c.Name, cfg.Vat, c.Clipper.Address, sender, actions)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-	err = zarJoinAllowance(eth, cfg.Vat, cfg.ZarJoin, sender, actions)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	/* -------------------------------------------------------------------------- */
 	/*  get active auctions and add them in auction processor and start processor */
 	liquidatorConfig := &processor.LiquidatorConfig{
@@ -300,6 +287,18 @@ func Execute() {
 	}
 
 	indexer := chain.NewIndexer(eth, chain.NewBlockCache(eth), cfg.Indexer.BlockInterval, blockPtr, addresses, eventHandlersMap)
+	actions, err := actions.NewActions(eth, sender, postgresStore, cfg.Vat, cfg.Dog, cfg.Vow, indexer)
+
+	for _, c := range collaterals {
+		err = clipperAllowance(eth, c.Name, cfg.Vat, c.Clipper.Address, sender, actions)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	err = zarJoinAllowance(eth, cfg.Vat, cfg.ZarJoin, sender, actions)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	ticker := time.NewTicker(time.Duration(cfg.Times.LiquidatorTicker) * time.Second)
 	done := make(chan bool)

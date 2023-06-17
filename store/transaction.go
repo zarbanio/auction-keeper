@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/jackc/pgx"
+	"github.com/zarbanio/auction-keeper/services/transaction"
 )
 
 type TransactionModel struct {
@@ -18,9 +19,13 @@ type TransactionModel struct {
 	block uint64
 }
 
-func (p postgres) CreateTransaction(ctx context.Context, transaction *types.Transaction, from common.Address) (error, uint64) {
+func (p postgres) CreateTransaction(ctx context.Context, tx *types.Transaction) (error, uint64) {
+	from, err := transaction.SenderAddressFromTransaction(tx)
+	if err != nil {
+		return err, 0
+	}
 	var id uint64
-	v, r, s := transaction.RawSignatureValues()
+	v, r, s := tx.RawSignatureValues()
 	q := `
 	INSERT INTO transactions (hash, from_address, cost, data, value, gas_price, gas, nonce, to_address, chain_id, v, r, s)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
@@ -40,18 +45,18 @@ func (p postgres) CreateTransaction(ctx context.Context, transaction *types.Tran
 		s = EXCLUDED.s
 	RETURNING id
 	`
-	transaction.ChainId()
-	err := p.conn.QueryRow(ctx, q,
-		transaction.Hash().String(),
+	tx.ChainId()
+	err = p.conn.QueryRow(ctx, q,
+		tx.Hash().String(),
 		from.String(),
-		transaction.Cost().Int64(),
-		hex.EncodeToString(transaction.Data()),
-		transaction.Value().Int64(),
-		transaction.GasPrice().Int64(),
-		transaction.Gas(),
-		transaction.Nonce(),
-		transaction.To().String(),
-		transaction.ChainId().Int64(),
+		tx.Cost().Int64(),
+		hex.EncodeToString(tx.Data()),
+		tx.Value().Int64(),
+		tx.GasPrice().Int64(),
+		tx.Gas(),
+		tx.Nonce(),
+		tx.To().String(),
+		tx.ChainId().Int64(),
 		v.String(),
 		r.String(),
 		s.String()).Scan(&id)
