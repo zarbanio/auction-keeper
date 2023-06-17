@@ -13,6 +13,7 @@ import (
 	"github.com/zarbanio/auction-keeper/services/actions"
 	"github.com/zarbanio/auction-keeper/services/loaders"
 	"github.com/zarbanio/auction-keeper/store"
+	"github.com/zarbanio/auction-keeper/x/chain"
 )
 
 type FlopperChecker struct {
@@ -24,10 +25,22 @@ type FlopperChecker struct {
 	vatLoader     *loaders.VatLoader
 	flopperLoader *loaders.FlopperLoader
 	processing    sync.Mutex
+	indexer       *chain.Indexer
+	store         store.IStore
 }
 
 // NewFlopperChecker TODO: remove "actions" and add "auctions"
-func NewFlopperChecker(eth *ethclient.Client, cache cache.ICache, actions actions.IAction, vowAddr common.Address, vowLoader *loaders.VowLoader, vatLoader *loaders.VatLoader, flopperLoader *loaders.FlopperLoader) *FlopperChecker {
+func NewFlopperChecker(
+	eth *ethclient.Client,
+	cache cache.ICache,
+	actions actions.IAction,
+	vowAddr common.Address,
+	vowLoader *loaders.VowLoader,
+	vatLoader *loaders.VatLoader,
+	flopperLoader *loaders.FlopperLoader,
+	indxer *chain.Indexer,
+	store store.IStore,
+) *FlopperChecker {
 	flopperChecker := &FlopperChecker{
 		eth:           eth,
 		cache:         cache,
@@ -37,6 +50,8 @@ func NewFlopperChecker(eth *ethclient.Client, cache cache.ICache, actions action
 		vatLoader:     vatLoader,
 		flopperLoader: flopperLoader,
 		processing:    sync.Mutex{},
+		indexer:       indxer,
+		store:         store,
 	}
 
 	return flopperChecker
@@ -139,9 +154,31 @@ func (fc *FlopperChecker) Start() {
 
 				if eraSin.Cmp(math.Zero) > 0 && new(big.Int).Add(era, wait).Cmp(now) <= 0 { // if sin > 0 and era + wait <= now:
 					flog := store.NewFlog(era).ToDomain()
-					err := fc.actions.Flog(flog)
+					tx, err := fc.actions.Flog(flog)
 					if err != nil {
 						log.Println("error in sending flog transaction.", err)
+						return
+					}
+					err, txId := fc.store.CreateTransaction(context.Background(), tx)
+					if err != nil {
+						log.Println("error in saving bark transaction.", err)
+						continue
+					}
+
+					_, err = fc.store.CreateFlog(context.Background(), flog, int64(txId))
+					if err != nil {
+						log.Println("error in saving flog.", err)
+						continue
+					}
+
+					receipt, header, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+					if err != nil {
+						log.Println("error in waiting for receipt.", err)
+						return
+					}
+					err = fc.store.UpdateTransactionBlock(context.Background(), txId, receipt, header.Time, *receipt.BlockNumber, receipt.BlockHash)
+					if err != nil {
+						log.Println("error in updating flog transaction receipt.", err)
 						return
 					}
 
@@ -204,12 +241,39 @@ func (fc *FlopperChecker) Start() {
 		}
 
 		if sump.Cmp(woe) <= 0 && vowZarBalance.Cmp(math.Zero) == 0 {
-
-			err := fc.actions.Flop()
+			tx, err := fc.actions.Flop()
 			if err != nil {
 				log.Println("error in sending flop transaction.", err)
+				return
+			}
+			err, txId := fc.store.CreateTransaction(context.Background(), tx)
+			if err != nil {
+				log.Println("error in saving flop transaction.", err)
+				return
+			}
+			_, err = fc.store.CreateFlop(context.Background(), int64(txId))
+			if err != nil {
+				log.Println("error in saving flop.", err)
+				return
 			}
 
+			receipt, header, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+			if err != nil {
+				log.Println("error in waiting for receipt.", err)
+				return
+			}
+			err = fc.store.UpdateTransactionBlock(
+				context.Background(),
+				txId,
+				receipt,
+				header.Time,
+				*receipt.BlockNumber,
+				receipt.BlockHash)
+
+			if err != nil {
+				log.Println("error in updating flop transaction receipt.", err)
+				return
+			}
 		}
 	}
 
@@ -226,12 +290,32 @@ func (fc *FlopperChecker) ReconcileDebt(zarBalance, ash, woe *big.Int) error {
 			rad = *zarBalance
 		}
 		kiss := store.NewKiss(&rad).ToDomain()
-		err := fc.actions.Kiss(kiss)
+		tx, err := fc.actions.Kiss(kiss)
 		if err != nil {
 			return err
 		}
-
+		err, txId := fc.store.CreateTransaction(context.Background(), tx)
+		if err != nil {
+			log.Println("[ReconcileDebt] error in saving kiss transaction.", err)
+			return err
+		}
+		_, err = fc.store.CreateKiss(context.Background(), kiss, int64(txId))
+		if err != nil {
+			log.Println("[ReconcileDebt] error in saving kiss.", err)
+			return err
+		}
+		receipt, header, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+		if err != nil {
+			log.Println("[ReconcileDebt] error in waiting for receipt.", err)
+			return err
+		}
+		err = fc.store.UpdateTransactionBlock(context.Background(), txId, receipt, header.Time, *receipt.BlockNumber, receipt.BlockHash)
+		if err != nil {
+			log.Println("[ReconcileDebt] error in updating kiss transaction receipt.", err)
+			return err
+		}
 	}
+
 	if woe.Cmp(math.Zero) > 0 {
 		zarBalance, err = fc.vatLoader.GetZarBalance(context.Background(), fc.vowAddress)
 		if err != nil {
@@ -245,8 +329,29 @@ func (fc *FlopperChecker) ReconcileDebt(zarBalance, ash, woe *big.Int) error {
 			rad = *zarBalance
 		}
 		heal := store.NewHeal(&rad).ToDomain()
-		err := fc.actions.Heal(heal)
+		tx, err := fc.actions.Heal(heal)
 		if err != nil {
+			log.Println("[ReconcileDebt] error in sending heal transaction.", err)
+			return err
+		}
+		err, txId := fc.store.CreateTransaction(context.Background(), tx)
+		if err != nil {
+			log.Println("[ReconcileDebt] error in saving heal transaction.", err)
+			return err
+		}
+		_, err = fc.store.CreateHeal(context.Background(), heal, int64(txId))
+		if err != nil {
+			log.Println("[ReconcileDebt] error in saving heal.", err)
+			return err
+		}
+		receipt, header, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+		if err != nil {
+			log.Println("[ReconcileDebt] error in waiting for receipt.", err)
+			return err
+		}
+		err = fc.store.UpdateTransactionBlock(context.Background(), txId, receipt, header.Time, *receipt.BlockNumber, receipt.BlockHash)
+		if err != nil {
+			log.Println("[ReconcileDebt] error in updating heal transaction receipt.", err)
 			return err
 		}
 	}

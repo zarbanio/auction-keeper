@@ -150,10 +150,11 @@ func clipperAllowance(eth *ethclient.Client, collateralName string, vatAddr, cli
 	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
 		log.Printf("HOPING %s CLIPPER IN VAT\n", collateralName)
 		hope := store.NewHope(clipperAddr).ToDomain()
-		err := actions.Hope(hope)
+		tx, err := actions.Hope(hope)
 		if err != nil {
 			return err
 		}
+		log.Printf("HOPING %s CLIPPER IN VAT TX: %s\n", collateralName, tx.Hash().Hex())
 	} else {
 		log.Printf("%s Clipper is Hoped in VAT \n", collateralName)
 	}
@@ -174,10 +175,11 @@ func zarJoinAllowance(eth *ethclient.Client, vatAddr, zarJoinAddr common.Address
 	if allowance.Cmp(big.NewInt(1)) != 0 { // if allowance != 1
 		log.Println("HOPING ZAR_JOIN IN VAT")
 		hope := store.NewHope(zarJoinAddr).ToDomain()
-		err := actions.Hope(hope)
+		tx, err := actions.Hope(hope)
 		if err != nil {
 			return err
 		}
+		log.Printf("HOPING ZAR_JOIN IN VAT TX: %s\n", tx.Hash().Hex())
 	} else {
 		log.Println("ZAR_JOIN is Hoped in VAT ")
 	}
@@ -241,10 +243,6 @@ func Execute() {
 		}
 		log.Println("new block pointer created.", cfg.Indexer.BlockPtr)
 	}
-	startBlock, err := blockPtr.Read()
-	if err != nil {
-		log.Fatal("error reading block pointer.", err)
-	}
 
 	collaterals, err := getCollaterals(cfg, eth)
 	if err != nil {
@@ -257,6 +255,10 @@ func Execute() {
 	addresses = append(addresses, cfg.Vat, cfg.Vow, cfg.Dog, cfg.Flopper)
 
 	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
+	if err != nil {
+		log.Fatal(err)
+	}
+	actions, err := actions.NewActions(eth, sender, cfg.Vat, cfg.Dog, cfg.Vow)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -287,7 +289,6 @@ func Execute() {
 	}
 
 	indexer := chain.NewIndexer(eth, chain.NewBlockCache(eth), cfg.Indexer.BlockInterval, blockPtr, addresses, eventHandlersMap)
-	actions, err := actions.NewActions(eth, sender, postgresStore, cfg.Vat, cfg.Dog, cfg.Vow, indexer)
 
 	for _, c := range collaterals {
 		err = clipperAllowance(eth, c.Name, cfg.Vat, c.Clipper.Address, sender, actions)
@@ -313,7 +314,7 @@ func Execute() {
 		}
 	}()
 
-	vaultsChecker := vault.NewVaultsChecker(redisCache, actions, dogLoader, vatLoader)
+	vaultsChecker := vault.NewVaultsChecker(redisCache, actions, dogLoader, vatLoader, indexer, postgresStore)
 	vaultsCheckerTicker := time.NewTicker(time.Duration(cfg.Times.VaultTicker) * time.Second)
 	go func() {
 		for {
@@ -326,7 +327,7 @@ func Execute() {
 		}
 	}()
 
-	flopperChecker := flopper.NewFlopperChecker(eth, redisCache, actions, cfg.Vow, vowLoader, vatLoader, flopperLoader)
+	flopperChecker := flopper.NewFlopperChecker(eth, redisCache, actions, cfg.Vow, vowLoader, vatLoader, flopperLoader, indexer, postgresStore)
 	flopperCheckerTicker := time.NewTicker(time.Duration(cfg.Times.FlopperTicker) * time.Second)
 	go func() {
 		for {

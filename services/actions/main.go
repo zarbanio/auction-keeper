@@ -9,7 +9,6 @@ import (
 	"github.com/zarbanio/auction-keeper/bindings/vat"
 	"github.com/zarbanio/auction-keeper/bindings/vow"
 	"github.com/zarbanio/auction-keeper/services/transaction"
-	"github.com/zarbanio/auction-keeper/x/chain"
 )
 
 type Actions struct {
@@ -19,7 +18,7 @@ type Actions struct {
 	sender *transaction.Sender
 }
 
-func NewActions(eth *ethclient.Client, sender *transaction.Sender, vatAddr, dogAddr common.Address, vowAddr common.Address, indexer *chain.Indexer) (IAction, error) {
+func NewActions(eth *ethclient.Client, sender *transaction.Sender, vatAddr, dogAddr common.Address, vowAddr common.Address) (IAction, error) {
 	v, err := vat.NewVat(vatAddr, eth)
 	if err != nil {
 		log.Fatal(err)
