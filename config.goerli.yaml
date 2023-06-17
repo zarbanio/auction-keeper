@@ -3,13 +3,13 @@ Indexer:
   PoolSize: 2
   BlockPtr: 8485879
 Redis:
-  URL: 'auction-keeper-redis:6379'
+  URL: 'localhost:6379'
 postgres:
   Host: 'localhost:5432'
   User: 'postgres'
   Password: 'postgres'
-  DB: 'postgres'
-  MigrationsPath: './store/migrations'
+  DB: 'auction-keeper'
+  MigrationsPath: 'store/migrations'
 Network:
   Name: 'goerli'
   ChainId: 5
@@ -19,23 +19,22 @@ Network:
     Decimals: 18
     MockAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
   Node:
-    Api: 'https://rpc.ankr.com/eth_goerli'
+    Api: ''
 Wallet:
   Private: ''
   Address: ''
-ZarJoin: '0xe752ba573bb3ee4840ad424f9c386f7696084e6a'
-Vat: '0xe33f43032db170bac2903115e3afb6db981ac822'
-Vow: '0x24020386d0162ee2d940111de81a89d0868a0b78'
-Dog: '0xc61157c26cdcb5f88cd8d81d61c9fd97023c0cd0'
-Flopper: '0x370699470ad9f3b80d42c81e981ee9b2b5ed1801'
+ZarJoin: '0x30470ce6dc75df6819187ea05d759b5859e1aea2'
+Vat: '0x7ff3ae53276554ce6ec561a8fd292411edd6c7d5'
+Vow: '0x4ae738d5f22d58af868a50ca8896a47517fa9be5'
+Dog: '0xb1940cb860269fe904c982b899a31e593e29afc2'
 UniswapV3QuoterAddress: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6'
 Collaterals:
   -
     Name: 'ETHA'
     Erc20addr: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
     Decimals: 18
-    Clipper: '0xE3FDbF840476c8A0A1cd327Ad5DBcd77Dd94fEb5'
-    GemJoinAdapter: '0x77C0154cF96039519e5BEffaDcfe6eD3c6354b6d'
+    Clipper: '0xfED041dfe27b8D6c42B6B5f7bCCB8583C49f295b'
+    GemJoinAdapter: '0x5158d591c4F90521091c8Fad2358dd45cE07f6Fe'
     UniswapV3Callee: '0x040bC072eE59551aFc67DDF3a265c42e762728fe'
     UniswapV3Path:
       - # WETH -> DAI
@@ -45,13 +44,13 @@ Collaterals:
       - # DAI -> Zar
         Fee: 10000
         TokenA: '0x7df1d674021792630e15eca46467516660e021af'
-        TokenB: '0x91f53a3c281cd82531ea540ebfbb9a64e13ebc8f'
+        TokenB: '0x13e321ce763af4036d753b573527ff3f874ede59'
   -
     Name: 'ETHB'
     Erc20addr: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
     Decimals: 18
-    Clipper: '0x5bfD87c9212738834B800FaCb58e073cb3E475c0'
-    GemJoinAdapter: '0x361eE781A33560BD8649EDf77ec65f49eB9C4542'
+    Clipper: '0xD1DDbB0C23146Ac9963C57F6e5F44189F769b7Ad'
+    GemJoinAdapter: '0x214A89120b4B0F8558bA43f566B86C500301E820'
     UniswapV3Callee: '0x040bC072eE59551aFc67DDF3a265c42e762728fe'
     UniswapV3Path:
       - # WETH -> DAI
@@ -61,7 +60,7 @@ Collaterals:
       - # DAI -> ZAR
         Fee: 10000
         TokenA: '0x7df1d674021792630e15eca46467516660e021af'
-        TokenB: '0x91f53a3c281cd82531ea540ebfbb9a64e13ebc8f'
+        TokenB: '0x13e321ce763af4036d753b573527ff3f874ede59'
 Processor:
   MinProfitPercentage: 1025  # decimal is 3 -> float MinProfitPercentage = 1.025
   MinLotZarValue: 0
