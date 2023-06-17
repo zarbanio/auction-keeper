@@ -10,7 +10,6 @@ import (
 )
 
 func (a Actions) Bark(bark *entities.DogBark) error {
-
 	opts, err := a.sender.GetOpts()
 	if err != nil {
 		return err

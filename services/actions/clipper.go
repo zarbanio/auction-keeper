@@ -12,7 +12,6 @@ import (
 )
 
 func (a Actions) Take(clipper *clipper.Clipper, take *entities.ClipperTake) error {
-
 	opts, err := a.sender.GetOpts()
 	if err != nil {
 		return err

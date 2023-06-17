@@ -4,13 +4,10 @@ import (
 	"context"
 	"log"
 
-	"github.com/ethereum/go-ethereum/core/types"
 	entities "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
-	"github.com/zarbanio/auction-keeper/services/transaction"
 )
 
 func (a Actions) Hope(hope *entities.VatHope) error {
-
 	opts, err := a.sender.GetOpts()
 	if err != nil {
 		return err
@@ -30,16 +27,14 @@ func (a Actions) Hope(hope *entities.VatHope) error {
 	if err != nil {
 		return err
 	}
-	txHandler := transaction.NewHandler(*tx, func(header types.Header, recipt *types.Receipt) error {
-		return a.store.UpdateTransactionBlock(
-			context.Background(),
-			txId,
-			recipt,
-			header.Time,
-			*recipt.BlockNumber,
-			recipt.BlockHash)
-	})
-	a.sender.WatchTransactionHash(txHandler)
+
+	// return a.store.UpdateTransactionBlock(
+	// 	context.Background(),
+	// 	txId,
+	// 	recipt,
+	// 	header.Time,
+	// 	*recipt.BlockNumber,
+	// 	recipt.BlockHash)
 
 	return nil
 }
