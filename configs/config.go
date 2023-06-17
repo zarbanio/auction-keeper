@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/zarbanio/auction-keeper/domain/entities"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"

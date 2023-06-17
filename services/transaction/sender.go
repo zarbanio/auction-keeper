@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/IR-Digital-Token/x/chain"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
@@ -18,11 +18,9 @@ type Sender struct {
 	privateKey *ecdsa.PrivateKey
 	address    common.Address
 	chainId    *big.Int
-	indexer    *chain.Indexer
 }
 
-func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int, indexer *chain.Indexer) (*Sender, error) {
-
+func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int) (*Sender, error) {
 	prvKey, err := crypto.HexToECDSA(privateKey)
 	if err != nil {
 		return nil, err
@@ -41,7 +39,6 @@ func NewSender(eth *ethclient.Client, privateKey string, chainId *big.Int, index
 		privateKey: prvKey,
 		address:    address,
 		chainId:    chainId,
-		indexer:    indexer,
 	}, nil
 }
 
@@ -50,7 +47,6 @@ func (s Sender) GetAddress() common.Address {
 }
 
 func (s Sender) GetOpts() (*bind.TransactOpts, error) {
-
 	nonce, err := s.eth.PendingNonceAt(context.Background(), s.GetAddress())
 	if err != nil {
 		return nil, err
@@ -71,4 +67,20 @@ func (s Sender) GetOpts() (*bind.TransactOpts, error) {
 	opts.GasPrice = gasPrice
 
 	return opts, nil
+}
+
+func SenderAddressFromTransaction(tx *types.Transaction) (common.Address, error) {
+	if tx == nil {
+		return common.Address{}, fmt.Errorf("transaction cannot be nil")
+	}
+
+	chainID := tx.ChainId() // replace this with actual chain ID if necessary
+
+	signer := types.NewEIP155Signer(chainID)
+	sender, err := types.Sender(signer, tx)
+	if err != nil {
+		return common.Address{}, fmt.Errorf("could not extract sender from transaction: %w", err)
+	}
+
+	return sender, nil
 }

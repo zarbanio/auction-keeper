@@ -2,12 +2,13 @@ package loaders
 
 import (
 	"context"
-	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
+	"log"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"log"
+	"github.com/zarbanio/auction-keeper/bindings/vat"
+	"github.com/zarbanio/auction-keeper/domain/entities"
 )
 
 type VaultLoader struct {

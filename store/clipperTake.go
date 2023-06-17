@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"math/big"
 
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
-	"github.com/IR-Digital-Token/auction-keeper/domain/math"
 	"github.com/ethereum/go-ethereum/common"
+	entities "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
+	"github.com/zarbanio/auction-keeper/domain/math"
 )
 
 type takeModel struct {

@@ -1,12 +1,13 @@
 package loaders
 
 import (
-	"github.com/IR-Digital-Token/auction-keeper/bindings/abacus"
-	clipper "github.com/IR-Digital-Token/auction-keeper/bindings/clip"
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"math/big"
+	"github.com/zarbanio/auction-keeper/bindings/abacus"
+	clipper "github.com/zarbanio/auction-keeper/bindings/clip"
+	"github.com/zarbanio/auction-keeper/domain/entities"
 )
 
 type ClipperLoader struct {

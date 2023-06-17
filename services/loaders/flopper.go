@@ -2,12 +2,13 @@ package loaders
 
 import (
 	"context"
-	"github.com/IR-Digital-Token/auction-keeper/bindings/flopper"
+	"log"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"log"
-	"math/big"
+	"github.com/zarbanio/auction-keeper/bindings/flopper"
 )
 
 type FlopperLoader struct {

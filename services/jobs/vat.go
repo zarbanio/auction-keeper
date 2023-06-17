@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/IR-Digital-Token/auction-keeper/bindings/vat"
-	"github.com/IR-Digital-Token/x/messages"
 
-	"github.com/IR-Digital-Token/auction-keeper/cache"
-	"github.com/IR-Digital-Token/auction-keeper/services/loaders"
+	"github.com/zarbanio/auction-keeper/bindings/vat"
+	"github.com/zarbanio/auction-keeper/x/messages"
+
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/zarbanio/auction-keeper/cache"
+	"github.com/zarbanio/auction-keeper/services/loaders"
 )
 
 func Frobs(msg *messages.Message, redisCache cache.ICache, loader *loaders.VaultLoader) error {

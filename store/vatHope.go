@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	entities "github.com/IR-Digital-Token/auction-keeper/domain/entities/inputMethods"
 	"github.com/ethereum/go-ethereum/common"
+	entities "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
 )
 
 type hopeModel struct {

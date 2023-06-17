@@ -2,20 +2,20 @@ package processor
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"math/big"
 
-	"github.com/IR-Digital-Token/auction-keeper/collateral"
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
-	"github.com/IR-Digital-Token/auction-keeper/services/actions"
-	"github.com/IR-Digital-Token/auction-keeper/services/uniswap_v3"
-	"github.com/IR-Digital-Token/auction-keeper/store"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/zarbanio/auction-keeper/collateral"
+	"github.com/zarbanio/auction-keeper/domain/entities"
+	"github.com/zarbanio/auction-keeper/services/actions"
+	"github.com/zarbanio/auction-keeper/services/uniswap_v3"
+	"github.com/zarbanio/auction-keeper/store"
+	"github.com/zarbanio/auction-keeper/x/chain"
 )
 
 var (
@@ -33,6 +33,8 @@ type collateralProcessor struct {
 	eth               *ethclient.Client
 	collateral        collateral.Collateral
 	auctionCollection *AuctionCollection
+	indexer           *chain.Indexer
+	store             store.IStore
 }
 
 func NewCollateralProcessor(eth *ethclient.Client, collateral collateral.Collateral) *collateralProcessor {
@@ -86,10 +88,40 @@ func (cp *collateralProcessor) processCollateral(actions actions.IAction, minPro
 		}
 		if needsRedo {
 			redo := store.NewRedo(*auction.Id).ToDomain()
-			err := actions.Redo(cp.collateral.ClipperLoader.Clipper, redo)
+			tx, err := actions.Redo(cp.collateral.ClipperLoader.Clipper, redo)
 			if err != nil {
 				log.Printf("error in sending redo transaction: %v\n", err)
 			}
+			log.Printf("redo tx sent: %s\n", tx.Hash().Hex())
+			err, txId := cp.store.CreateTransaction(context.Background(), tx)
+			if err != nil {
+				log.Printf("[ProcessCollateral] error in creating transaction: %v\n", err)
+			}
+			log.Printf("redo tx created: %s\n", txId)
+			_, err = cp.store.CreateRedo(context.Background(), *redo, int64(txId))
+			if err != nil {
+				log.Printf("[ProcessCollateral] error in creating redo: %v\n", err)
+			}
+			receipt, header, err := cp.indexer.WaitForReceipt(context.Background(), tx.Hash())
+			if err != nil {
+				log.Println("[ProcessCollateral] error in getting transaction receipt.", err)
+				continue
+			}
+			log.Printf("[ProcessCollateral] transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
+
+			err = cp.store.UpdateTransactionBlock(
+				context.Background(),
+				txId,
+				receipt,
+				header.Time,
+				*receipt.BlockNumber,
+				receipt.BlockHash)
+
+			if err != nil {
+				log.Println("[ProcessCollateral] error in updating transaction receipt.", err)
+				continue
+			}
+
 			continue
 		}
 
@@ -204,17 +236,46 @@ func (cp *collateralProcessor) executeAuction(actions actions.IAction, auctionId
 
 	route, err := uniswap_v3.GetRouter(cp.collateral.UniswapV3Path)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error in get route: %v", err))
+		return fmt.Errorf(fmt.Sprintf("error in get route: %v", err))
 	}
 
 	flashData, err := args.Pack(profitAddr, gemJoinAdapter, minProfit, route, common.Address{0})
 	if err != nil {
-		return errors.New(fmt.Sprintf("error in pack flash data: : %v", err))
+		return fmt.Errorf(fmt.Sprintf("error in pack flash data: : %v", err))
 	}
 	take := store.NewTake(auctionId, amt, maxPrice, exchangeCalleeAddress, flashData).ToDomain()
-	err = actions.Take(cp.collateral.ClipperLoader.Clipper, take)
+	tx, err := actions.Take(cp.collateral.ClipperLoader.Clipper, take)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error in sending take transaction: : %v", err))
+		return fmt.Errorf(fmt.Sprintf("error in sending take transaction: : %v", err))
+	}
+	err, txId := cp.store.CreateTransaction(context.Background(), tx)
+	if err != nil {
+		log.Println("[executeAuction] error in create transaction: ", err)
+	}
+	log.Println("[executeAuction] txId: ", txId)
+	_, err = cp.store.CreateTake(context.Background(), take, int64(txId))
+	if err != nil {
+		log.Println("[executeAuction] error in create take: ", err)
+		return err
+	}
+	receipt, header, err := cp.indexer.WaitForReceipt(context.Background(), tx.Hash())
+	if err != nil {
+		log.Println("[executeAuction] error in getting transaction receipt.", err)
+		return err
+	}
+	log.Printf("[executeAuction] transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
+
+	err = cp.store.UpdateTransactionBlock(
+		context.Background(),
+		txId,
+		receipt,
+		header.Time,
+		*receipt.BlockNumber,
+		receipt.BlockHash)
+
+	if err != nil {
+		log.Println("[executeAuction] error in updating transaction receipt.", err)
+		return err
 	}
 	return nil
 }

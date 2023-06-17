@@ -2,9 +2,10 @@ package cache
 
 import (
 	"context"
-	"github.com/IR-Digital-Token/auction-keeper/domain/entities"
 	"math/big"
 	"time"
+
+	"github.com/zarbanio/auction-keeper/domain/entities"
 )
 
 type ICache interface {
