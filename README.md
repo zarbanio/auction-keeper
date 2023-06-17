@@ -9,7 +9,7 @@ A brief description of what this project does
 clone project
 
 ```bash
-  git clone git@github.com:IR-Digital-Token/auction-keeper.git
+  git clone git@github.com:zarbanio/auction-keeper.git
   cd auction-keeper
 ```
 download realse of this lib depends on what system you use and extract it in the root project directory.
