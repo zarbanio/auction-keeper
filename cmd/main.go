@@ -25,7 +25,6 @@ import (
 	"github.com/zarbanio/auction-keeper/services/loaders"
 	"github.com/zarbanio/auction-keeper/services/processor"
 	"github.com/zarbanio/auction-keeper/services/processor/clipper/vault"
-	"github.com/zarbanio/auction-keeper/services/processor/flopper"
 	"github.com/zarbanio/auction-keeper/services/transaction"
 	"github.com/zarbanio/auction-keeper/services/uniswap_v3"
 	"github.com/zarbanio/auction-keeper/store"
@@ -215,17 +214,9 @@ func Execute() {
 		eth,
 		cfg.Vat,
 	)
-	vowLoader := loaders.NewVowLoader(
-		eth,
-		cfg.Vow,
-	)
 	dogLoader := loaders.NewDogLoader(
 		eth,
 		cfg.Dog,
-	)
-	flopperLoader := loaders.NewFlopperLoader(
-		eth,
-		cfg.Flopper,
 	)
 
 	// This GoChannel is not persistent.
@@ -323,19 +314,6 @@ func Execute() {
 				return
 			case <-vaultsCheckerTicker.C:
 				vaultsChecker.Start()
-			}
-		}
-	}()
-
-	flopperChecker := flopper.NewFlopperChecker(eth, redisCache, actions, cfg.Vow, vowLoader, vatLoader, flopperLoader, indexer, postgresStore)
-	flopperCheckerTicker := time.NewTicker(time.Duration(cfg.Times.FlopperTicker) * time.Second)
-	go func() {
-		for {
-			select {
-			case <-done:
-				return
-			case <-flopperCheckerTicker.C:
-				flopperChecker.Start()
 			}
 		}
 	}()
