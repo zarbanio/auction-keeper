@@ -3,9 +3,24 @@ package math
 import (
 	"math/big"
 	"testing"
+	"time"
 
+	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestPow10(t *testing.T) {
+	assert.Equal(t, math.BigPow(10, 0), Pow10(0))
+	assert.Equal(t, math.BigPow(10, 1), Pow10(1))
+	assert.Equal(t, math.BigPow(10, 27), Pow10(27))
+	s1 := time.Now()
+	Pow10(26)
+	s2 := time.Now()
+	Pow10(26)
+	s3 := time.Now()
+	assert.Equal(t, math.BigPow(10, 26), Pow10(26))
+	assert.True(t, s3.Sub(s2).Nanoseconds() < s2.Sub(s1).Nanoseconds())
+}
 
 func TestWadMul(t *testing.T) {
 	type test struct {

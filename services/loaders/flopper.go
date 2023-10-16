@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/zarbanio/auction-keeper/bindings/flopper"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/flopper"
 )
 
 type FlopperLoader struct {

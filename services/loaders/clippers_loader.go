@@ -6,7 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/bindings/abacus"
-	clipper "github.com/zarbanio/auction-keeper/bindings/clip"
+	clipper "github.com/zarbanio/auction-keeper/bindings/zarban/clipper"
 	"github.com/zarbanio/auction-keeper/domain/entities"
 )
 

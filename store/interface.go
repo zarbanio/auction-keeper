@@ -6,7 +6,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/median"
 	entities "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
+	"github.com/zarbanio/auction-keeper/x/eth"
 )
 
 type IStore interface {
@@ -17,6 +19,8 @@ type IStore interface {
 	IDog
 	IVow
 	IBlockPtr
+	IEthereumLog
+	ILogMedianPrice
 }
 
 type Migrateable interface {
@@ -56,4 +60,24 @@ type IBlockPtr interface {
 	UpdateBlockPtr(ctx context.Context, id int64, ptr uint64) (uint64, error)
 	IncBlockPtr(ctx context.Context, id int64) (uint64, error)
 	DeleteBlockPtr(ctx context.Context, id int64) error
+}
+
+type EthereumLogsQuery struct {
+	Id        int64
+	FromBlock uint64
+	ToBlock   uint64
+	Addresses []common.Address
+}
+
+type IEthereumLog interface {
+	CreateLog(ctx context.Context, log eth.Log) (uint64, error)
+	GetLogById(ctx context.Context, id uint64) (*eth.Log, error)
+	GetLogsByQuery(ctx context.Context, q EthereumLogsQuery) ([]eth.Log, error)
+}
+
+type ILogMedianPrice interface {
+	CreateLogMedianPrice(ctx context.Context, logMedainPrice median.MedianLogMedianPrice, logId uint64) (int64, error)
+	GetLogMedianPriceById(ctx context.Context, id int64) (*median.MedianLogMedianPrice, error)
+	GetLogMedianPriceByOrder(ctx context.Context, address common.Address, cursor, limit int64) ([]median.MedianLogMedianPrice, error)
+	GetLastLogMedianPrice(ctx context.Context, address common.Address) (*median.MedianLogMedianPrice, error)
 }

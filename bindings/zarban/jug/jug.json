@@ -15,61 +15,6 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "bytes32",
-        "name": "ilk",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "urn",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "ink",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "art",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "due",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "clip",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      }
-    ],
-    "name": "Bark",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [],
-    "name": "Cage",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
         "internalType": "address",
         "name": "usr",
         "type": "address"
@@ -88,13 +33,38 @@
         "type": "bytes32"
       },
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "uint256",
-        "name": "rad",
+        "name": "rate",
         "type": "uint256"
       }
     ],
-    "name": "Digs",
+    "name": "Drip",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "ilk",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "what",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "data",
+        "type": "uint256"
+      }
+    ],
+    "name": "File",
     "type": "event"
   },
   {
@@ -143,46 +113,9 @@
         "internalType": "bytes32",
         "name": "ilk",
         "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "what",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "data",
-        "type": "uint256"
       }
     ],
-    "name": "File",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "ilk",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "what",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "clip",
-        "type": "address"
-      }
-    ],
-    "name": "File",
+    "name": "Init",
     "type": "event"
   },
   {
@@ -200,75 +133,7 @@
   },
   {
     "inputs": [],
-    "name": "Dirt",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "Hole",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "ilk",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "address",
-        "name": "urn",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "kpr",
-        "type": "address"
-      }
-    ],
-    "name": "bark",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "cage",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "ilk",
-        "type": "bytes32"
-      }
-    ],
-    "name": "chop",
+    "name": "base",
     "outputs": [
       {
         "internalType": "uint256",
@@ -298,15 +163,16 @@
         "internalType": "bytes32",
         "name": "ilk",
         "type": "bytes32"
-      },
+      }
+    ],
+    "name": "drip",
+    "outputs": [
       {
         "internalType": "uint256",
-        "name": "rad",
+        "name": "rate",
         "type": "uint256"
       }
     ],
-    "name": "digs",
-    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -361,29 +227,6 @@
       {
         "internalType": "address",
         "name": "data",
-        "type": "address"
-      }
-    ],
-    "name": "file",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "ilk",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "what",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "address",
-        "name": "clip",
         "type": "address"
       }
     ],
@@ -403,23 +246,13 @@
     "name": "ilks",
     "outputs": [
       {
-        "internalType": "address",
-        "name": "clip",
-        "type": "address"
-      },
-      {
         "internalType": "uint256",
-        "name": "chop",
+        "name": "duty",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "hole",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "dirt",
+        "name": "rho",
         "type": "uint256"
       }
     ],
@@ -427,16 +260,16 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "live",
-    "outputs": [
+    "inputs": [
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
+        "internalType": "bytes32",
+        "name": "ilk",
+        "type": "bytes32"
       }
     ],
-    "stateMutability": "view",
+    "name": "init",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -470,7 +303,7 @@
     "name": "vow",
     "outputs": [
       {
-        "internalType": "contract VowLike",
+        "internalType": "address",
         "name": "",
         "type": "address"
       }
