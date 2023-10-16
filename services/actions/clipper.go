@@ -3,7 +3,7 @@ package actions
 import (
 	"log"
 
-	clipper "github.com/zarbanio/auction-keeper/bindings/clip"
+	clipper "github.com/zarbanio/auction-keeper/bindings/zarban/clipper"
 	entities "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
 
 	"github.com/ethereum/go-ethereum/core/types"

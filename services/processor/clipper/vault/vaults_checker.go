@@ -126,7 +126,7 @@ func (vc *VaultChecker) Start() {
 				continue
 			}
 
-			receipt, header, err := vc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+			receipt, err := vc.indexer.WaitForReceipt(context.Background(), tx.Hash())
 			if err != nil {
 				log.Println("error in getting bark transaction receipt.", err)
 				continue

@@ -3,6 +3,7 @@ package processor
 import (
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/zarbanio/auction-keeper/domain/entities"
 )
@@ -52,7 +53,7 @@ func (ai *AuctionCollection) updateAuctionAfterTake(id *big.Int, tab *big.Int, l
 	auction.Lot = lot
 }
 
-func (ai *AuctionCollection) updateAuctionAfterRedo(id *big.Int, top *big.Int, tic uint64) {
+func (ai *AuctionCollection) updateAuctionAfterRedo(id *big.Int, top *big.Int, tic time.Time) {
 	ai.updateAuctions.Lock()
 	defer ai.updateAuctions.Unlock()
 

@@ -171,11 +171,13 @@ func (fc *FlopperChecker) Start() {
 						continue
 					}
 
-					receipt, header, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+					receipt, header := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+
 					if err != nil {
 						log.Println("error in waiting for receipt.", err)
 						return
 					}
+
 					err = fc.store.UpdateTransactionBlock(context.Background(), txId, receipt, header.Time, *receipt.BlockNumber, receipt.BlockHash)
 					if err != nil {
 						log.Println("error in updating flog transaction receipt.", err)
@@ -257,7 +259,7 @@ func (fc *FlopperChecker) Start() {
 				return
 			}
 
-			receipt, header, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+			receipt, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
 			if err != nil {
 				log.Println("error in waiting for receipt.", err)
 				return
@@ -304,7 +306,7 @@ func (fc *FlopperChecker) ReconcileDebt(zarBalance, ash, woe *big.Int) error {
 			log.Println("[ReconcileDebt] error in saving kiss.", err)
 			return err
 		}
-		receipt, header, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+		receipt, header := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
 		if err != nil {
 			log.Println("[ReconcileDebt] error in waiting for receipt.", err)
 			return err
@@ -344,7 +346,7 @@ func (fc *FlopperChecker) ReconcileDebt(zarBalance, ash, woe *big.Int) error {
 			log.Println("[ReconcileDebt] error in saving heal.", err)
 			return err
 		}
-		receipt, header, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+		receipt, header := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
 		if err != nil {
 			log.Println("[ReconcileDebt] error in waiting for receipt.", err)
 			return err

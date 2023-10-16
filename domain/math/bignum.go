@@ -16,3 +16,11 @@ func Normalize(n *big.Int, decimals int64) decimal.Decimal {
 	b := decimal.NewFromBigInt(Pow10(decimals))
 	return a.Div(b)
 }
+
+// BigMin returns the smaller of x or y.
+func BigMin(x, y *big.Int) *big.Int {
+	if x.Cmp(y) > 0 {
+		return y
+	}
+	return x
+}

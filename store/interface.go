@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/median"
+	"github.com/zarbanio/auction-keeper/domain"
 	entities "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
 	"github.com/zarbanio/auction-keeper/x/eth"
 )
@@ -21,6 +22,7 @@ type IStore interface {
 	IBlockPtr
 	IEthereumLog
 	ILogMedianPrice
+	IIlk
 }
 
 type Migrateable interface {
@@ -80,4 +82,8 @@ type ILogMedianPrice interface {
 	GetLogMedianPriceById(ctx context.Context, id int64) (*median.MedianLogMedianPrice, error)
 	GetLogMedianPriceByOrder(ctx context.Context, address common.Address, cursor, limit int64) ([]median.MedianLogMedianPrice, error)
 	GetLastLogMedianPrice(ctx context.Context, address common.Address) (*median.MedianLogMedianPrice, error)
+}
+
+type IIlk interface {
+	CreateOrUpdateIlk(ctx context.Context, ilk domain.Ilk) error
 }

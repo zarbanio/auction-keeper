@@ -10,41 +10,44 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/zarbanio/auction-keeper/x/eth"
 	"github.com/zarbanio/auction-keeper/x/events"
 )
 
-type ReceiptCallbackFunc func(*types.Receipt, *types.Header) error
+type ReceiptCallbackFunc func(*types.Receipt) error
 
 type Indexer struct {
-	eth           *ethclient.Client
-	bcache        *BlockCache
-	addresses     []common.Address
-	eventHandlers map[string]events.Handler
-	blockInterval time.Duration
-	blockPointer  BlockPointer
+	ceth             eth.CachedEthereum
+	addresses        []common.Address
+	eventHandlers    map[string]events.Handler
+	blockInterval    time.Duration
+	liveBlockPointer BlockPointer
+	historyBlockPtr  BlockPointer
+	blockRange       int64
 }
 
 func NewIndexer(
-	eth *ethclient.Client,
-	bcache *BlockCache,
+	ceth eth.CachedEthereum,
 	blockInterval time.Duration,
-	blockPtr BlockPointer,
+	liveBlockPointer BlockPointer,
+	historyBlockPtr BlockPointer,
+	blockRange int64,
 	addresses []common.Address,
 	eventHandlers map[string]events.Handler) *Indexer {
 
 	return &Indexer{
-		eth:           eth,
-		bcache:        bcache,
-		addresses:     addresses,
-		eventHandlers: eventHandlers,
-		blockInterval: blockInterval,
-		blockPointer:  blockPtr,
+		ceth:             ceth,
+		addresses:        addresses,
+		eventHandlers:    eventHandlers,
+		blockInterval:    blockInterval,
+		liveBlockPointer: liveBlockPointer,
+		historyBlockPtr:  historyBlockPtr,
+		blockRange:       blockRange,
 	}
 }
 
 func (i *Indexer) IndexHistory(start, latestBlock *big.Int) error {
-	blockRange := int64(2000)
+	blockRange := i.blockRange
 
 	for fromBlock := start; fromBlock.Cmp(latestBlock) < 0; fromBlock = new(big.Int).Add(fromBlock, big.NewInt(blockRange)) {
 		toBlock := new(big.Int).Add(fromBlock, big.NewInt(int64(blockRange-1)))
@@ -58,7 +61,7 @@ func (i *Indexer) IndexHistory(start, latestBlock *big.Int) error {
 			Addresses: i.addresses,
 		}
 
-		events, err := i.eth.FilterLogs(context.Background(), query)
+		events, err := i.ceth.CachedFilterLogs(context.Background(), query)
 		if err != nil {
 			return err
 		}
@@ -67,20 +70,17 @@ func (i *Indexer) IndexHistory(start, latestBlock *big.Int) error {
 			if len(event.Topics) == 0 {
 				continue
 			}
-			handler, ok := i.eventHandlers[event.Topics[0].String()]
+			id := event.Address.String() + ":" + event.Topics[0].String()
+			handler, ok := i.eventHandlers[id]
 			if !ok {
 				continue
 			}
-			block, err := i.bcache.GetBlockByNumber(context.Background(), event.BlockNumber)
-			if err != nil {
-				return err
-			}
-			err = handler.DecodeAndHandle(*block.Header(), event)
+			err = handler.DecodeAndHandle(event)
 			if err != nil {
 				return err
 			}
 		}
-		err = i.blockPointer.Update(toBlock.Uint64())
+		err = i.historyBlockPtr.Update(toBlock.Uint64())
 		if err != nil {
 			return err
 		}
@@ -91,13 +91,13 @@ func (i *Indexer) IndexHistory(start, latestBlock *big.Int) error {
 func (i *Indexer) IndexNewEvents() error {
 	i.trackBlockPtr()
 
-	newEvents := make(chan types.Log)
+	newEvents := make(chan eth.Log)
 	query := ethereum.FilterQuery{
 		FromBlock: nil,
 		ToBlock:   nil,
 		Addresses: i.addresses,
 	}
-	sub, err := i.eth.SubscribeFilterLogs(context.Background(), query, newEvents)
+	sub, err := i.ceth.CachedSubscribeFilterLogs(context.Background(), query, newEvents)
 	if err != nil {
 		return err
 	}
@@ -109,15 +109,12 @@ func (i *Indexer) IndexNewEvents() error {
 			if len(event.Topics) == 0 {
 				continue
 			}
-			handler, ok := i.eventHandlers[event.Topics[0].String()]
+			id := event.Address.String() + ":" + event.Topics[0].String()
+			handler, ok := i.eventHandlers[id]
 			if !ok {
 				continue
 			}
-			block, err := i.bcache.GetBlockByNumber(context.Background(), event.BlockNumber)
-			if err != nil {
-				return err
-			}
-			err = handler.DecodeAndHandle(*block.Header(), event)
+			err = handler.DecodeAndHandle(event)
 			if err != nil {
 				return err
 			}
@@ -129,13 +126,13 @@ func (i *Indexer) IndexNewEvents() error {
 
 func (i *Indexer) trackBlockPtr() {
 	headers := make(chan *types.Header)
-	_, err := i.eth.SubscribeNewHead(context.Background(), headers)
+	_, err := i.ceth.SubscribeNewHead(context.Background(), headers)
 	if err != nil {
 		log.Fatal("error subscribing to new heads.", err)
 	}
 	go func() {
 		for header := range headers {
-			err = i.blockPointer.Update(header.Number.Uint64())
+			err = i.liveBlockPointer.Update(header.Number.Uint64())
 			if err != nil {
 				log.Fatal("error updating block pointer", err)
 			}
@@ -143,41 +140,33 @@ func (i *Indexer) trackBlockPtr() {
 	}()
 }
 
-func (i *Indexer) WaitForReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, *types.Header, error) {
+func (i *Indexer) WaitForReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
 	ticker := time.NewTicker(i.blockInterval)
 	defer ticker.Stop()
 
-	var receipt *types.Receipt
-	var err error
-	for receipt == nil {
+	for {
 		select {
 		case <-ctx.Done():
-			return nil, nil, ctx.Err()
+			return nil, ctx.Err()
 		case <-ticker.C:
-			receipt, err = i.eth.TransactionReceipt(ctx, txHash)
-			if receipt != nil {
-				break
+			receipt, err := i.ceth.TransactionReceipt(ctx, txHash)
+			if err == nil {
+				return receipt, nil
 			}
 		}
 	}
-
-	block, err := i.bcache.GetBlockByNumber(ctx, receipt.BlockNumber.Uint64())
-	if err != nil {
-		return nil, nil, err
-	}
-	return receipt, block.Header(), nil
 }
 
 func (i *Indexer) SubmitTxAndCallOnReceipt(ctx context.Context, tx *types.Transaction, callback ReceiptCallbackFunc) error {
-	err := i.eth.SendTransaction(ctx, tx)
+	err := i.ceth.SendTransaction(ctx, tx)
 	if err != nil {
 		return fmt.Errorf("error sending transaction. %w", err)
 	}
 
-	receipt, header, err := i.WaitForReceipt(ctx, tx.Hash())
+	receipt, err := i.WaitForReceipt(ctx, tx.Hash())
 	if err != nil {
 		return fmt.Errorf("error waiting for receipt. %w", err)
 	}
 
-	return callback(receipt, header)
+	return callback(receipt)
 }
