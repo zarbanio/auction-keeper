@@ -9,19 +9,19 @@ import (
 	"syscall"
 	"time"
 
-	clipper "github.com/zarbanio/auction-keeper/bindings/clip"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/median"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/zarbanio/auction-keeper/bindings/vat"
-	"github.com/zarbanio/auction-keeper/bindings/vow"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/vat"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/vow"
 	"github.com/zarbanio/auction-keeper/cache"
 	"github.com/zarbanio/auction-keeper/collateral"
 	"github.com/zarbanio/auction-keeper/configs"
 	"github.com/zarbanio/auction-keeper/domain/entities"
 	"github.com/zarbanio/auction-keeper/services/actions"
-	"github.com/zarbanio/auction-keeper/services/callbacks"
-	"github.com/zarbanio/auction-keeper/services/jobs"
+	"github.com/zarbanio/auction-keeper/services/cachedeth"
+	"github.com/zarbanio/auction-keeper/services/eventmanager"
 	"github.com/zarbanio/auction-keeper/services/loaders"
 	"github.com/zarbanio/auction-keeper/services/processor"
 	"github.com/zarbanio/auction-keeper/services/processor/clipper/vault"
@@ -30,44 +30,30 @@ import (
 	"github.com/zarbanio/auction-keeper/store"
 	"github.com/zarbanio/auction-keeper/x/chain"
 	"github.com/zarbanio/auction-keeper/x/events"
-	"github.com/zarbanio/auction-keeper/x/messages"
-	"github.com/zarbanio/auction-keeper/x/pubsub"
-	"github.com/zarbanio/auction-keeper/x/pubsub/gochannel"
 )
 
-func startSubscribeEvents(ps pubsub.Pubsub, redisCache cache.ICache, vaultLoader *loaders.VaultLoader) {
-	log.Println("subscribe Jobs for goChanel PubSub events.")
-	_ = ps.Subscribe(context.Background(), "events.vat.frobs", func(msg *messages.Message) error {
-		return jobs.Frobs(msg, redisCache, vaultLoader)
-	})
-	_ = ps.Subscribe(context.Background(), "events.vat.forks", func(msg *messages.Message) error {
-		return jobs.Forks(msg, redisCache, vaultLoader)
-	})
-	_ = ps.Subscribe(context.Background(), "events.vat.grabs", func(msg *messages.Message) error {
-		return jobs.Grabs(msg, redisCache, vaultLoader)
-	})
-	_ = ps.Subscribe(context.Background(), "events.vow.fess", func(msg *messages.Message) error {
-		return jobs.Fess(msg, redisCache)
-	})
-	_ = ps.Subscribe(context.Background(), "events.vow.flog", func(msg *messages.Message) error {
-		return jobs.Flog(msg, redisCache)
-	})
-}
+func getEventHandlers(e *eventmanager.EventManager, eth *ethclient.Client, addresses map[string]common.Address) []events.Handler {
 
-func getEventHandlers(ps pubsub.Pubsub, eth *ethclient.Client, liquidatorProcessor *processor.LiquidatorProcessor, collaterals map[string]collateral.Collateral, vatAddress, vowAddress common.Address, startBlockNumber uint64) []events.Handler {
-	var handlers []events.Handler
-
-	for _, v := range collaterals {
-		handlers = append(handlers, clipper.NewKickHandler(v.Clipper.Address, eth, callbacks.ClipperKickCallback(liquidatorProcessor, v.Name, startBlockNumber)))
-		handlers = append(handlers, clipper.NewRedoHandler(v.Clipper.Address, eth, callbacks.ClipperRedoCallback(liquidatorProcessor, v.Name, startBlockNumber)))
-		handlers = append(handlers, clipper.NewTakeHandler(v.Clipper.Address, eth, callbacks.ClipperTakeCallback(liquidatorProcessor, v.Name, startBlockNumber)))
+	eventHandlers := []events.Handler{
+		vat.NewFrobHandler(addresses["vat"], eth, e.VatFrobCallback()),
+		vat.NewForkHandler(addresses["vat"], eth, e.VatForkCallback()),
+		vat.NewGrabHandler(addresses["vat"], eth, e.VatGrabCallback()),
+		vow.NewFlogHandler(addresses["vow"], eth, e.VowFlogCallback()),
+		vow.NewFessHandler(addresses["vow"], eth, e.VowFessCallback()),
+		median.NewLogMedianPriceHandler(addresses["dai_median"], eth, e.MedianLogMedianPriceCallback()),
+		median.NewLogMedianPriceHandler(addresses["eth_median"], eth, e.MedianLogMedianPriceCallback()),
 	}
-	handlers = append(handlers, vat.NewFrobHandler(vatAddress, eth, callbacks.VatFrobCallback(ps, 0)))
-	handlers = append(handlers, vat.NewForkHandler(vatAddress, eth, callbacks.VatForkCallback(ps, 0)))
-	handlers = append(handlers, vat.NewGrabHandler(vatAddress, eth, callbacks.VatGrabCallback(ps, 0)))
-	handlers = append(handlers, vow.NewFessHandler(vowAddress, eth, callbacks.VowFessCallback(ps, 0)))
-	handlers = append(handlers, vow.NewFlogHandler(vowAddress, eth, callbacks.VowFlogCallback(ps, 0)))
-	return handlers
+
+	// for k, v := range addresses {
+	// 	if strings.Contains(k, "_clipper") {
+	// 		eventHandlers = append(eventHandlers, clipper.NewRedoHandler(v, eth, e.ClipperRedoCallback()))
+	// 		eventHandlers = append(eventHandlers, clipper.NewYankHandler(v, eth, e.ClipperYankCallback()))
+	// 		eventHandlers = append(eventHandlers, clipper.NewTakeHandler(v, eth, e.ClipperTakeCallback()))
+	// 		eventHandlers = append(eventHandlers, clipper.NewKickHandler(v, eth, e.ClipperKickCallback()))
+	// 	}
+	// }
+
+	return eventHandlers
 }
 
 func getActiveAuctions(collaterals map[string]collateral.Collateral, liquidatorProcessor *processor.LiquidatorProcessor) error {
@@ -204,12 +190,51 @@ func Execute() {
 
 	// get application connection
 	redisCache := cache.NewRedisStore(cfg.Redis.URL)
+	bcache := cachedeth.NewBlockCache(eth)
+	memCache := cache.NewMemCache()
+	ceth := cachedeth.NewEthProxy(eth, postgresStore, bcache)
 
 	// get loaders
+
+	addressesLoader := loaders.NewAddressLoader(eth, memCache, cfg.Contracts.Deployment, cfg.Contracts.AddressProvider)
+	addrs, err := addressesLoader.LoadAddresses(context.Background())
+	if err != nil {
+		log.Fatal("error loading addresses.", err)
+	}
+
+	addrs["ilk_registry"] = cfg.Contracts.IlkRegistry
+	addrs["eth_a_join"] = cfg.Contracts.ETHAJoin
+	addrs["eth_b_join"] = cfg.Contracts.ETHBJoin
+	addrs["dai_a_join"] = cfg.Contracts.DAIAJoin
+	addrs["dai_b_join"] = cfg.Contracts.DAIBJoin
+	addrs["dai_median"] = cfg.Contracts.DAIMedian
+	addrs["eth_median"] = cfg.Contracts.ETHMedian
+
 	vaultLoader := loaders.NewVaultLoader(
 		eth,
 		cfg.Vat,
 	)
+
+	ilksLoader := loaders.NewIlksLoader(
+		ceth,
+		postgresStore,
+		addrs["vat"],
+		addrs["jug"],
+		addrs["spot"],
+		addrs["dog"],
+		addrs["ilk_registry"],
+		[]common.Address{
+			addrs["eth_a_join"],
+			addrs["eth_b_join"],
+			addrs["dai_a_join"],
+			addrs["dai_b_join"],
+		},
+		map[common.Address]common.Address{
+			cfg.Contracts.DAI:  addrs["dai_median"],
+			cfg.Contracts.WETH: addrs["eth_median"],
+		},
+	)
+
 	vatLoader := loaders.NewVatLoader(
 		eth,
 		cfg.Vat,
@@ -218,22 +243,18 @@ func Execute() {
 		eth,
 		cfg.Dog,
 	)
+	//! TODO: ADD CLIPPERS LOADER
+	eventManger := eventmanager.NewEventManager(postgresStore, ilksLoader, vaultLoader)
 
-	// This GoChannel is not persistent.
-	//That means if you send a message to a topic to which no subscriber is subscribed, that message will be discarded.
-	ps := gochannel.NewGoChannel(128)
-	// start subscribe on chanels
-	startSubscribeEvents(ps, redisCache, vaultLoader)
-
-	blockPtr := NewDBBlockPointer(postgresStore, cfg.Indexer.BlockPtr)
-	if !blockPtr.Exists() {
-		log.Println("block pointer doest not exits. creating a new one.")
-		err := blockPtr.Create()
-		if err != nil {
-			log.Fatal("error creating block pointer.", err)
-		}
-		log.Println("new block pointer created.", cfg.Indexer.BlockPtr)
-	}
+	// blockPtr := NewDBBlockPointer(postgresStore, cfg.Indexer.BlockPtr)
+	// if !blockPtr.Exists() {
+	// 	log.Println("block pointer doest not exits. creating a new one.")
+	// 	err := blockPtr.Create()
+	// 	if err != nil {
+	// 		log.Fatal("error creating block pointer.", err)
+	// 	}
+	// 	log.Println("new block pointer created.", cfg.Indexer.BlockPtr)
+	// }
 
 	collaterals, err := getCollaterals(cfg, eth)
 	if err != nil {
@@ -268,18 +289,26 @@ func Execute() {
 		log.Fatal(err)
 	}
 
-	lastBlack, err := eth.BlockNumber(context.Background())
-	if err != nil {
-		log.Fatal(err)
+	handlers := getEventHandlers(eventManger, eth, addrs)
+	var addressesArr []common.Address
+	for k, v := range addrs {
+		if k == "weth_gateway" || k == "weth" || k == "eth" || k == "zar" || k == "usdt" || k == "usdc" || k == "wbtc" || k == "dai" {
+			continue
+		}
+		addressesArr = append(addressesArr, v)
 	}
-
-	handlers := getEventHandlers(ps, eth, liquidatorProcessor, collaterals, cfg.Vat, cfg.Vow, lastBlack)
 	eventHandlersMap := make(map[string]events.Handler)
 	for _, h := range handlers {
 		eventHandlersMap[h.ID()] = h
 	}
+	historyBlockPtr := createBlockPtrIfNotExists(postgresStore, "history", cfg.Indexer.StartBlock)
+	startBlock, err := historyBlockPtr.Read()
+	if err != nil {
+		log.Fatal("error reading history block pointer.", err)
+	}
+	liveBlockPtr := createBlockPtrIfNotExists(postgresStore, "live", startBlock)
 
-	indexer := chain.NewIndexer(eth, chain.NewBlockCache(eth), cfg.Indexer.BlockInterval, blockPtr, addresses, eventHandlersMap)
+	indexer := chain.NewIndexer(ceth, cfg.Indexer.BlockInterval, liveBlockPtr, historyBlockPtr, cfg.Indexer.BlockRange, addressesArr, eventHandlersMap)
 
 	for _, c := range collaterals {
 		err = clipperAllowance(eth, c.Name, cfg.Vat, c.Clipper.Address, sender, actions)

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/zarbanio/auction-keeper/bindings/vat"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/vat"
 	"github.com/zarbanio/auction-keeper/x/messages"
 
 	"github.com/ethereum/go-ethereum/common"

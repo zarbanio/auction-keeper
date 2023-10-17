@@ -6,15 +6,15 @@ import (
 )
 
 type EventManager struct {
-	store        store.IStore
-	ilksLoader   *loaders.IlksLoader
-	clipperLoder *loaders.ClipperLoader
+	store       store.IStore
+	ilksLoader  *loaders.IlksLoader
+	vaultLoader *loaders.VaultLoader
 }
 
-func NewEventManager(s store.IStore, i *loaders.IlksLoader, a *loaders.ClipperLoader) *EventManager {
+func NewEventManager(s store.IStore, i *loaders.IlksLoader, v *loaders.VaultLoader) *EventManager {
 	return &EventManager{
-		store:        s,
-		ilksLoader:   i,
-		clipperLoder: a,
+		store:       s,
+		ilksLoader:  i,
+		vaultLoader: v,
 	}
 }

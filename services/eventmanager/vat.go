@@ -2,57 +2,40 @@ package eventmanager
 
 import (
 	"context"
-	"encoding/json"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/vat"
 	"github.com/zarbanio/auction-keeper/x/eth"
 	"github.com/zarbanio/auction-keeper/x/events"
-	"github.com/zarbanio/auction-keeper/x/messages"
-	"github.com/zarbanio/auction-keeper/x/pubsub"
 )
 
-func VatFrobCallback(pubsub pubsub.Pubsub, eventPtr uint64) events.CallbackFn[vat.VatFrob] {
-	ps := pubsub
+func (e *EventManager) VatFrobCallback() events.CallbackFn[vat.VatFrob] {
 	return func(raw eth.Log, frob vat.VatFrob) error {
-		// if eventPtr > uint64(header.Number.Int64()) {
-		// 	return nil
-		// }
-		payload, err := json.Marshal(frob)
+		_, err := e.store.CreateFrob(context.Background(), frob, raw.Id)
 		if err != nil {
 			return err
 		}
-
-		return ps.Publish(context.Background(), "events.vat.frobs", messages.NewMessage(payload))
+		return e.UrnManipulation(frob.U, frob.V, frob.W)
 	}
 }
 
-func VatForkCallback(pubsub pubsub.Pubsub, eventPtr uint64) events.CallbackFn[vat.VatFork] {
-	ps := pubsub
+func (e *EventManager) VatGrabCallback() events.CallbackFn[vat.VatGrab] {
+	return func(raw eth.Log, vatGrab vat.VatGrab) error {
+		_, err := e.store.CreateVatGrab(context.Background(), vatGrab, raw.Id)
+		if err != nil {
+			return err
+		}
+		return e.UrnManipulation(vatGrab.U, vatGrab.V, vatGrab.W)
+	}
+}
+
+func (e *EventManager) VatForkCallback() events.CallbackFn[vat.VatFork] {
 	return func(raw eth.Log, fork vat.VatFork) error {
-		// if eventPtr > uint64(header.Number.Int64()) {
-		// 	return nil
-		// }
-		payload, err := json.Marshal(fork)
+		_, err := e.store.CreateFork(context.Background(), fork, raw.Id)
 		if err != nil {
 			return err
 		}
-
-		return ps.Publish(context.Background(), "events.vat.forks", messages.NewMessage(payload))
-	}
-}
-
-func VatGrabCallback(pubsub pubsub.Pubsub, eventPtr uint64) events.CallbackFn[vat.VatGrab] {
-	ps := pubsub
-	return func(raw eth.Log, grab vat.VatGrab) error {
-		// if eventPtr > uint64(header.Number.Int64()) {
-		// 	return nil
-		// }
-		payload, err := json.Marshal(grab)
-		if err != nil {
-			return err
-		}
-
-		return ps.Publish(context.Background(), "events.vat.grabs", messages.NewMessage(payload))
+		return e.UrnManipulation(fork.Src, fork.Dst)
 	}
 }
 
@@ -69,4 +52,8 @@ func (e *EventManager) UpdateIlks() error {
 		}
 	}
 	return nil
+}
+
+func (e *EventManager) UrnManipulation(urns ...common.Address) error {
+	panic("implement me")
 }

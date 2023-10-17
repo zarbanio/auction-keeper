@@ -259,7 +259,7 @@ func (cp *collateralProcessor) executeAuction(actions actions.IAction, auctionId
 		log.Println("[executeAuction] error in create take: ", err)
 		return err
 	}
-	receipt, header, err := cp.indexer.WaitForReceipt(context.Background(), tx.Hash())
+	receipt, err := cp.indexer.WaitForReceipt(context.Background(), tx.Hash())
 	if err != nil {
 		log.Println("[executeAuction] error in getting transaction receipt.", err)
 		return err

@@ -7,6 +7,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/median"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/vat"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/vow"
 	"github.com/zarbanio/auction-keeper/domain"
 	entities "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
 	"github.com/zarbanio/auction-keeper/x/eth"
@@ -23,6 +25,12 @@ type IStore interface {
 	IEthereumLog
 	ILogMedianPrice
 	IIlk
+	IEthereumLogsCacheKey
+	IFrob
+	IVatGrab
+	IFork
+	IFlog
+	IFess
 }
 
 type Migrateable interface {
@@ -50,18 +58,15 @@ type IDog interface {
 type IVow interface {
 	CreateKiss(ctx context.Context, kiss *entities.VowKiss, tx_id int64) (int64, error)
 	CreateHeal(ctx context.Context, heal *entities.VowHeal, tx_id int64) (int64, error)
-	CreateFlog(ctx context.Context, flog *entities.VowFlog, tx_id int64) (int64, error)
-	CreateFlop(ctx context.Context, tx_id int64) (int64, error)
 }
 
 type IBlockPtr interface {
-	ExistsBlockPtr(ctx context.Context) (bool, error)
-	CreateBlockPtr(ctx context.Context, ptr uint64) (int64, error)
-	GetBlockPtrById(ctx context.Context, id int64) (uint64, error)
-	GetLastBlockPtr(ctx context.Context) (int64, uint64, error)
-	UpdateBlockPtr(ctx context.Context, id int64, ptr uint64) (uint64, error)
-	IncBlockPtr(ctx context.Context, id int64) (uint64, error)
-	DeleteBlockPtr(ctx context.Context, id int64) error
+	ExistsBlockPtr(ctx context.Context, name string) (bool, error)
+	CreateBlockPtr(ctx context.Context, name string, ptr uint64) (int64, error)
+	GetBlockPtrByName(ctx context.Context, name string) (uint64, error)
+	UpdateBlockPtr(ctx context.Context, name string, ptr uint64) (uint64, error)
+	IncBlockPtr(ctx context.Context, name string) (uint64, error)
+	DeleteBlockPtr(ctx context.Context, name string) error
 }
 
 type EthereumLogsQuery struct {
@@ -86,4 +91,29 @@ type ILogMedianPrice interface {
 
 type IIlk interface {
 	CreateOrUpdateIlk(ctx context.Context, ilk domain.Ilk) error
+}
+
+type IEthereumLogsCacheKey interface {
+	CreateEthereumLogsCacheKey(ctx context.Context, key EthereumLogsQuery) error
+	IsEthereumLogsCached(ctx context.Context, key EthereumLogsQuery) (bool, error)
+}
+
+type IFrob interface {
+	CreateFrob(ctx context.Context, frob vat.VatFrob, logId uint64) (int64, error)
+}
+
+type IVatGrab interface {
+	CreateVatGrab(ctx context.Context, vatGrab vat.VatGrab, logId uint64) (int64, error)
+}
+
+type IFork interface {
+	CreateFork(ctx context.Context, move vat.VatFork, logId uint64) (int64, error)
+}
+
+type IFlog interface {
+	CreateFlog(ctx context.Context, flog vow.VowFlog, logId uint64) (int64, error)
+}
+
+type IFess interface {
+	CreateFess(ctx context.Context, fess vow.VowFess, logId uint64) (int64, error)
 }

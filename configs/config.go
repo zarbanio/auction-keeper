@@ -15,8 +15,8 @@ import (
 type Config struct {
 	Indexer struct {
 		BlockInterval time.Duration `yaml:"BlockInterval"`
-		PoolSize      int           `yaml:"PoolSize"`
-		BlockPtr      uint64        `yaml:"BlockPtr"`
+		StartBlock    uint64        `yaml:"StartBlock"`
+		BlockRange    int64         `yaml:"BlockRange"`
 	} `yaml:"General"`
 	Redis struct {
 		URL string `yaml:"URL"`
@@ -69,6 +69,36 @@ type Config struct {
 		VaultTicker      int64 `yaml:"VaultTicker"`
 		FlopperTicker    int64 `yaml:"FlopperTicker"`
 		LiquidatorTicker int64 `yaml:"LiquidatorTicker"`
+	}
+	Contracts struct {
+		Deployment            common.Address `yaml:"Deployment"`
+		IlkRegistry           common.Address `yaml:"IlkRegistry"`
+		AddressProvider       common.Address `yaml:"AddressProvider"`
+		LendingPool           common.Address `yaml:"LendingPool"`
+		UiPoolDataProvider    common.Address `yaml:"UiPoolDataProvider"`
+		WalletBalanceProvider common.Address `yaml:"WalletBalanceProvider"`
+		WETHGateway           common.Address `yaml:"WETHGateway"`
+		CDPManager            common.Address `yaml:"CDPManager"`
+		GetCDPs               common.Address `yaml:"GetCDPs"`
+		ProxyRegistry         common.Address `yaml:"ProxyRegistry"`
+		ProxyActions          common.Address `yaml:"ProxyActions"`
+		ProxyActionsEnd       common.Address `yaml:"ProxyActionsEnd"`
+		ETHAJoin              common.Address `yaml:"ETHAJoin"`
+		ETHBJoin              common.Address `yaml:"ETHBJoin"`
+		DAIAJoin              common.Address `yaml:"DAIAJoin"`
+		DAIBJoin              common.Address `yaml:"DAIBJoin"`
+		DAIMedian             common.Address `yaml:"DAIMedian"`
+		ETHMedian             common.Address `yaml:"ETHMedian"`
+		DAI                   common.Address `yaml:"DAI"`
+		WETH                  common.Address `yaml:"WETH"`
+		WBTC                  common.Address `yaml:"WBTC"`
+		USDC                  common.Address `yaml:"USDC"`
+		USDT                  common.Address `yaml:"USDT"`
+		ChainlinkAggregators  struct {
+			ETHUSD common.Address `yaml:"ETHUSD"`
+			DAIUSD common.Address `yaml:"DAIUSD"`
+			BTCUSD common.Address `yaml:"BTCUSD"`
+		} `yaml:"ChainlinkAggregators"`
 	}
 }
 

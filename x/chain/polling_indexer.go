@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/panjf2000/ants/v2"
+	"github.com/zarbanio/auction-keeper/x/eth"
 	"github.com/zarbanio/auction-keeper/x/events"
 	"github.com/zarbanio/auction-keeper/x/transactions"
 
@@ -177,7 +178,9 @@ func (p *PollingIndexer) processLogs(header types.Header, logs []types.Log) erro
 		if !ok {
 			continue
 		}
-		err := handler.DecodeAndHandle(header, l)
+
+		ethLog := eth.Log{Log: l}
+		err := handler.DecodeAndHandle(ethLog)
 		if err != nil {
 			return err
 		}
