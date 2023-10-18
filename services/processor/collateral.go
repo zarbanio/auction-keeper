@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/collateral"
 	"github.com/zarbanio/auction-keeper/domain/entities"
@@ -17,6 +18,7 @@ import (
 	"github.com/zarbanio/auction-keeper/services/uniswap_v3"
 	"github.com/zarbanio/auction-keeper/store"
 	"github.com/zarbanio/auction-keeper/x/chain"
+	"github.com/zarbanio/auction-keeper/x/eth"
 )
 
 var (
@@ -108,13 +110,16 @@ func (cp *collateralProcessor) processCollateral(actions actions.IAction, minPro
 				log.Println("[ProcessCollateral] error in getting transaction receipt.", err)
 				continue
 			}
-			log.Printf("[ProcessCollateral] transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
+			// log.Printf("[ProcessCollateral] transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
+
+			l := types.Log{BlockNumber: receipt.BlockNumber.Uint64()}
+			ll := eth.Log{Log: l}
 
 			err = cp.store.UpdateTransactionBlock(
 				context.Background(),
 				txId,
 				receipt,
-				header.Time,
+				uint64(ll.Timestamp.Unix()),
 				*receipt.BlockNumber,
 				receipt.BlockHash)
 
@@ -264,13 +269,16 @@ func (cp *collateralProcessor) executeAuction(actions actions.IAction, auctionId
 		log.Println("[executeAuction] error in getting transaction receipt.", err)
 		return err
 	}
-	log.Printf("[executeAuction] transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
+	// log.Printf("[executeAuction] transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
+
+	l := types.Log{BlockNumber: receipt.BlockNumber.Uint64()}
+	ll := eth.Log{Log: l}
 
 	err = cp.store.UpdateTransactionBlock(
 		context.Background(),
 		txId,
 		receipt,
-		header.Time,
+		uint64(ll.Timestamp.Unix()),
 		*receipt.BlockNumber,
 		receipt.BlockHash)
 
