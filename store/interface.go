@@ -31,6 +31,7 @@ type IStore interface {
 	IFork
 	IFlog
 	IFess
+	IFlop
 }
 
 type Migrateable interface {
@@ -91,6 +92,7 @@ type ILogMedianPrice interface {
 
 type IIlk interface {
 	CreateOrUpdateIlk(ctx context.Context, ilk domain.Ilk) error
+	GetIlkByName(ctx context.Context, name string) (*domain.Ilk, error)
 }
 
 type IEthereumLogsCacheKey interface {
@@ -116,4 +118,8 @@ type IFlog interface {
 
 type IFess interface {
 	CreateFess(ctx context.Context, fess vow.VowFess, logId uint64) (int64, error)
+}
+
+type IFlop interface {
+	CreateFlop(ctx context.Context, tx_id int64) (int64, error)
 }

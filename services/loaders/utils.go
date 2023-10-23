@@ -17,6 +17,20 @@ func liquidationRatio(mat *big.Int) decimal.Decimal {
 	return math.Normalize(mat, int64(math.RayDecimals))
 }
 
+func liquidationPrice(collateralAmount, debtValue, liquidationRatio decimal.Decimal) decimal.Decimal {
+	if collateralAmount.Equal(decimal.Zero) {
+		return decimal.NewFromInt(1<<63 - 1)
+	}
+	return debtValue.Mul(liquidationRatio).Div(collateralAmount)
+}
+
+func collateralizationRatio(collateralValue, debtValue decimal.Decimal) decimal.Decimal {
+	if debtValue.Equal(decimal.Zero) {
+		return decimal.NewFromInt(1<<63 - 1)
+	}
+	return collateralValue.Div(debtValue)
+}
+
 func price(par, spot, mat *big.Int) decimal.Decimal {
 	p := math.RayMul(math.RayMul(par, spot), mat)
 	return math.Normalize(p, int64(math.RayDecimals))
@@ -49,4 +63,19 @@ func IlkToSymbol(name string) domain.Symbol {
 	}
 	s := strings.Split(name, "-")
 	return domain.Symbol(s[0])
+}
+
+func minSafeCollateralAmount(debtValue, liquidationRatio, price decimal.Decimal) decimal.Decimal {
+	if price.Equal(decimal.Zero) {
+		return decimal.Zero
+	}
+	return debtValue.Mul(liquidationRatio).Div(price)
+}
+
+func availableToMint(collateralValue, debtValue, liquidationRatio decimal.Decimal) decimal.Decimal {
+	maxSafeDebtValue := collateralValue.Div(liquidationRatio)
+	if debtValue.LessThan(maxSafeDebtValue) {
+		return maxSafeDebtValue.Sub(debtValue)
+	}
+	return decimal.Zero
 }

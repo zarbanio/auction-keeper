@@ -202,6 +202,8 @@ func Execute() {
 		log.Fatal("error loading addresses.", err)
 	}
 
+	addrs["cdp_manager"] = cfg.Contracts.CDPManager
+	addrs["get_cdps"] = cfg.Contracts.GetCDPs
 	addrs["ilk_registry"] = cfg.Contracts.IlkRegistry
 	addrs["eth_a_join"] = cfg.Contracts.ETHAJoin
 	addrs["eth_b_join"] = cfg.Contracts.ETHBJoin
@@ -212,7 +214,10 @@ func Execute() {
 
 	vaultLoader := loaders.NewVaultLoader(
 		eth,
-		cfg.Vat,
+		postgresStore,
+		addrs["cdp_manager"],
+		addrs["get_cdps"],
+		addrs["vat"],
 	)
 
 	ilksLoader := loaders.NewIlksLoader(

@@ -2,9 +2,11 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/jackc/pgx/v4"
 	"github.com/zarbanio/auction-keeper/domain"
 	"github.com/zarbanio/auction-keeper/domain/math"
 	"github.com/zarbanio/auction-keeper/x/decimal"
@@ -98,4 +100,36 @@ func (p postgres) CreateOrUpdateIlk(ctx context.Context, ilk domain.Ilk) error {
 		return fmt.Errorf("error creating or updating ilk. %w", err)
 	}
 	return nil
+}
+
+func (p postgres) GetIlkByName(ctx context.Context, name string) (*domain.Ilk, error) {
+	query := `SELECT * FROM ilks WHERE name=$1`
+	row := p.conn.QueryRow(ctx, query, name)
+	var ilk ilkModel
+	err := row.Scan(
+		&ilk.name,
+		&ilk.symbol,
+		&ilk.minimumCollateralizationRatio,
+		&ilk.debtCeiling,
+		&ilk.debt,
+		&ilk.annualStabilityFee,
+		&ilk.dustLimit,
+		&ilk.price,
+		&ilk.rate,
+		&ilk.join,
+		&ilk.median,
+		&ilk.gem,
+		&ilk.clipper,
+		&ilk.pip,
+		&ilk.liquidation_penalty,
+		&ilk.hole,
+		&ilk.dirt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrIlkNotFound
+		}
+		return nil, fmt.Errorf("error getting ilk by name. %w", err)
+	}
+	return ilk.toDomain(), nil
 }
