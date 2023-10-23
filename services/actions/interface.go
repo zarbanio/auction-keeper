@@ -2,7 +2,7 @@ package actions
 
 import (
 	"github.com/ethereum/go-ethereum/core/types"
-	clipper "github.com/zarbanio/auction-keeper/bindings/clip"
+	clipper "github.com/zarbanio/auction-keeper/bindings/zarban/clipper"
 	entities "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
 )
 

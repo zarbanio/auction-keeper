@@ -2,11 +2,12 @@ package loaders
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/bindings/abacus"
-	clipper "github.com/zarbanio/auction-keeper/bindings/clip"
+	clipper "github.com/zarbanio/auction-keeper/bindings/zarban/clipper"
 	"github.com/zarbanio/auction-keeper/domain/entities"
 )
 
@@ -49,7 +50,7 @@ func (cp *ClipperLoader) GetSale(auctionId *big.Int) (*entities.Auction, error) 
 		Tab: sale.Tab,
 		Lot: sale.Lot,
 		Usr: sale.Usr,
-		Tic: sale.Tic.Uint64(),
+		Tic: time.Unix(sale.Tic.Int64(), 0),
 	}
 	return &auction, nil
 }

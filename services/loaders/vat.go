@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/zarbanio/auction-keeper/bindings/vat"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/vat"
 	"github.com/zarbanio/auction-keeper/domain/entities"
 )
 

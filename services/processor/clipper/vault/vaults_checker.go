@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/zarbanio/auction-keeper/cache"
 	"github.com/zarbanio/auction-keeper/domain/entities"
 	"github.com/zarbanio/auction-keeper/domain/math"
@@ -15,6 +16,7 @@ import (
 	"github.com/zarbanio/auction-keeper/services/loaders"
 	"github.com/zarbanio/auction-keeper/store"
 	"github.com/zarbanio/auction-keeper/x/chain"
+	"github.com/zarbanio/auction-keeper/x/eth"
 )
 
 type VaultChecker struct {
@@ -126,18 +128,22 @@ func (vc *VaultChecker) Start() {
 				continue
 			}
 
-			receipt, header, err := vc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+			receipt, err := vc.indexer.WaitForReceipt(context.Background(), tx.Hash())
 			if err != nil {
 				log.Println("error in getting bark transaction receipt.", err)
 				continue
 			}
-			log.Printf("Bark transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
+
+			// log.Printf("Bark transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
+
+			l := types.Log{BlockNumber: receipt.BlockNumber.Uint64()}
+			ll := eth.Log{Log: l}
 
 			err = vc.store.UpdateTransactionBlock(
 				context.Background(),
 				txId,
 				receipt,
-				header.Time,
+				uint64(ll.Timestamp.Unix()),
 				*receipt.BlockNumber,
 				receipt.BlockHash)
 

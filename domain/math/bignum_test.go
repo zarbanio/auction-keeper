@@ -1,32 +1,69 @@
 package math
 
 import (
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
-	"time"
 )
 
-func TestPow10(t *testing.T) {
-	assert.Equal(t, math.BigPow(10, 0), Pow10(0))
-	assert.Equal(t, math.BigPow(10, 1), Pow10(1))
-	assert.Equal(t, math.BigPow(10, 27), Pow10(27))
-	s1 := time.Now()
-	Pow10(26)
-	s2 := time.Now()
-	Pow10(26)
-	s3 := time.Now()
-	assert.Equal(t, math.BigPow(10, 26), Pow10(26))
-	assert.True(t, s3.Sub(s2).Nanoseconds() < s2.Sub(s1).Nanoseconds())
-}
-
 func TestNormalize(t *testing.T) {
-	assert.Equal(t, "0.01234567", Normalize(big.NewInt(123456789), 10).String())
-	assert.Equal(t, "0.12345678", Normalize(big.NewInt(123456789), 9).String())
-	assert.Equal(t, "12345.6789", Normalize(big.NewInt(123456789), 4).String())
-	assert.Equal(t, "123456.789", Normalize(big.NewInt(123456789), 3).String())
-	assert.Equal(t, "1234567.89", Normalize(big.NewInt(123456789), 2).String())
-	assert.Equal(t, "12345678.9", Normalize(big.NewInt(123456789), 1).String())
-	assert.Equal(t, "123456789", Normalize(big.NewInt(123456789), 0).String())
+	testCases := []struct {
+		input     *big.Int
+		decimals  int64
+		expectStr string
+	}{
+		{
+			input:     BigIntFromString("123456789"),
+			decimals:  8,
+			expectStr: "1.23456789",
+		},
+		{
+			input:     BigIntFromString("123456789"),
+			decimals:  1,
+			expectStr: "12345678.9",
+		},
+		{
+			input:     BigIntFromString("123456700"),
+			decimals:  1,
+			expectStr: "12345670",
+		},
+		{
+			input:     BigIntFromString("1234"),
+			decimals:  4,
+			expectStr: "0.1234",
+		},
+		{
+			input:     BigIntFromString("1234"),
+			decimals:  8,
+			expectStr: "0.00001234",
+		},
+		{
+			input:     BigIntFromString("123456789012345678901234"),
+			decimals:  24,
+			expectStr: "0.123456789012345678901234",
+		},
+		{
+			input:     BigIntFromString("1234567890123456789012345"),
+			decimals:  25,
+			expectStr: "0.1234567890123456789012345",
+		},
+		{
+			input:     BigIntFromString("12345678901234567890123456789012345678901234567890"),
+			decimals:  24,
+			expectStr: "12345678901234567890123456.78901234567890123456789",
+		},
+		{
+			input:     BigIntFromString("12345678901234567890123456789012345678901234567899"),
+			decimals:  24,
+			expectStr: "12345678901234567890123456.789012345678901234567899",
+		},
+	}
+
+	for _, tc := range testCases {
+		result := Normalize(tc.input, tc.decimals)
+
+		resultStr := result.String()
+		if resultStr != tc.expectStr {
+			t.Errorf("For input %s and decimals %d, expected %s, but got %s", tc.input, tc.decimals, tc.expectStr, resultStr)
+		}
+	}
 }

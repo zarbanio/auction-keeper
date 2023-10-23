@@ -2,6 +2,9 @@ package math
 
 import (
 	"math/big"
+	"sync"
+
+	"github.com/ethereum/go-ethereum/common/math"
 )
 
 var (
@@ -34,8 +37,18 @@ var (
 	RadDecimals = 45
 )
 
-func IntToRay(a *big.Int) *big.Int {
-	return new(big.Int).Exp(a, Ray, nil)
+var cache map[int64]*big.Int
+var once sync.Once
+
+func Pow10(n int64) *big.Int {
+	once.Do(func() {
+		cache = make(map[int64]*big.Int)
+	})
+	if v, ok := cache[n]; ok {
+		return v
+	}
+	cache[n] = math.BigPow(10, n)
+	return cache[n]
 }
 
 func WadMul(a, b *big.Int) *big.Int {

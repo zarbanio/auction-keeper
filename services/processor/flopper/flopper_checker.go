@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/cache"
 	"github.com/zarbanio/auction-keeper/domain/math"
@@ -14,6 +15,7 @@ import (
 	"github.com/zarbanio/auction-keeper/services/loaders"
 	"github.com/zarbanio/auction-keeper/store"
 	"github.com/zarbanio/auction-keeper/x/chain"
+	"github.com/zarbanio/auction-keeper/x/eth"
 )
 
 type FlopperChecker struct {
@@ -165,18 +167,22 @@ func (fc *FlopperChecker) Start() {
 						continue
 					}
 
-					_, err = fc.store.CreateFlog(context.Background(), flog, int64(txId))
+					_, err = fc.store.CreateFlog(context.Background(), flog, txId)
 					if err != nil {
 						log.Println("error in saving flog.", err)
 						continue
 					}
 
-					receipt, header, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+					receipt, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+
 					if err != nil {
 						log.Println("error in waiting for receipt.", err)
 						return
 					}
-					err = fc.store.UpdateTransactionBlock(context.Background(), txId, receipt, header.Time, *receipt.BlockNumber, receipt.BlockHash)
+					l := types.Log{BlockNumber: receipt.BlockNumber.Uint64()}
+					ll := eth.Log{Log: l}
+
+					err = fc.store.UpdateTransactionBlock(context.Background(), txId, receipt, uint64(ll.Timestamp.Unix()), *receipt.BlockNumber, receipt.BlockHash)
 					if err != nil {
 						log.Println("error in updating flog transaction receipt.", err)
 						return
@@ -257,16 +263,20 @@ func (fc *FlopperChecker) Start() {
 				return
 			}
 
-			receipt, header, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+			receipt, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
 			if err != nil {
 				log.Println("error in waiting for receipt.", err)
 				return
 			}
+
+			l := types.Log{BlockNumber: receipt.BlockNumber.Uint64()}
+			ll := eth.Log{Log: l}
+
 			err = fc.store.UpdateTransactionBlock(
 				context.Background(),
 				txId,
 				receipt,
-				header.Time,
+				uint64(ll.Timestamp.Unix()),
 				*receipt.BlockNumber,
 				receipt.BlockHash)
 
@@ -304,12 +314,15 @@ func (fc *FlopperChecker) ReconcileDebt(zarBalance, ash, woe *big.Int) error {
 			log.Println("[ReconcileDebt] error in saving kiss.", err)
 			return err
 		}
-		receipt, header, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+		receipt, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
 		if err != nil {
 			log.Println("[ReconcileDebt] error in waiting for receipt.", err)
 			return err
 		}
-		err = fc.store.UpdateTransactionBlock(context.Background(), txId, receipt, header.Time, *receipt.BlockNumber, receipt.BlockHash)
+		l := types.Log{BlockNumber: receipt.BlockNumber.Uint64()}
+		ll := eth.Log{Log: l}
+
+		err = fc.store.UpdateTransactionBlock(context.Background(), txId, receipt, uint64(ll.Timestamp.Unix()), *receipt.BlockNumber, receipt.BlockHash)
 		if err != nil {
 			log.Println("[ReconcileDebt] error in updating kiss transaction receipt.", err)
 			return err
@@ -344,12 +357,16 @@ func (fc *FlopperChecker) ReconcileDebt(zarBalance, ash, woe *big.Int) error {
 			log.Println("[ReconcileDebt] error in saving heal.", err)
 			return err
 		}
-		receipt, header, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+		receipt, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
 		if err != nil {
 			log.Println("[ReconcileDebt] error in waiting for receipt.", err)
 			return err
 		}
-		err = fc.store.UpdateTransactionBlock(context.Background(), txId, receipt, header.Time, *receipt.BlockNumber, receipt.BlockHash)
+
+		l := types.Log{BlockNumber: receipt.BlockNumber.Uint64()}
+		ll := eth.Log{Log: l}
+
+		err = fc.store.UpdateTransactionBlock(context.Background(), txId, receipt, uint64(ll.Timestamp.Unix()), *receipt.BlockNumber, receipt.BlockHash)
 		if err != nil {
 			log.Println("[ReconcileDebt] error in updating heal transaction receipt.", err)
 			return err

@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/collateral"
 	"github.com/zarbanio/auction-keeper/domain/entities"
@@ -16,6 +18,7 @@ import (
 	"github.com/zarbanio/auction-keeper/services/uniswap_v3"
 	"github.com/zarbanio/auction-keeper/store"
 	"github.com/zarbanio/auction-keeper/x/chain"
+	"github.com/zarbanio/auction-keeper/x/eth"
 )
 
 var (
@@ -57,7 +60,7 @@ func (cp *collateralProcessor) updateAuctionAfterTake(id, tab, lot *big.Int) {
 	cp.auctionCollection.updateAuctionAfterTake(id, tab, lot)
 }
 
-func (cp *collateralProcessor) updateAuctionAfterRedo(id, top *big.Int, tic uint64) {
+func (cp *collateralProcessor) updateAuctionAfterRedo(id, top *big.Int, tic time.Time) {
 	cp.auctionCollection.updateAuctionAfterRedo(id, top, tic)
 }
 
@@ -102,18 +105,21 @@ func (cp *collateralProcessor) processCollateral(actions actions.IAction, minPro
 			if err != nil {
 				log.Printf("[ProcessCollateral] error in creating redo: %v\n", err)
 			}
-			receipt, header, err := cp.indexer.WaitForReceipt(context.Background(), tx.Hash())
+			receipt, err := cp.indexer.WaitForReceipt(context.Background(), tx.Hash())
 			if err != nil {
 				log.Println("[ProcessCollateral] error in getting transaction receipt.", err)
 				continue
 			}
-			log.Printf("[ProcessCollateral] transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
+			// log.Printf("[ProcessCollateral] transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
+
+			l := types.Log{BlockNumber: receipt.BlockNumber.Uint64()}
+			ll := eth.Log{Log: l}
 
 			err = cp.store.UpdateTransactionBlock(
 				context.Background(),
 				txId,
 				receipt,
-				header.Time,
+				uint64(ll.Timestamp.Unix()),
 				*receipt.BlockNumber,
 				receipt.BlockHash)
 
@@ -125,7 +131,7 @@ func (cp *collateralProcessor) processCollateral(actions actions.IAction, minPro
 			continue
 		}
 
-		collateralPrice, err := cp.collateral.Clipper.Abacus.Price(nil, auction.Top, big.NewInt(int64(currentTime-auction.Tic)))
+		collateralPrice, err := cp.collateral.Clipper.Abacus.Price(nil, auction.Top, big.NewInt(int64(currentTime)-int64(auction.Tic.Unix())))
 		if err != nil {
 			log.Printf("error in get %s collateral price from abacus: %v\n", cp.collateral.Name, err)
 			continue
@@ -258,18 +264,21 @@ func (cp *collateralProcessor) executeAuction(actions actions.IAction, auctionId
 		log.Println("[executeAuction] error in create take: ", err)
 		return err
 	}
-	receipt, header, err := cp.indexer.WaitForReceipt(context.Background(), tx.Hash())
+	receipt, err := cp.indexer.WaitForReceipt(context.Background(), tx.Hash())
 	if err != nil {
 		log.Println("[executeAuction] error in getting transaction receipt.", err)
 		return err
 	}
-	log.Printf("[executeAuction] transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
+	// log.Printf("[executeAuction] transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
+
+	l := types.Log{BlockNumber: receipt.BlockNumber.Uint64()}
+	ll := eth.Log{Log: l}
 
 	err = cp.store.UpdateTransactionBlock(
 		context.Background(),
 		txId,
 		receipt,
-		header.Time,
+		uint64(ll.Timestamp.Unix()),
 		*receipt.BlockNumber,
 		receipt.BlockHash)
 

@@ -3,6 +3,8 @@ package entities
 import (
 	"math/big"
 
+	"time"
+
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -12,5 +14,5 @@ type Auction struct {
 	Tab *big.Int       // Debt: the target ZAR to raise from the auction (debt + stability fees + liquidation penalty) [rad]
 	Lot *big.Int       // Collateral: the amount of collateral available for purchase [wad]
 	Usr common.Address // ClipperAddress that will receive any leftover collateral
-	Tic uint64         // Auction start time [unix epoch]
+	Tic time.Time      // Auction start time [unix epoch]
 }

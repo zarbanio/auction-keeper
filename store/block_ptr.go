@@ -8,16 +8,25 @@ import (
 	"errors"
 )
 
-func (p postgres) ExistsBlockPtr(ctx context.Context) (bool, error) {
+func (p postgres) ExistsBlockPtr(ctx context.Context, name string) (bool, error) {
 	var exists bool
-	err := p.conn.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM block_ptrs LIMIT 1)").Scan(&exists)
+	err := p.conn.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM block_ptrs WHERE name = $1)", name).Scan(&exists)
 	return exists, err
 }
 
-func (p postgres) CreateBlockPtr(ctx context.Context, ptr uint64) (int64, error) {
+func (p postgres) CreateBlockPtr(ctx context.Context, name string, ptr uint64) (int64, error) {
 	var id int64
-	err := p.conn.QueryRow(ctx, "INSERT INTO block_ptrs (ptr) VALUES ($1) RETURNING id", ptr).Scan(&id)
+	err := p.conn.QueryRow(ctx, "INSERT INTO block_ptrs (ptr, name) VALUES ($1, $2) RETURNING id", ptr, name).Scan(&id)
 	return id, err
+}
+
+func (p postgres) GetBlockPtrByName(ctx context.Context, name string) (uint64, error) {
+	var ptr uint64
+	err := p.conn.QueryRow(ctx, "SELECT ptr FROM block_ptrs WHERE name = $1", name).Scan(&ptr)
+	if err == pgx.ErrNoRows {
+		return 0, errors.New("block_ptr not found")
+	}
+	return ptr, err
 }
 
 func (p postgres) GetBlockPtrById(ctx context.Context, id int64) (uint64, error) {
@@ -29,8 +38,8 @@ func (p postgres) GetBlockPtrById(ctx context.Context, id int64) (uint64, error)
 	return ptr, err
 }
 
-func (p postgres) UpdateBlockPtr(ctx context.Context, id int64, ptr uint64) (uint64, error) {
-	tag, err := p.conn.Exec(ctx, "UPDATE block_ptrs SET ptr = $1 WHERE id = $2", ptr, id)
+func (p postgres) UpdateBlockPtr(ctx context.Context, name string, ptr uint64) (uint64, error) {
+	tag, err := p.conn.Exec(ctx, "UPDATE block_ptrs SET ptr = $1 WHERE name = $2", ptr, name)
 	if err != nil {
 		return 0, err
 	}
@@ -40,17 +49,17 @@ func (p postgres) UpdateBlockPtr(ctx context.Context, id int64, ptr uint64) (uin
 	return ptr, nil
 }
 
-func (p postgres) IncBlockPtr(ctx context.Context, id int64) (uint64, error) {
+func (p postgres) IncBlockPtr(ctx context.Context, name string) (uint64, error) {
 	var ptr uint64
-	err := p.conn.QueryRow(ctx, `UPDATE block_ptrs SET ptr = ptr + 1 WHERE id = $1 RETURNING ptr`, id).Scan(&ptr)
+	err := p.conn.QueryRow(ctx, `UPDATE block_ptrs SET ptr = ptr + 1 WHERE name = $1 RETURNING ptr`, name).Scan(&ptr)
 	if err == pgx.ErrNoRows {
 		return 0, errors.New("block_ptr not found")
 	}
 	return ptr, err
 }
 
-func (p postgres) DeleteBlockPtr(ctx context.Context, id int64) error {
-	tag, err := p.conn.Exec(ctx, "DELETE FROM block_ptrs WHERE id = $1", id)
+func (p postgres) DeleteBlockPtr(ctx context.Context, name string) error {
+	tag, err := p.conn.Exec(ctx, "DELETE FROM block_ptrs WHERE name = $1", name)
 	if err != nil {
 		return err
 	}

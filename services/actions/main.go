@@ -5,9 +5,10 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/zarbanio/auction-keeper/bindings/dog"
-	"github.com/zarbanio/auction-keeper/bindings/vat"
-	"github.com/zarbanio/auction-keeper/bindings/vow"
+
+	"github.com/zarbanio/auction-keeper/bindings/zarban/dog"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/vat"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/vow"
 	"github.com/zarbanio/auction-keeper/services/transaction"
 )
 

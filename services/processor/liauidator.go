@@ -3,6 +3,7 @@ package processor
 import (
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -56,7 +57,7 @@ func (lp *LiquidatorProcessor) UpdateAuctionAfterTake(id, tab, lot *big.Int, col
 	cp.updateAuctionAfterTake(id, tab, lot)
 }
 
-func (lp *LiquidatorProcessor) UpdateAuctionAfterRedo(id, top *big.Int, tic uint64, collateralName string) {
+func (lp *LiquidatorProcessor) UpdateAuctionAfterRedo(id, top *big.Int, tic time.Time, collateralName string) {
 	cp, _ := lp.collateralsProcessor[collateralName]
 	cp.updateAuctionAfterRedo(id, top, tic)
 }

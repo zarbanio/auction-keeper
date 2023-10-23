@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/zarbanio/auction-keeper/bindings/vow"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/vow"
 	"github.com/zarbanio/auction-keeper/cache"
 	"github.com/zarbanio/auction-keeper/x/messages"
 )
