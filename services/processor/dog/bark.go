@@ -12,6 +12,7 @@ import (
 	"github.com/zarbanio/auction-keeper/bindings/zarban/osm"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/spot"
 	inputMethods "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
+	sender "github.com/zarbanio/auction-keeper/services"
 	"github.com/zarbanio/auction-keeper/services/loaders"
 	"github.com/zarbanio/auction-keeper/services/transaction"
 	"github.com/zarbanio/auction-keeper/store"
@@ -20,6 +21,7 @@ import (
 
 type DogBarkService struct {
 	eth           *ethclient.Client
+	sender        *sender.Sender
 	blockInterval time.Duration
 	store         store.IStore
 	dog           *dog.Dog
@@ -33,6 +35,7 @@ type DogBarkService struct {
 func NewDogBarkService(
 	ctx context.Context,
 	eth *ethclient.Client,
+	sender *sender.Sender,
 	blockInterval time.Duration,
 	store store.IStore,
 	dogAddr common.Address,
@@ -68,6 +71,7 @@ func NewDogBarkService(
 
 	return &DogBarkService{
 		eth:           eth,
+		sender:        sender,
 		blockInterval: blockInterval,
 		dog:           d,
 		spot:          s,
