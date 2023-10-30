@@ -18,18 +18,20 @@ import (
 	"github.com/zarbanio/auction-keeper/x/eth"
 )
 
-type dogBarkService struct {
+type DogBarkService struct {
 	eth           *ethclient.Client
 	blockInterval time.Duration
 	store         store.IStore
 	dog           *dog.Dog
 	spot          *spot.Spot
+	osms          map[common.Address]*osm.Osm
 	vaultLoader   *loaders.VaultLoader
 	vatLoader     *loaders.VatLoader
 	keeper        *transaction.Sender
 }
 
 func NewDogBarkService(
+	ctx context.Context,
 	eth *ethclient.Client,
 	blockInterval time.Duration,
 	store store.IStore,
@@ -37,7 +39,8 @@ func NewDogBarkService(
 	spotAddr common.Address,
 	vaultLoader *loaders.VaultLoader,
 	vatLoader *loaders.VatLoader,
-	keeper *transaction.Sender) *dogBarkService {
+	ilkLoader *loaders.IlksLoader,
+	keeper *transaction.Sender) *DogBarkService {
 
 	d, err := dog.NewDog(dogAddr, eth)
 	if err != nil {
@@ -49,7 +52,21 @@ func NewDogBarkService(
 		log.Fatal(err)
 	}
 
-	return &dogBarkService{
+	ilks, err := ilkLoader.LoadIlks(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	osms := make(map[common.Address]*osm.Osm)
+	for _, ilk := range ilks {
+		osm, err := osm.NewOsm(ilk.Pip, eth)
+		if err != nil {
+			log.Fatal(err)
+		}
+		osms[ilk.Pip] = osm
+	}
+
+	return &DogBarkService{
 		eth:           eth,
 		blockInterval: blockInterval,
 		dog:           d,
@@ -57,17 +74,17 @@ func NewDogBarkService(
 		store:         store,
 		vaultLoader:   vaultLoader,
 		vatLoader:     vatLoader,
+		osms:          osms,
 		keeper:        keeper,
 	}
 }
 
-func (s *dogBarkService) Start(ctx context.Context) error {
+func (s *DogBarkService) Start(ctx context.Context) error {
 
 	log.Println("Dog Bark Service is starting")
 
 	// Fetch all vaults
 	vaults, err := s.vaultLoader.FetchAllVaults(ctx)
-
 	if err != nil {
 		return err
 	}
@@ -91,7 +108,7 @@ func (s *dogBarkService) Start(ctx context.Context) error {
 			}
 
 			// create a new Oracle Security Manager(OSM) and call the Poke method
-			err := s.newOsmAndPoke(ctx, ilk.Pip)
+			err := s.osmPoke(ctx, ilk.Pip)
 			if err != nil {
 				return nil
 			}
@@ -114,12 +131,12 @@ func (s *dogBarkService) Start(ctx context.Context) error {
 }
 
 // Stop the service
-func (s *dogBarkService) Stop() {
+func (s *DogBarkService) Stop() {
 	panic("Implement me!")
 }
 
 // Run the service logic
-func (s *dogBarkService) Run(bark *inputMethods.DogBark) (*types.Transaction, error) {
+func (s *DogBarkService) Run(bark *inputMethods.DogBark) (*types.Transaction, error) {
 
 	opts, err := s.keeper.GetOpts()
 	if err != nil {
@@ -136,7 +153,7 @@ func (s *dogBarkService) Run(bark *inputMethods.DogBark) (*types.Transaction, er
 	return tx, nil
 }
 
-func (s *dogBarkService) waitForReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
+func (s *DogBarkService) waitForReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
 	ticker := time.NewTicker(s.blockInterval)
 	defer ticker.Stop()
 
@@ -153,16 +170,15 @@ func (s *dogBarkService) waitForReceipt(ctx context.Context, txHash common.Hash)
 	}
 }
 
-func (s *dogBarkService) createTransaction(ctx context.Context, tx *types.Transaction) error {
-	err, txId := s.store.CreateTransaction(ctx, tx)
+func (s *DogBarkService) createTransaction(ctx context.Context, tx *types.Transaction) error {
 
+	err, txId := s.store.CreateTransaction(ctx, tx)
 	if err != nil {
 		log.Println("error in saving the transaction.", err)
 		return err
 	}
 
 	receipt, err := s.waitForReceipt(ctx, tx.Hash())
-
 	if err != nil {
 		log.Println("error in waiting for receipt.", err)
 		return err
@@ -180,31 +196,23 @@ func (s *dogBarkService) createTransaction(ctx context.Context, tx *types.Transa
 	return nil
 }
 
-func (s *dogBarkService) newOsmAndPoke(ctx context.Context, pip common.Address) error {
+func (s *DogBarkService) osmPoke(ctx context.Context, pip common.Address) error {
 
-	osm, err := osm.NewOsm(pip, s.eth)
-
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
+	osm := s.osms[pip]
 
 	opts, err := s.keeper.GetOpts()
-
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
 
 	tx, err := osm.Poke(opts)
-
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
 
 	err = s.createTransaction(ctx, tx)
-
 	if err != nil {
 		return err
 	}
@@ -212,23 +220,21 @@ func (s *dogBarkService) newOsmAndPoke(ctx context.Context, pip common.Address) 
 	return nil
 }
 
-func (s *dogBarkService) spotterPoke(ctx context.Context, ilk [32]byte) error {
-	opts, err := s.keeper.GetOpts()
+func (s *DogBarkService) spotterPoke(ctx context.Context, ilk [32]byte) error {
 
+	opts, err := s.keeper.GetOpts()
 	if err != nil {
 		log.Fatal(err)
 		return nil
 	}
 
 	tx, err := s.spot.Poke(opts, ilk)
-
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
 
 	err = s.createTransaction(ctx, tx)
-
 	if err != nil {
 		return err
 	}
