@@ -14,6 +14,7 @@ func (e *EventManager) MedianLogMedianPriceCallback() events.CallbackFn[median.M
 		if err != nil {
 			return err
 		}
+
 		return e.UpdateIlks()
 	}
 }

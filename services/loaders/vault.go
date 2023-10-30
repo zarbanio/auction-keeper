@@ -145,7 +145,7 @@ func (vl *VaultLoader) fetchVaultByCDP(ctx context.Context, c cdp) (*domain.Vaul
 	return vault, nil
 }
 
-func (vl *VaultLoader) fetchAllVaults(ctx context.Context, c cdp) ([]domain.Vault, error) {
+func (vl *VaultLoader) FetchAllVaults(ctx context.Context) ([]domain.Vault, error) {
 
 	// get the total number of CDPs
 	cdpi, err := vl.manager.Cdpi(&bind.CallOpts{Context: ctx})
