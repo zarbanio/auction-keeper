@@ -204,11 +204,6 @@ func Execute() {
 
 	newSender := sender.NewSender(newSigner, eth)
 
-	// sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
 	// get loaders
 	addressesLoader := loaders.NewAddressLoader(eth, memCache, cfg.Contracts.Deployment, cfg.Contracts.AddressProvider)
 	addrs, err := addressesLoader.LoadAddresses(context.Background())
@@ -301,11 +296,6 @@ func Execute() {
 		addresses = append(addresses, c.Clipper.Address)
 	}
 	addresses = append(addresses, cfg.Vat, cfg.Vow, cfg.Dog, cfg.Flopper)
-
-	// sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
 
 	actions, err := actions.NewActions(eth, newSender, cfg.Vat, cfg.Dog, cfg.Vow)
 	if err != nil {
