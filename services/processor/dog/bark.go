@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/dog"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/osm"
@@ -14,9 +13,8 @@ import (
 	inputMethods "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
 	sender "github.com/zarbanio/auction-keeper/services"
 	"github.com/zarbanio/auction-keeper/services/loaders"
-	"github.com/zarbanio/auction-keeper/services/transaction"
+	"github.com/zarbanio/auction-keeper/services/sender"
 	"github.com/zarbanio/auction-keeper/store"
-	"github.com/zarbanio/auction-keeper/x/eth"
 )
 
 type DogBarkService struct {
@@ -29,7 +27,7 @@ type DogBarkService struct {
 	osms          map[common.Address]*osm.Osm
 	vaultLoader   *loaders.VaultLoader
 	vatLoader     *loaders.VatLoader
-	keeper        *transaction.Sender
+	sender        sender.Sender
 }
 
 func NewDogBarkService(
@@ -43,7 +41,7 @@ func NewDogBarkService(
 	vaultLoader *loaders.VaultLoader,
 	vatLoader *loaders.VatLoader,
 	ilkLoader *loaders.IlksLoader,
-	keeper *transaction.Sender) *DogBarkService {
+	sender sender.Sender) *DogBarkService {
 
 	d, err := dog.NewDog(dogAddr, eth)
 	if err != nil {
@@ -79,7 +77,7 @@ func NewDogBarkService(
 		vaultLoader:   vaultLoader,
 		vatLoader:     vatLoader,
 		osms:          osms,
-		keeper:        keeper,
+		sender:        sender,
 	}
 }
 
@@ -140,68 +138,20 @@ func (s *DogBarkService) Stop() {
 }
 
 // Run the service logic
-func (s *DogBarkService) Run(bark *inputMethods.DogBark) (*types.Transaction, error) {
-
-	opts, err := s.keeper.GetOpts()
+func (s *DogBarkService) Run(bark *inputMethods.DogBark) error {
+	opts, err := s.sender.GetTransactOpts()
 	if err != nil {
-		return nil, err
-	}
-
-	tx, err := s.dog.Bark(opts, bark.Ilk, bark.Urn, s.keeper.GetAddress())
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Print the transaction hash
-	log.Println(tx.Hash().Hex())
-	return tx, nil
-}
-
-func (s *DogBarkService) waitForReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
-	ticker := time.NewTicker(s.blockInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-ticker.C:
-			receipt, err := s.eth.TransactionReceipt(ctx, txHash)
-			if err == nil {
-				return receipt, nil
-			}
-		}
-	}
-}
-
-func (s *DogBarkService) createTransaction(ctx context.Context, tx *types.Transaction) error {
-
-	err, txId := s.store.CreateTransaction(ctx, tx)
-	if err != nil {
-		log.Println("error in saving the transaction.", err)
 		return err
 	}
 
-	receipt, err := s.waitForReceipt(ctx, tx.Hash())
+	tx, err := s.dog.Bark(opts, bark.Ilk, bark.Urn, s.sender.GetAddress())
 	if err != nil {
-		log.Println("error in waiting for receipt.", err)
 		return err
 	}
-
-	tLog := types.Log{BlockNumber: receipt.BlockNumber.Uint64()}
-	eLog := eth.Log{Log: tLog}
-
-	err = s.store.UpdateTransactionBlock(context.Background(), txId, receipt, uint64(eLog.Timestamp.Unix()), *receipt.BlockNumber, receipt.BlockHash)
-	if err != nil {
-		log.Println("error in updating the transaction receipt.", err)
-		return err
-	}
-
-	return nil
+	return s.sender.HandleSentTx(tx)
 }
 
 func (s *DogBarkService) osmPoke(ctx context.Context, pip common.Address) error {
-
 	osm := s.osms[pip]
 
 	opts, err := s.keeper.GetOpts()
@@ -216,16 +166,10 @@ func (s *DogBarkService) osmPoke(ctx context.Context, pip common.Address) error 
 		return err
 	}
 
-	err = s.createTransaction(ctx, tx)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (s *DogBarkService) spotterPoke(ctx context.Context, ilk [32]byte) error {
-
 	opts, err := s.keeper.GetOpts()
 	if err != nil {
 		log.Fatal(err)
