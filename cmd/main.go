@@ -25,7 +25,9 @@ import (
 	"github.com/zarbanio/auction-keeper/services/loaders"
 	"github.com/zarbanio/auction-keeper/services/processor"
 	"github.com/zarbanio/auction-keeper/services/processor/clipper/vault"
-	"github.com/zarbanio/auction-keeper/services/transaction"
+	dogServices "github.com/zarbanio/auction-keeper/services/processor/dog"
+	"github.com/zarbanio/auction-keeper/services/sender"
+	"github.com/zarbanio/auction-keeper/services/signer"
 	"github.com/zarbanio/auction-keeper/services/uniswap_v3"
 	"github.com/zarbanio/auction-keeper/store"
 	"github.com/zarbanio/auction-keeper/x/chain"
@@ -121,7 +123,7 @@ func getCollaterals(cfg configs.Config, eth *ethclient.Client) (map[string]colla
 	return collaterals, nil
 }
 
-func clipperAllowance(eth *ethclient.Client, collateralName string, vatAddr, clipperAddr common.Address, sender *transaction.Sender, actions actions.IAction) error {
+func clipperAllowance(eth *ethclient.Client, collateralName string, vatAddr, clipperAddr common.Address, sender sender.Sender, actions actions.IAction) error {
 	vatInstance, err := vat.NewVat(vatAddr, eth)
 	if err != nil {
 		return err
@@ -146,7 +148,7 @@ func clipperAllowance(eth *ethclient.Client, collateralName string, vatAddr, cli
 	return nil
 }
 
-func zarJoinAllowance(eth *ethclient.Client, vatAddr, zarJoinAddr common.Address, sender *transaction.Sender, actions actions.IAction) error {
+func zarJoinAllowance(eth *ethclient.Client, vatAddr, zarJoinAddr common.Address, sender sender.Sender, actions actions.IAction) error {
 	vatInstance, err := vat.NewVat(vatAddr, eth)
 	if err != nil {
 		return err
@@ -194,8 +196,15 @@ func Execute() {
 	memCache := cache.NewMemCache()
 	ceth := cachedeth.NewEthProxy(eth, postgresStore, bcache)
 
-	// get loaders
+	// create new sender
+	newSigner, err := signer.NewSigner(cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	newSender := sender.NewSender(newSigner, eth)
+
+	// get loaders
 	addressesLoader := loaders.NewAddressLoader(eth, memCache, cfg.Contracts.Deployment, cfg.Contracts.AddressProvider)
 	addrs, err := addressesLoader.LoadAddresses(context.Background())
 	if err != nil {
@@ -248,8 +257,25 @@ func Execute() {
 		eth,
 		cfg.Dog,
 	)
+	// services
+	// 1. Dog Bark service
+	dogBarkService := dogServices.NewDogBarkService(
+		context.Background(),
+		eth, cfg.Indexer.BlockInterval,
+		postgresStore, addrs["dog"],
+		addrs["spot"],
+		vaultLoader, vatLoader,
+		ilksLoader,
+		newSender)
+	//!2. TODO: Clipper Take service
+	//!3. TODO: Clipper Redo service
+
 	//! TODO: ADD CLIPPERS LOADER
-	eventManger := eventmanager.NewEventManager(postgresStore, ilksLoader, vaultLoader)
+	eventManger := eventmanager.NewEventManager(
+		postgresStore,
+		ilksLoader,
+		vaultLoader,
+		dogBarkService)
 
 	// blockPtr := NewDBBlockPointer(postgresStore, cfg.Indexer.BlockPtr)
 	// if !blockPtr.Exists() {
@@ -271,11 +297,7 @@ func Execute() {
 	}
 	addresses = append(addresses, cfg.Vat, cfg.Vow, cfg.Dog, cfg.Flopper)
 
-	sender, err := transaction.NewSender(eth, cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
-	if err != nil {
-		log.Fatal(err)
-	}
-	actions, err := actions.NewActions(eth, sender, cfg.Vat, cfg.Dog, cfg.Vow)
+	actions, err := actions.NewActions(eth, newSender, cfg.Vat, cfg.Dog, cfg.Vow)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -316,12 +338,12 @@ func Execute() {
 	indexer := chain.NewIndexer(ceth, cfg.Indexer.BlockInterval, liveBlockPtr, historyBlockPtr, cfg.Indexer.BlockRange, addressesArr, eventHandlersMap)
 
 	for _, c := range collaterals {
-		err = clipperAllowance(eth, c.Name, cfg.Vat, c.Clipper.Address, sender, actions)
+		err = clipperAllowance(eth, c.Name, cfg.Vat, c.Clipper.Address, newSender, actions)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
-	err = zarJoinAllowance(eth, cfg.Vat, cfg.ZarJoin, sender, actions)
+	err = zarJoinAllowance(eth, cfg.Vat, cfg.ZarJoin, newSender, actions)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -15,6 +15,11 @@ func (e *EventManager) MedianLogMedianPriceCallback() events.CallbackFn[median.M
 			return err
 		}
 
+		err = e.dogBarkService.Start(context.Background())
+		if err != nil {
+			return err
+		}
+
 		return e.UpdateIlks()
 	}
 }

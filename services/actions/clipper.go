@@ -10,7 +10,8 @@ import (
 )
 
 func (a Actions) Take(clipper *clipper.Clipper, take *entities.ClipperTake) (*types.Transaction, error) {
-	opts, err := a.sender.GetOpts()
+	opts, err := a.sender.GetTransactOpts()
+
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +25,7 @@ func (a Actions) Take(clipper *clipper.Clipper, take *entities.ClipperTake) (*ty
 }
 
 func (a Actions) Redo(clipper *clipper.Clipper, redo *entities.ClipperRedo) (*types.Transaction, error) {
-	opts, err := a.sender.GetOpts()
+	opts, err := a.sender.GetTransactOpts()
 	if err != nil {
 		return nil, err
 	}
