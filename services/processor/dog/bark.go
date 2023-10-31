@@ -11,15 +11,13 @@ import (
 	"github.com/zarbanio/auction-keeper/bindings/zarban/osm"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/spot"
 	inputMethods "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
-	sender "github.com/zarbanio/auction-keeper/services"
 	"github.com/zarbanio/auction-keeper/services/loaders"
-	"github.com/zarbanio/auction-keeper/services/sender"
+	sender "github.com/zarbanio/auction-keeper/services/sender"
 	"github.com/zarbanio/auction-keeper/store"
 )
 
 type DogBarkService struct {
 	eth           *ethclient.Client
-	sender        *sender.Sender
 	blockInterval time.Duration
 	store         store.IStore
 	dog           *dog.Dog
@@ -33,7 +31,6 @@ type DogBarkService struct {
 func NewDogBarkService(
 	ctx context.Context,
 	eth *ethclient.Client,
-	sender *sender.Sender,
 	blockInterval time.Duration,
 	store store.IStore,
 	dogAddr common.Address,
@@ -69,7 +66,6 @@ func NewDogBarkService(
 
 	return &DogBarkService{
 		eth:           eth,
-		sender:        sender,
 		blockInterval: blockInterval,
 		dog:           d,
 		spot:          s,
@@ -154,26 +150,23 @@ func (s *DogBarkService) Run(bark *inputMethods.DogBark) error {
 func (s *DogBarkService) osmPoke(ctx context.Context, pip common.Address) error {
 	osm := s.osms[pip]
 
-	opts, err := s.keeper.GetOpts()
+	opts, err := s.sender.GetTransactOpts()
 	if err != nil {
-		log.Fatal(err)
 		return err
 	}
 
 	tx, err := osm.Poke(opts)
 	if err != nil {
-		log.Fatal(err)
 		return err
 	}
 
-	return nil
+	return s.sender.HandleSentTx(tx)
 }
 
 func (s *DogBarkService) spotterPoke(ctx context.Context, ilk [32]byte) error {
-	opts, err := s.keeper.GetOpts()
+	opts, err := s.sender.GetTransactOpts()
 	if err != nil {
-		log.Fatal(err)
-		return nil
+		return err
 	}
 
 	tx, err := s.spot.Poke(opts, ilk)
@@ -182,11 +175,5 @@ func (s *DogBarkService) spotterPoke(ctx context.Context, ilk [32]byte) error {
 		return err
 	}
 
-	err = s.createTransaction(ctx, tx)
-	if err != nil {
-		return err
-	}
-
-	return nil
-
+	return s.sender.HandleSentTx(tx)
 }

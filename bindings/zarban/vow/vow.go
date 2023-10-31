@@ -211,10 +211,10 @@ func (_Vow *VowCallerSession) Ash() (*big.Int, error) {
 	return _Vow.Contract.Ash(&_Vow.CallOpts)
 }
 
-// QueuedDebt is a free data retrieval call binding the contract method 0xd0adc35f.
+// TotalSin is a free data retrieval call binding the contract method 0xd0adc35f.
 //
 // Solidity: function Sin() view returns(uint256)
-func (_Vow *VowCaller) QueuedDebt(opts *bind.CallOpts) (*big.Int, error) {
+func (_Vow *VowCaller) TotalSin(opts *bind.CallOpts) (*big.Int, error) {
 	var out []interface{}
 	err := _Vow.contract.Call(opts, &out, "Sin")
 
@@ -228,18 +228,18 @@ func (_Vow *VowCaller) QueuedDebt(opts *bind.CallOpts) (*big.Int, error) {
 
 }
 
-// QueuedDebt is a free data retrieval call binding the contract method 0xd0adc35f.
+// TotalSin is a free data retrieval call binding the contract method 0xd0adc35f.
 //
 // Solidity: function Sin() view returns(uint256)
-func (_Vow *VowSession) QueuedDebt() (*big.Int, error) {
-	return _Vow.Contract.QueuedDebt(&_Vow.CallOpts)
+func (_Vow *VowSession) TotalSin() (*big.Int, error) {
+	return _Vow.Contract.TotalSin(&_Vow.CallOpts)
 }
 
-// QueuedDebt is a free data retrieval call binding the contract method 0xd0adc35f.
+// TotalSin is a free data retrieval call binding the contract method 0xd0adc35f.
 //
 // Solidity: function Sin() view returns(uint256)
-func (_Vow *VowCallerSession) QueuedDebt() (*big.Int, error) {
-	return _Vow.Contract.QueuedDebt(&_Vow.CallOpts)
+func (_Vow *VowCallerSession) TotalSin() (*big.Int, error) {
+	return _Vow.Contract.TotalSin(&_Vow.CallOpts)
 }
 
 // Flopper is a free data retrieval call binding the contract method 0x4081d73a.

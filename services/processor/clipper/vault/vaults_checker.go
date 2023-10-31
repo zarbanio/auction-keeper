@@ -8,18 +8,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/cache"
 	"github.com/zarbanio/auction-keeper/domain/entities"
 	"github.com/zarbanio/auction-keeper/domain/math"
 	"github.com/zarbanio/auction-keeper/services/actions"
 	"github.com/zarbanio/auction-keeper/services/loaders"
+	"github.com/zarbanio/auction-keeper/services/sender"
 	"github.com/zarbanio/auction-keeper/store"
 	"github.com/zarbanio/auction-keeper/x/chain"
-	"github.com/zarbanio/auction-keeper/x/eth"
 )
 
 type VaultChecker struct {
+	eth        *ethclient.Client
 	cache      cache.ICache
 	actions    actions.IAction
 	dogLoader  *loaders.DogLoader
@@ -29,8 +30,9 @@ type VaultChecker struct {
 	store      store.IStore
 }
 
-func NewVaultsChecker(cache cache.ICache, actions actions.IAction, dogLoader *loaders.DogLoader, vatLoader *loaders.VatLoader, indexer *chain.Indexer, store store.IStore) *VaultChecker {
+func NewVaultsChecker(eth *ethclient.Client, cache cache.ICache, actions actions.IAction, dogLoader *loaders.DogLoader, vatLoader *loaders.VatLoader, indexer *chain.Indexer, store store.IStore) *VaultChecker {
 	vaultChecker := &VaultChecker{
+		eth:        eth,
 		cache:      cache,
 		actions:    actions,
 		dogLoader:  dogLoader,
@@ -128,7 +130,7 @@ func (vc *VaultChecker) Start() {
 				continue
 			}
 
-			receipt, err := vc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+			receipt, header, err := sender.WaitForReceipt(context.Background(), vc.eth, tx.Hash())
 			if err != nil {
 				log.Println("error in getting bark transaction receipt.", err)
 				continue
@@ -136,16 +138,11 @@ func (vc *VaultChecker) Start() {
 
 			// log.Printf("Bark transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
 
-			l := types.Log{BlockNumber: receipt.BlockNumber.Uint64()}
-			ll := eth.Log{Log: l}
-
-			err = vc.store.UpdateTransactionBlock(
+			err = vc.store.UpdateTransactionReceipt(
 				context.Background(),
 				txId,
 				receipt,
-				uint64(ll.Timestamp.Unix()),
-				*receipt.BlockNumber,
-				receipt.BlockHash)
+				header)
 
 			if err != nil {
 				log.Println("error in updating bark transaction receipt.", err)

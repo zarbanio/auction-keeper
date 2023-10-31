@@ -4,9 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/jackc/pgx"
 	"github.com/zarbanio/auction-keeper/services/transaction"
@@ -65,20 +63,20 @@ func (p postgres) CreateTransaction(ctx context.Context, tx *types.Transaction) 
 	}
 	return nil, id
 }
-func (p postgres) UpdateTransactionBlock(ctx context.Context, id uint64, recipt *types.Receipt, blockTime uint64, blockNumber big.Int, blockHash common.Hash) error {
+func (p postgres) UpdateTransactionReceipt(ctx context.Context, id uint64, recipt *types.Receipt, header *types.Header) error {
 	q := `UPDATE transactions 
 			SET block_timestamp = $1,
 				block_number = $2, 
 				status = $3, 
 				cumulative_gas_used = $4, 
-				block_hash = $5
+				block_hash = $5 
 			WHERE id = $6`
 	err := p.conn.QueryRow(ctx, q,
-		blockTime,
-		blockNumber,
+		header.Time,
+		recipt.BlockNumber,
 		recipt.Status,
 		recipt.CumulativeGasUsed,
-		blockHash.String(),
+		header.Hash().String(),
 		id,
 	)
 	if err != nil {
