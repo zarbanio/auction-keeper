@@ -19,7 +19,7 @@ $(ABI_GEN_TARGETS):
 	$(ABIGEN) --abi=$(ZARBAN)/$@/$@.json --pkg=$@ --out=$(ZARBAN)/$@/$@.go
 
 abi-gen-vow:
-	$(ABIGEN) --abi=$(ZARBAN)/vow/vow.json --pkg=vow --out=$(ZARBAN)/vow/vow.go --alias Sin=QueuedDebt
+	$(ABIGEN) --abi=$(ZARBAN)/vow/vow.json --pkg=vow --out=$(ZARBAN)/vow/vow.go --alias Sin=TotalSin
 
 CHAINLINK_TARGETS := access_controlled_offchain_aggregator
 

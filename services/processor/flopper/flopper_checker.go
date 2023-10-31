@@ -7,15 +7,14 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/cache"
 	"github.com/zarbanio/auction-keeper/domain/math"
 	"github.com/zarbanio/auction-keeper/services/actions"
 	"github.com/zarbanio/auction-keeper/services/loaders"
+	"github.com/zarbanio/auction-keeper/services/sender"
 	"github.com/zarbanio/auction-keeper/store"
 	"github.com/zarbanio/auction-keeper/x/chain"
-	"github.com/zarbanio/auction-keeper/x/eth"
 )
 
 type FlopperChecker struct {
@@ -173,16 +172,19 @@ func (fc *FlopperChecker) Start() {
 						continue
 					}
 
-					receipt, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+					receipt, header, err := sender.WaitForReceipt(context.Background(), fc.eth, tx.Hash())
 
 					if err != nil {
 						log.Println("error in waiting for receipt.", err)
 						return
 					}
-					l := types.Log{BlockNumber: receipt.BlockNumber.Uint64()}
-					ll := eth.Log{Log: l}
 
-					err = fc.store.UpdateTransactionBlock(context.Background(), txId, receipt, uint64(ll.Timestamp.Unix()), *receipt.BlockNumber, receipt.BlockHash)
+					err = fc.store.UpdateTransactionReceipt(
+						context.Background(),
+						txId,
+						receipt,
+						header,
+					)
 					if err != nil {
 						log.Println("error in updating flog transaction receipt.", err)
 						return
@@ -263,22 +265,18 @@ func (fc *FlopperChecker) Start() {
 				return
 			}
 
-			receipt, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+			receipt, header, err := sender.WaitForReceipt(context.Background(), fc.eth, tx.Hash())
 			if err != nil {
 				log.Println("error in waiting for receipt.", err)
 				return
 			}
 
-			l := types.Log{BlockNumber: receipt.BlockNumber.Uint64()}
-			ll := eth.Log{Log: l}
-
-			err = fc.store.UpdateTransactionBlock(
+			err = fc.store.UpdateTransactionReceipt(
 				context.Background(),
 				txId,
 				receipt,
-				uint64(ll.Timestamp.Unix()),
-				*receipt.BlockNumber,
-				receipt.BlockHash)
+				header,
+			)
 
 			if err != nil {
 				log.Println("error in updating flop transaction receipt.", err)
@@ -314,15 +312,18 @@ func (fc *FlopperChecker) ReconcileDebt(zarBalance, ash, woe *big.Int) error {
 			log.Println("[ReconcileDebt] error in saving kiss.", err)
 			return err
 		}
-		receipt, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+		receipt, header, err := sender.WaitForReceipt(context.Background(), fc.eth, tx.Hash())
 		if err != nil {
 			log.Println("[ReconcileDebt] error in waiting for receipt.", err)
 			return err
 		}
-		l := types.Log{BlockNumber: receipt.BlockNumber.Uint64()}
-		ll := eth.Log{Log: l}
 
-		err = fc.store.UpdateTransactionBlock(context.Background(), txId, receipt, uint64(ll.Timestamp.Unix()), *receipt.BlockNumber, receipt.BlockHash)
+		err = fc.store.UpdateTransactionReceipt(
+			context.Background(),
+			txId,
+			receipt,
+			header,
+		)
 		if err != nil {
 			log.Println("[ReconcileDebt] error in updating kiss transaction receipt.", err)
 			return err
@@ -357,16 +358,18 @@ func (fc *FlopperChecker) ReconcileDebt(zarBalance, ash, woe *big.Int) error {
 			log.Println("[ReconcileDebt] error in saving heal.", err)
 			return err
 		}
-		receipt, err := fc.indexer.WaitForReceipt(context.Background(), tx.Hash())
+		receipt, header, err := sender.WaitForReceipt(context.Background(), fc.eth, tx.Hash())
 		if err != nil {
 			log.Println("[ReconcileDebt] error in waiting for receipt.", err)
 			return err
 		}
 
-		l := types.Log{BlockNumber: receipt.BlockNumber.Uint64()}
-		ll := eth.Log{Log: l}
-
-		err = fc.store.UpdateTransactionBlock(context.Background(), txId, receipt, uint64(ll.Timestamp.Unix()), *receipt.BlockNumber, receipt.BlockHash)
+		err = fc.store.UpdateTransactionReceipt(
+			context.Background(),
+			txId,
+			receipt,
+			header,
+		)
 		if err != nil {
 			log.Println("[ReconcileDebt] error in updating heal transaction receipt.", err)
 			return err
