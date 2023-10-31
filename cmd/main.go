@@ -25,7 +25,7 @@ import (
 	"github.com/zarbanio/auction-keeper/services/loaders"
 	"github.com/zarbanio/auction-keeper/services/processor"
 	"github.com/zarbanio/auction-keeper/services/processor/clipper/vault"
-	dogProcessor "github.com/zarbanio/auction-keeper/services/processor/dog"
+	dogServices "github.com/zarbanio/auction-keeper/services/processor/dog"
 	"github.com/zarbanio/auction-keeper/services/transaction"
 	"github.com/zarbanio/auction-keeper/services/uniswap_v3"
 	"github.com/zarbanio/auction-keeper/store"
@@ -250,10 +250,21 @@ func Execute() {
 		cfg.Dog,
 	)
 	// services
-	dogBarkService := dogProcessor.NewDogBarkService(context.Background(), eth, cfg.Indexer.BlockInterval, postgresStore, addrs["dog"], addrs["spot"], vaultLoader, vatLoader, ilksLoader, nil)
+	dogBarkService := dogServices.NewDogBarkService(
+		context.Background(),
+		eth, cfg.Indexer.BlockInterval,
+		postgresStore, addrs["dog"],
+		addrs["spot"],
+		vaultLoader, vatLoader,
+		ilksLoader,
+		nil)
 
 	//! TODO: ADD CLIPPERS LOADER
-	eventManger := eventmanager.NewEventManager(postgresStore, ilksLoader, vaultLoader, dogBarkService)
+	eventManger := eventmanager.NewEventManager(
+		postgresStore,
+		ilksLoader,
+		vaultLoader,
+		dogBarkService)
 
 	// blockPtr := NewDBBlockPointer(postgresStore, cfg.Indexer.BlockPtr)
 	// if !blockPtr.Exists() {
