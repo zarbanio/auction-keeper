@@ -354,7 +354,7 @@ func Execute() {
 		}
 	}()
 
-	vaultsChecker := vault.NewVaultsChecker(redisCache, actions, dogLoader, vatLoader, indexer, postgresStore)
+	vaultsChecker := vault.NewVaultsChecker(eth, redisCache, actions, dogLoader, vatLoader, indexer, postgresStore)
 	vaultsCheckerTicker := time.NewTicker(time.Duration(cfg.Times.VaultTicker) * time.Second)
 	go func() {
 		for {
