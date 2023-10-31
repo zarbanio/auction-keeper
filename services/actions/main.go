@@ -9,17 +9,17 @@ import (
 	"github.com/zarbanio/auction-keeper/bindings/zarban/dog"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/vat"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/vow"
-	"github.com/zarbanio/auction-keeper/services/transaction"
+	"github.com/zarbanio/auction-keeper/services/sender"
 )
 
 type Actions struct {
 	vat    *vat.Vat
 	Dog    *dog.Dog
 	Vow    *vow.Vow
-	sender *transaction.Sender
+	sender sender.Sender
 }
 
-func NewActions(eth *ethclient.Client, sender *transaction.Sender, vatAddr, dogAddr common.Address, vowAddr common.Address) (IAction, error) {
+func NewActions(eth *ethclient.Client, sender sender.Sender, vatAddr, dogAddr common.Address, vowAddr common.Address) (IAction, error) {
 	v, err := vat.NewVat(vatAddr, eth)
 	if err != nil {
 		log.Fatal(err)

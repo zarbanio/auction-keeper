@@ -8,7 +8,7 @@ import (
 )
 
 func (a Actions) Bark(bark *entities.DogBark) (*types.Transaction, error) {
-	opts, err := a.sender.GetOpts()
+	opts, err := a.sender.GetTransactOpts()
 	if err != nil {
 		return nil, err
 	}

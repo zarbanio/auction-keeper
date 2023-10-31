@@ -9,7 +9,7 @@ import (
 )
 
 func (a Actions) Heal(heal *entities.VowHeal) (*types.Transaction, error) {
-	opts, err := a.sender.GetOpts()
+	opts, err := a.sender.GetTransactOpts()
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +24,7 @@ func (a Actions) Heal(heal *entities.VowHeal) (*types.Transaction, error) {
 }
 
 func (a Actions) Kiss(kiss *entities.VowKiss) (*types.Transaction, error) {
-	opts, err := a.sender.GetOpts()
+	opts, err := a.sender.GetTransactOpts()
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func (a Actions) Kiss(kiss *entities.VowKiss) (*types.Transaction, error) {
 }
 
 func (a Actions) Flop() (*types.Transaction, error) {
-	opts, err := a.sender.GetOpts()
+	opts, err := a.sender.GetTransactOpts()
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (a Actions) Flop() (*types.Transaction, error) {
 }
 
 func (a Actions) Flog(flog *entities.VowFlog) (*types.Transaction, error) {
-	opts, err := a.sender.GetOpts()
+	opts, err := a.sender.GetTransactOpts()
 	if err != nil {
 		return nil, err
 	}

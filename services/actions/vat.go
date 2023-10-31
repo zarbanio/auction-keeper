@@ -8,7 +8,7 @@ import (
 )
 
 func (a Actions) Hope(hope *entities.VatHope) (*types.Transaction, error) {
-	opts, err := a.sender.GetOpts()
+	opts, err := a.sender.GetTransactOpts()
 	if err != nil {
 		return nil, err
 	}
