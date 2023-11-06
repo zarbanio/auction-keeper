@@ -31,7 +31,7 @@ var (
 	FDecimals27 = new(big.Float).SetInt(Decimals27)
 )
 
-type collateralProcessor struct {
+type CollateralProcessor struct {
 	eth               *ethclient.Client
 	collateral        collateral.Collateral
 	auctionCollection *AuctionCollection
@@ -39,31 +39,31 @@ type collateralProcessor struct {
 	store             store.IStore
 }
 
-func NewCollateralProcessor(eth *ethclient.Client, collateral collateral.Collateral) *collateralProcessor {
-	return &collateralProcessor{
+func NewCollateralProcessor(eth *ethclient.Client, collateral collateral.Collateral) *CollateralProcessor {
+	return &CollateralProcessor{
 		eth:               eth,
 		collateral:        collateral,
 		auctionCollection: NewAuctionCollection(),
 	}
 }
 
-func (cp *collateralProcessor) addAuction(auction entities.Auction) {
+func (cp *CollateralProcessor) addAuction(auction entities.Auction) {
 	cp.auctionCollection.addAuction(auction)
 }
 
-func (cp *collateralProcessor) deleteAuction(id *big.Int) {
+func (cp *CollateralProcessor) deleteAuction(id *big.Int) {
 	cp.auctionCollection.deleteAuction(id)
 }
 
-func (cp *collateralProcessor) updateAuctionAfterTake(id, tab, lot *big.Int) {
+func (cp *CollateralProcessor) updateAuctionAfterTake(id, tab, lot *big.Int) {
 	cp.auctionCollection.updateAuctionAfterTake(id, tab, lot)
 }
 
-func (cp *collateralProcessor) updateAuctionAfterRedo(id, top *big.Int, tic time.Time) {
+func (cp *CollateralProcessor) updateAuctionAfterRedo(id, top *big.Int, tic time.Time) {
 	cp.auctionCollection.updateAuctionAfterRedo(id, top, tic)
 }
 
-func (cp *collateralProcessor) processCollateral(actions actions.IAction, minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address) {
+func (cp *CollateralProcessor) processCollateral(actions actions.IAction, minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address) {
 	log.Printf("processing opportunities for: %s\n", cp.collateral.Name)
 	log.Printf("%s active auctions qty: %d\n", cp.collateral.Name, len(cp.auctionCollection.auctions))
 
@@ -224,7 +224,7 @@ var (
 	Address, _ = abi.NewType("address", "", nil)
 )
 
-func (cp *collateralProcessor) executeAuction(actions actions.IAction, auctionId, amt, maxPrice, minProfit *big.Int, profitAddr, gemJoinAdapter, exchangeCalleeAddress common.Address) error {
+func (cp *CollateralProcessor) executeAuction(actions actions.IAction, auctionId, amt, maxPrice, minProfit *big.Int, profitAddr, gemJoinAdapter, exchangeCalleeAddress common.Address) error {
 
 	// Uniswap v3 swap
 	// typesArray := ['address', 'address', 'uint256', 'bytes', 'address'];
@@ -265,7 +265,7 @@ func (cp *collateralProcessor) executeAuction(actions actions.IAction, auctionId
 		log.Println("[executeAuction] error in getting transaction receipt.", err)
 		return err
 	}
-	// log.Printf("[executeAuction] transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
+	log.Printf("[executeAuction] transaction mined. TxHash:%s BlockNumber:%d BlockHash:%s", receipt.TxHash.Hex(), header.Number, header.Hash().Hex())
 
 	err = cp.store.UpdateTransactionReceipt(
 		context.Background(),
