@@ -261,7 +261,7 @@ func Execute() {
 	// 1. Dog Bark service
 	dogBarkService := dogServices.NewDogBarkService(
 		context.Background(),
-		eth, cfg.Indexer.BlockInterval,
+		eth,
 		postgresStore, addrs["dog"],
 		addrs["spot"],
 		vaultLoader, vatLoader,

@@ -3,7 +3,6 @@ package processor
 import (
 	"context"
 	"log"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -17,21 +16,19 @@ import (
 )
 
 type DogBarkService struct {
-	eth           *ethclient.Client
-	blockInterval time.Duration
-	store         store.IStore
-	dog           *dog.Dog
-	spot          *spot.Spot
-	osms          map[common.Address]*osm.Osm
-	vaultLoader   *loaders.VaultLoader
-	vatLoader     *loaders.VatLoader
-	sender        sender.Sender
+	eth         *ethclient.Client
+	store       store.IStore
+	dog         *dog.Dog
+	spot        *spot.Spot
+	osms        map[common.Address]*osm.Osm
+	vaultLoader *loaders.VaultLoader
+	vatLoader   *loaders.VatLoader
+	sender      sender.Sender
 }
 
 func NewDogBarkService(
 	ctx context.Context,
 	eth *ethclient.Client,
-	blockInterval time.Duration,
 	store store.IStore,
 	dogAddr common.Address,
 	spotAddr common.Address,
@@ -39,7 +36,6 @@ func NewDogBarkService(
 	vatLoader *loaders.VatLoader,
 	ilkLoader *loaders.IlksLoader,
 	sender sender.Sender) *DogBarkService {
-
 	d, err := dog.NewDog(dogAddr, eth)
 	if err != nil {
 		log.Fatal(err)
@@ -65,15 +61,14 @@ func NewDogBarkService(
 	}
 
 	return &DogBarkService{
-		eth:           eth,
-		blockInterval: blockInterval,
-		dog:           d,
-		spot:          s,
-		store:         store,
-		vaultLoader:   vaultLoader,
-		vatLoader:     vatLoader,
-		osms:          osms,
-		sender:        sender,
+		eth:         eth,
+		dog:         d,
+		spot:        s,
+		store:       store,
+		vaultLoader: vaultLoader,
+		vatLoader:   vatLoader,
+		osms:        osms,
+		sender:      sender,
 	}
 }
 
@@ -106,12 +101,12 @@ func (s *DogBarkService) Start(ctx context.Context) error {
 			}
 
 			// create a new Oracle Security Manager(OSM) and call the Poke method
-			err := s.osmPoke(ctx, ilk.Pip)
+			err := s.osmPoke(ilk.Pip)
 			if err != nil {
 				return nil
 			}
 			// call the Poke method from spotter
-			err = s.spotterPoke(ctx, ilkName)
+			err = s.spotterPoke(ilkName)
 			if err != nil {
 				return nil
 			}
@@ -147,7 +142,7 @@ func (s *DogBarkService) Run(bark *inputMethods.DogBark) error {
 	return s.sender.HandleSentTx(tx)
 }
 
-func (s *DogBarkService) osmPoke(ctx context.Context, pip common.Address) error {
+func (s *DogBarkService) osmPoke(pip common.Address) error {
 	osm := s.osms[pip]
 
 	opts, err := s.sender.GetTransactOpts()
@@ -163,7 +158,7 @@ func (s *DogBarkService) osmPoke(ctx context.Context, pip common.Address) error 
 	return s.sender.HandleSentTx(tx)
 }
 
-func (s *DogBarkService) spotterPoke(ctx context.Context, ilk [32]byte) error {
+func (s *DogBarkService) spotterPoke(ilk [32]byte) error {
 	opts, err := s.sender.GetTransactOpts()
 	if err != nil {
 		return err
