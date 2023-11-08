@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/zarbanio/auction-keeper/bindings/zarban/median"
+	"github.com/zarbanio/auction-keeper/services"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -178,6 +179,12 @@ func Execute() {
 
 	cfg := configs.ReadConfig("config.yaml")
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
+
+	// initiat system logger
+	err := services.InitSysLogger(context.Background(), postgresStore)
+	if err != nil {
+		services.Logger.Debug().Msg("error whime initializing logger")
+	}
 
 	eth, err := ethclient.Dial(cfg.Network.Node.Api)
 	if err != nil {
