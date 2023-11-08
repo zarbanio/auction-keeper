@@ -10,6 +10,7 @@ import (
 	"github.com/zarbanio/auction-keeper/bindings/zarban/osm"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/spot"
 	inputMethods "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
+	"github.com/zarbanio/auction-keeper/services"
 	"github.com/zarbanio/auction-keeper/services/loaders"
 	sender "github.com/zarbanio/auction-keeper/services/sender"
 	"github.com/zarbanio/auction-keeper/store"
@@ -38,24 +39,24 @@ func NewDogBarkService(
 	sender sender.Sender) *DogBarkService {
 	d, err := dog.NewDog(dogAddr, eth)
 	if err != nil {
-		log.Fatal(err)
+		services.Logger.Fatal().Str("service", "bark").Str("method", "NewDogBarkService").Msg("err while instancing a dog contract")
 	}
 
 	s, err := spot.NewSpot(spotAddr, eth)
 	if err != nil {
-		log.Fatal(err)
+		services.Logger.Fatal().Str("service", "bark").Str("method", "NewDogBarkService").Msg("err while instancing a spot contract")
 	}
 
 	ilks, err := ilkLoader.LoadIlks(ctx)
 	if err != nil {
-		log.Fatal(err)
+		services.Logger.Fatal().Str("service", "bark").Str("method", "NewDogBarkService").Msg("err while loading ilks")
 	}
 
 	osms := make(map[common.Address]*osm.Osm)
 	for _, ilk := range ilks {
 		osm, err := osm.NewOsm(ilk.Pip, eth)
 		if err != nil {
-			log.Fatal(err)
+			services.Logger.Fatal().Str("service", "bark").Str("method", "NewDogBarkService").Msg("err while instancing an osm contract")
 		}
 		osms[ilk.Pip] = osm
 	}
@@ -74,11 +75,12 @@ func NewDogBarkService(
 
 func (s *DogBarkService) Start(ctx context.Context) error {
 
-	log.Println("Dog Bark Service is starting")
+	services.Logger.Info().Str("service", "bark").Str("method", "Start").Msg("bark Service is starting")
 
 	// Fetch all vaults
 	vaults, err := s.vaultLoader.FetchAllVaults(ctx)
 	if err != nil {
+		services.Logger.Error().Err(err).Str("service", "bark").Str("method", "Start").Msg("error while fetching all vaults")
 		return err
 	}
 
@@ -88,6 +90,7 @@ func (s *DogBarkService) Start(ctx context.Context) error {
 
 		ilk, err := s.store.GetIlkByName(ctx, vault.IlkName)
 		if err != nil {
+			services.Logger.Error().Err(err).Str("service", "bark").Str("method", "Start").Msg("error while getting an ilk")
 			return err
 		}
 
@@ -96,22 +99,20 @@ func (s *DogBarkService) Start(ctx context.Context) error {
 		copy(ilkName[:], []byte(ilk.Name))
 
 		if vault.CollateralizationRatio.LessThan(ilk.MinimumCollateralizationRatio) {
-			if err != nil {
-				return err
-			}
-
 			// create a new Oracle Security Manager(OSM) and call the Poke method
 			err := s.osmPoke(ilk.Pip)
 			if err != nil {
-				return nil
+				services.Logger.Error().Err(err).Str("service", "bark").Str("method", "Start").Msg("error while calling the osmPoke method")
+				return err
 			}
 			// call the Poke method from spotter
 			err = s.spotterPoke(ilkName)
 			if err != nil {
-				return nil
+				services.Logger.Error().Err(err).Str("service", "bark").Str("method", "Start").Msg("error while calling the spotterPoke method")
+				return err
 			}
 
-			log.Println("Dog Bark is running")
+			log.Println("bark is running")
 			bark := &inputMethods.DogBark{
 				Ilk: ilkName,
 				Urn: vault.Urn,
@@ -125,18 +126,20 @@ func (s *DogBarkService) Start(ctx context.Context) error {
 
 // Stop the service
 func (s *DogBarkService) Stop() {
-	panic("Implement me!")
+	services.Logger.Panic().Str("service", "bark").Str("method", "Stop").Msg("Implement me!")
 }
 
 // Run the service logic
 func (s *DogBarkService) Run(bark *inputMethods.DogBark) error {
 	opts, err := s.sender.GetTransactOpts()
 	if err != nil {
+		services.Logger.Error().Err(err).Str("service", "bark").Str("method", "Run").Msg("error while getting a transaction opts")
 		return err
 	}
 
 	tx, err := s.dog.Bark(opts, bark.Ilk, bark.Urn, s.sender.GetAddress())
 	if err != nil {
+		services.Logger.Error().Err(err).Str("service", "bark").Str("method", "Run").Msg("error while calling the dog bark method")
 		return err
 	}
 	return s.sender.HandleSentTx(tx)
@@ -147,11 +150,13 @@ func (s *DogBarkService) osmPoke(pip common.Address) error {
 
 	opts, err := s.sender.GetTransactOpts()
 	if err != nil {
+		services.Logger.Error().Err(err).Str("service", "bark").Str("method", "osmPoke").Msg("error while getting a transaction opts")
 		return err
 	}
 
 	tx, err := osm.Poke(opts)
 	if err != nil {
+		services.Logger.Error().Err(err).Str("service", "bark").Str("method", "osmPoke").Msg("error while calling the osm poke method")
 		return err
 	}
 
@@ -161,12 +166,13 @@ func (s *DogBarkService) osmPoke(pip common.Address) error {
 func (s *DogBarkService) spotterPoke(ilk [32]byte) error {
 	opts, err := s.sender.GetTransactOpts()
 	if err != nil {
+		services.Logger.Error().Err(err).Str("service", "bark").Str("method", "spotterPoke").Msg("error while getting a transaction opts")
 		return err
 	}
 
 	tx, err := s.spot.Poke(opts, ilk)
 	if err != nil {
-		log.Fatal(err)
+		services.Logger.Error().Err(err).Str("service", "bark").Str("method", "spotterPoke").Msg("error while calling the spotter poke method")
 		return err
 	}
 

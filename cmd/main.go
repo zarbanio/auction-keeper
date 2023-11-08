@@ -180,7 +180,7 @@ func Execute() {
 	cfg := configs.ReadConfig("config.yaml")
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
 
-	// initiat system logger
+	// initiate system logger
 	err := services.InitSysLogger(context.Background(), postgresStore)
 	if err != nil {
 		services.Logger.Debug().Msg("error whime initializing logger")
