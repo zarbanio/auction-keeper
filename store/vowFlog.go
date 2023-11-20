@@ -10,7 +10,7 @@ import (
 
 type flogModel struct {
 	era string
-	raw logModel
+	raw evmLogModel
 }
 
 func (f flogModel) toDomain() *vow.VowFlog {

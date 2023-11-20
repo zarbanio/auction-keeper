@@ -10,7 +10,7 @@ import (
 
 type fessModel struct {
 	tab string
-	raw logModel
+	raw evmLogModel
 }
 
 func (f fessModel) toDomain() *vow.VowFess {

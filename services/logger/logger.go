@@ -1,4 +1,4 @@
-package services
+package logger
 
 import (
 	"context"
@@ -8,8 +8,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/zarbanio/auction-keeper/store"
 )
-
-var Logger zerolog.Logger
 
 type CustomWriter struct {
 	ctx    context.Context
@@ -34,10 +32,9 @@ func (cw *CustomWriter) Write(p []byte) (n int, err error) {
 	return cw.writer.Write(p)
 }
 
-func InitSysLogger(ctx context.Context, s store.IStore) error {
+func InitSysLogger(ctx context.Context, s store.IStore) zerolog.Logger {
 	customWriter := NewCustomWriter(ctx, s, os.Stdout)
 
-	Logger = zerolog.New(customWriter).With().Caller().Logger().Output(
-		customWriter)
-	return nil
+	Logger := zerolog.New(customWriter).With().Caller().Logger().Output(customWriter)
+	return Logger
 }

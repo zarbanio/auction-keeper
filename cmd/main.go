@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/zarbanio/auction-keeper/bindings/zarban/median"
-	"github.com/zarbanio/auction-keeper/services"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -24,6 +23,7 @@ import (
 	"github.com/zarbanio/auction-keeper/services/cachedeth"
 	"github.com/zarbanio/auction-keeper/services/eventmanager"
 	"github.com/zarbanio/auction-keeper/services/loaders"
+	"github.com/zarbanio/auction-keeper/services/logger"
 	"github.com/zarbanio/auction-keeper/services/processor"
 	"github.com/zarbanio/auction-keeper/services/processor/clipper/vault"
 	dogServices "github.com/zarbanio/auction-keeper/services/processor/dog"
@@ -181,10 +181,8 @@ func Execute() {
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
 
 	// initiate system logger
-	err := services.InitSysLogger(context.Background(), postgresStore)
-	if err != nil {
-		services.Logger.Debug().Msg("error whime initializing logger")
-	}
+
+	logger := logger.InitSysLogger(context.Background(), postgresStore)
 
 	eth, err := ethclient.Dial(cfg.Network.Node.Api)
 	if err != nil {
@@ -273,10 +271,12 @@ func Execute() {
 		addrs["spot"],
 		vaultLoader, vatLoader,
 		ilksLoader,
-		newSender)
-	//!2. TODO: Clipper Take service
-	//!3. TODO: Clipper Redo service
-
+		newSender,
+		logger)
+	// 2. TODO: Clipper Take service
+	// ClipperTakeService := clipperServices.ClipperTakeService()
+	// 3. TODO: Clipper Redo service
+	// ClipperTakeService := clipperServices.ClipperTakeService()
 	//! TODO: ADD CLIPPERS LOADER
 	eventManger := eventmanager.NewEventManager(
 		postgresStore,
