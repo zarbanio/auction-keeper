@@ -24,7 +24,7 @@ func NewCustomWriter(ctx context.Context, istore store.IStore, writer io.Writer)
 }
 
 func (cw *CustomWriter) Write(p []byte) (n int, err error) {
-	_, err = cw.istore.CreateSysLog(cw.ctx, p)
+	_, err = cw.istore.CreateLogs(cw.ctx, p)
 	if err != nil {
 		return 0, err
 	}
@@ -32,9 +32,20 @@ func (cw *CustomWriter) Write(p []byte) (n int, err error) {
 	return cw.writer.Write(p)
 }
 
-func InitSysLogger(ctx context.Context, s store.IStore) zerolog.Logger {
-	customWriter := NewCustomWriter(ctx, s, os.Stdout)
+type Logger struct {
+	ConsoleLogger zerolog.Logger
+	Logger        zerolog.Logger
+}
 
-	Logger := zerolog.New(customWriter).With().Caller().Logger().Output(customWriter)
-	return Logger
+func NewLogger(ctx context.Context, s store.IStore) *Logger {
+	customWriter := NewCustomWriter(ctx, s, os.Stdout)
+	// logger writes logs to the database using CustomWriter
+	logger := zerolog.New(customWriter).With().Caller().Logger().Output(customWriter)
+	// consoleLogger writes logs only to the console, not to the database
+	consoleLogger := zerolog.New(os.Stdout).With().Caller().Logger()
+
+	return &Logger{
+		ConsoleLogger: consoleLogger,
+		Logger:        logger,
+	}
 }

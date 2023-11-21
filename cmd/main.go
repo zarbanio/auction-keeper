@@ -23,7 +23,7 @@ import (
 	"github.com/zarbanio/auction-keeper/services/cachedeth"
 	"github.com/zarbanio/auction-keeper/services/eventmanager"
 	"github.com/zarbanio/auction-keeper/services/loaders"
-	"github.com/zarbanio/auction-keeper/services/logger"
+	loggerPkg "github.com/zarbanio/auction-keeper/services/logger"
 	"github.com/zarbanio/auction-keeper/services/processor"
 	"github.com/zarbanio/auction-keeper/services/processor/clipper/vault"
 	dogServices "github.com/zarbanio/auction-keeper/services/processor/dog"
@@ -180,9 +180,8 @@ func Execute() {
 	cfg := configs.ReadConfig("config.yaml")
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
 
-	// initiate system logger
-
-	logger := logger.InitSysLogger(context.Background(), postgresStore)
+	// create a logger
+	logger := loggerPkg.NewLogger(context.Background(), postgresStore)
 
 	eth, err := ethclient.Dial(cfg.Network.Node.Api)
 	if err != nil {

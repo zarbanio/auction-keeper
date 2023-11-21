@@ -6,7 +6,7 @@ import (
 	"errors"
 )
 
-func (p postgres) CreateSysLog(ctx context.Context, b []byte) (int, error) {
+func (p postgres) CreateLogs(ctx context.Context, b []byte) (int, error) {
 
 	var entry map[string]interface{}
 	err := json.Unmarshal(b, &entry)
@@ -39,11 +39,11 @@ func (p postgres) CreateSysLog(ctx context.Context, b []byte) (int, error) {
 	}
 
 	stmt := `
-		INSERT INTO logs (level, service, message, fields) 
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO logs (message, fields) 
+		VALUES ($1, $2)
 	`
 
-	_, err = p.conn.Exec(ctx, stmt, level, service, message, string(fieldsJSON))
+	_, err = p.conn.Exec(ctx, stmt, message, string(fieldsJSON))
 	if err != nil {
 		return 0, err
 	}

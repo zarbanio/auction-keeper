@@ -31,7 +31,7 @@ type IStore interface {
 	IFlog
 	IFess
 	IFlop
-	ISysLog
+	ILog
 }
 
 type Migrateable interface {
@@ -124,6 +124,6 @@ type IFlop interface {
 	CreateFlop(ctx context.Context, tx_id int64) (int64, error)
 }
 
-type ISysLog interface {
-	CreateSysLog(ctx context.Context, b []byte) (int, error)
+type ILog interface {
+	CreateLogs(ctx context.Context, b []byte) (int, error)
 }
