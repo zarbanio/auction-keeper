@@ -177,9 +177,8 @@ func zarJoinAllowance(eth *ethclient.Client, vatAddr, zarJoinAddr common.Address
 func Execute() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	cfg := configs.ReadConfig("config.yaml")
+	cfg := configs.ReadConfig("config.goerli.yaml")
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
-
 	// create a logger
 	logger := loggerPkg.NewLogger(context.Background(), postgresStore)
 
@@ -187,7 +186,6 @@ func Execute() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	// do database migrations
 	err = postgresStore.Migrate(cfg.Postgres.MigrationsPath)
 	if err != nil {

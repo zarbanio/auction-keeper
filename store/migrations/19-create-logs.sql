@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS logs (
+CREATE TABLE if not exists logs (
     id              SERIAL PRIMARY KEY,
     message         TEXT,
     fields          JSONB,

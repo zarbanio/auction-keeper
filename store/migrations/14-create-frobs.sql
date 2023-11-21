@@ -7,7 +7,7 @@ CREATE TABLE if not exists vat_frobs
     w      TEXT,
     dink   NUMERIC(50, 0),
     dart   NUMERIC(50, 0),
-    log_id INTEGER UNIQUE REFERENCES logs (id)
+    log_id INTEGER UNIQUE REFERENCES evm_logs (id)
 );
 
 CREATE INDEX if not exists vat_frobs_log_id_index on vat_frobs(log_id);

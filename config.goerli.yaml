@@ -19,10 +19,10 @@ Network:
     Decimals: 18
     MockAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
   Node:
-    Api: ''
+    Api: 'wss://goerli.infura.io/ws/v3/f623e74d968a4b3fbc95e0df74a8addd'
 Wallet:
-  Private: ''
-  Address: ''
+  Private: '46ddc9290e53d6722d22ec7b95ab6122c8541d55d339c22c9f67aa6814057bb1'
+  Address: '0xF97a5CCB7b1892Afcb8A4635E21E075F31805aCD'
 ZarJoin: '0x30470ce6dc75df6819187ea05d759b5859e1aea2'
 Vat: '0x7ff3ae53276554ce6ec561a8fd292411edd6c7d5'
 Vow: '0x4ae738d5f22d58af868a50ca8896a47517fa9be5'
