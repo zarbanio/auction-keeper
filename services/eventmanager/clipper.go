@@ -10,7 +10,7 @@ import (
 	"github.com/zarbanio/auction-keeper/x/events"
 )
 
-func ClipperKickCallback(liquidatorProcessor *processor.LiquidatorProcessor, clipperName string, eventPtr uint64) events.CallbackFn[clipper.ClipperKick] {
+func (e *EventManager) ClipperKickCallback(liquidatorProcessor *processor.LiquidatorProcessor, clipperName string) events.CallbackFn[clipper.ClipperKick] {
 	return func(raw eth.Log, kick clipper.ClipperKick) error {
 		// if eventPtr > uint64(header.Number.Int64()) {
 		// 	return nil
@@ -28,7 +28,7 @@ func ClipperKickCallback(liquidatorProcessor *processor.LiquidatorProcessor, cli
 	}
 }
 
-func ClipperRedoCallback(liquidatorProcessor *processor.LiquidatorProcessor, clipperName string, eventPtr uint64) events.CallbackFn[clipper.ClipperRedo] {
+func (e *EventManager) ClipperRedoCallback(liquidatorProcessor *processor.LiquidatorProcessor, clipperName string) events.CallbackFn[clipper.ClipperRedo] {
 	return func(raw eth.Log, redo clipper.ClipperRedo) error {
 		// if eventPtr > uint64(header.Number.Int64()) {
 		// 	return nil
@@ -38,7 +38,7 @@ func ClipperRedoCallback(liquidatorProcessor *processor.LiquidatorProcessor, cli
 	}
 }
 
-func ClipperTakeCallback(liquidatorProcessor *processor.LiquidatorProcessor, clipperName string, eventPtr uint64) events.CallbackFn[clipper.ClipperTake] {
+func (e *EventManager) ClipperTakeCallback(liquidatorProcessor *processor.LiquidatorProcessor, clipperName string) events.CallbackFn[clipper.ClipperTake] {
 	return func(raw eth.Log, take clipper.ClipperTake) error {
 		// if eventPtr > uint64(header.Number.Int64()) {
 		// 	return nil
