@@ -1,9 +1,5 @@
 auction-keeper
 
-# binding files
-bindings/*/*.go
-bindings/*/*/*.go
-
 # config file
 config.yaml
 
