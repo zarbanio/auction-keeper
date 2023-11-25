@@ -31,6 +31,7 @@ type IStore interface {
 	IFlog
 	IFess
 	IFlop
+	ILog
 }
 
 type Migrateable interface {
@@ -112,7 +113,7 @@ type IFork interface {
 }
 
 type IFlog interface {
-	CreateFlog(ctx context.Context, flog vow.VowFlog, logId uint64) (int64, error)
+	CreateFlog(ctx context.Context, flog *entities.VowFlog, logId uint64) (int64, error)
 }
 
 type IFess interface {
@@ -121,4 +122,8 @@ type IFess interface {
 
 type IFlop interface {
 	CreateFlop(ctx context.Context, tx_id int64) (int64, error)
+}
+
+type ILog interface {
+	CreateLogs(ctx context.Context, b []byte) (int, error)
 }

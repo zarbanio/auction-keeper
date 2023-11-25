@@ -15,7 +15,7 @@ type forkModel struct {
 	dst  string
 	dink string
 	dart string
-	raw  logModel
+	raw  evmLogModel
 }
 
 func (f forkModel) toDomain() *vat.VatFork {

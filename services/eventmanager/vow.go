@@ -4,13 +4,14 @@ import (
 	"context"
 
 	"github.com/zarbanio/auction-keeper/bindings/zarban/vow"
+	entities "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
 	"github.com/zarbanio/auction-keeper/x/eth"
 	"github.com/zarbanio/auction-keeper/x/events"
 )
 
 func (e *EventManager) VowFlogCallback() events.CallbackFn[vow.VowFlog] {
 	return func(raw eth.Log, flog vow.VowFlog) error {
-		_, err := e.store.CreateFlog(context.Background(), flog, raw.Id)
+		_, err := e.store.CreateFlog(context.Background(), &entities.VowFlog{Era: flog.Era}, raw.Id)
 		if err != nil {
 			return err
 		}

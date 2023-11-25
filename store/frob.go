@@ -17,7 +17,7 @@ type frobModel struct {
 	W    string
 	Dink string
 	Dart string
-	Raw  logModel
+	Raw  evmLogModel
 }
 
 func (f frobModel) toDomain() *vat.VatFrob {

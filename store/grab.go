@@ -19,7 +19,7 @@ type vatGrabModel struct {
 	W    string
 	Dink string
 	Dart string
-	Raw  logModel
+	Raw  evmLogModel
 }
 
 func (g vatGrabModel) toDomain() *vat.VatGrab {

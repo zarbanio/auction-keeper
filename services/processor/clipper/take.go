@@ -14,6 +14,7 @@ import (
 	"github.com/zarbanio/auction-keeper/bindings/zarban/clipper"
 	"github.com/zarbanio/auction-keeper/collateral"
 	inputMethods "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
+	"github.com/zarbanio/auction-keeper/services/logger"
 	"github.com/zarbanio/auction-keeper/services/processor"
 	"github.com/zarbanio/auction-keeper/services/sender"
 	"github.com/zarbanio/auction-keeper/services/uniswap_v3"
@@ -36,6 +37,7 @@ type ClipperTakeService struct {
 	sender     sender.Sender
 	collateral collateral.Collateral
 	cp         *processor.CollateralProcessor
+	l          *logger.Logger
 }
 
 func NewClipperTakeService(
@@ -43,11 +45,12 @@ func NewClipperTakeService(
 	clipperAddr common.Address,
 	sender sender.Sender,
 	collateral collateral.Collateral,
+	l *logger.Logger,
 ) *ClipperTakeService {
 
 	c, err := clipper.NewClipper(clipperAddr, eth)
 	if err != nil {
-		log.Fatal(err)
+		l.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while instancing a clipper contract")
 	}
 
 	return &ClipperTakeService{
@@ -55,18 +58,23 @@ func NewClipperTakeService(
 		clipper: c,
 		sender:  sender,
 		cp:      processor.NewCollateralProcessor(eth, collateral),
+		l:       l,
 	}
 }
 
 func (s *ClipperTakeService) Start(ctx context.Context, minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address) error {
+	s.l.Logger.Info().Str("service", "take").Str("method", "Start").Msg("take Service is starting")
+
 	currentTime, err := s.getCurrentTime(ctx)
 	if err != nil {
-		return nil
+		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Start").Msg("error while getting current time")
+		return err
 	}
 
 	// 1) Get the IDs of the auctions
 	auctionIds, err := s.clipper.List(&bind.CallOpts{Context: ctx})
 	if err != nil {
+		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Start").Msg("error while getting the list of auction IDs")
 		return err
 	}
 
@@ -74,12 +82,14 @@ func (s *ClipperTakeService) Start(ctx context.Context, minProfitPercentage, min
 		log.Printf("\tprocessing auction id: %d\n", id)
 		auction, err := s.clipper.Sales(&bind.CallOpts{Context: ctx}, auctionId)
 		if err != nil {
+			s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Start").Msg("error while getting an auction")
 			return err
 		}
 
 		collateralPrice, err := s.collateral.Clipper.Abacus.Price(nil, auction.Top, big.NewInt(int64(currentTime)-auction.Tic.Int64()))
 		if err != nil {
 			log.Printf("error in get %s collateral price from abacus: %v\n", s.collateral.Name, err)
+			s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Start").Msg("error while getting the collateral price")
 			continue
 		}
 		if collateralPrice.Cmp(big.NewInt(0)) <= 0 {
@@ -142,6 +152,7 @@ func (s *ClipperTakeService) Start(ctx context.Context, minProfitPercentage, min
 		uniswapV3Proceeds, err := s.collateral.UniswapV3Quoter.GetQuotedAmountOut(lot, s.collateral.UniswapV3Path, s.collateral.Decimal)
 		if err != nil {
 			log.Printf("error in get uniswapV3 proceeds: %v\n", err)
+			s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Start").Msg("error while getting the uniswapV3 proceeds")
 			continue
 		}
 		minUniV3Proceeds := new(big.Int).Sub(uniswapV3Proceeds, minProfit)
@@ -161,6 +172,7 @@ func (s *ClipperTakeService) Start(ctx context.Context, minProfitPercentage, min
 			err = s.Run(take, minProfit, profitAddress, s.collateral.GemJoinAdapter)
 			if err != nil {
 				log.Printf("error in executeAuction: %v\n", err)
+				s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Start").Msg("error while executing an auction")
 				continue
 			}
 		} else {
@@ -189,21 +201,25 @@ func (s *ClipperTakeService) Run(take inputMethods.ClipperTake, minProfit *big.I
 	}
 	route, err := uniswap_v3.GetRouter(s.collateral.UniswapV3Path)
 	if err != nil {
+		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Run").Msg("error while getting the route from uniswapV3")
 		return fmt.Errorf(fmt.Sprintf("error in get route: %v", err))
 	}
 
 	flashData, err := args.Pack(profitAddr, gemJoinAdapter, minProfit, route, common.Address{0})
 	if err != nil {
+		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Run").Msg("error while getting the flashData")
 		return fmt.Errorf(fmt.Sprintf("error in pack flash data: : %v", err))
 	}
 
 	opts, err := s.sender.GetTransactOpts()
 	if err != nil {
+		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Run").Msg("error while getting a transaction opts")
 		return err
 	}
 
 	tx, err := s.clipper.Take(opts, take.Auction_id, take.Amt, take.Max, take.Who, flashData)
 	if err != nil {
+		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Run").Msg("error while calling the clipper take method")
 		return err
 	}
 	return s.sender.HandleSentTx(tx)
@@ -211,18 +227,18 @@ func (s *ClipperTakeService) Run(take inputMethods.ClipperTake, minProfit *big.I
 
 // Stop the service
 func (s *ClipperTakeService) Stop() {
-	panic("Implement me!")
+	s.l.Logger.Panic().Str("service", "take").Str("method", "Stop").Msg("Implement me!")
 }
 
 func (s *ClipperTakeService) getCurrentTime(ctx context.Context) (uint64, error) {
 	blockNum, err := s.eth.BlockNumber(context.Background())
 	if err != nil {
-		log.Println("error getting last block number.", err)
+		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "getCurrentTime").Msg("error while getting the last block number")
 		return 0, err
 	}
 	block, err := s.eth.BlockByNumber(context.Background(), big.NewInt(int64(blockNum)))
 	if err != nil {
-		log.Println("error getting head.", err)
+		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "getCurrentTime").Msg("error while getting the head")
 		return 0, err
 	}
 
