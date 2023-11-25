@@ -14,7 +14,7 @@ import (
 )
 
 type AddressLoader struct {
-	store          cache.MemCache
+	cache          cache.ICache
 	deployment     *deployment.Deployment
 	deploymentAddr common.Address
 	addrProvider   *lendingpool_address_provider.LendingpoolAddressProvider
@@ -22,7 +22,7 @@ type AddressLoader struct {
 
 func NewAddressLoader(
 	eth *ethclient.Client,
-	store cache.MemCache,
+	store cache.ICache,
 	deployAddr,
 	addrProviderAddr common.Address,
 ) *AddressLoader {
@@ -39,35 +39,11 @@ func NewAddressLoader(
 		deployment:     d,
 		deploymentAddr: deployAddr,
 		addrProvider:   a,
-		store:          store,
+		cache:          store,
 	}
 }
 
 func (a *AddressLoader) LoadAddresses(ctx context.Context) (map[string]common.Address, error) {
-	lendingPoolAddr, err := a.addrProvider.GetLendingPool(&bind.CallOpts{Context: ctx})
-	if err != nil {
-		return nil, fmt.Errorf("error getting lending pool. %w", err)
-	}
-	emergencyAdmin, err := a.addrProvider.GetEmergencyAdmin(&bind.CallOpts{Context: ctx})
-	if err != nil {
-		return nil, fmt.Errorf("error getting emergency admin. %w", err)
-	}
-	collateralManager, err := a.addrProvider.GetLendingPoolCollateralManager(&bind.CallOpts{Context: ctx})
-	if err != nil {
-		return nil, fmt.Errorf("error getting lending pool collateral manager. %w", err)
-	}
-	configurator, err := a.addrProvider.GetLendingPoolConfigurator(&bind.CallOpts{Context: ctx})
-	if err != nil {
-		return nil, fmt.Errorf("error getting lending pool configurator")
-	}
-	admin, err := a.addrProvider.GetPoolAdmin(&bind.CallOpts{Context: ctx})
-	if err != nil {
-		return nil, fmt.Errorf("error getting pool admin. %w", err)
-	}
-	oracle, err := a.addrProvider.GetPriceOracle(&bind.CallOpts{Context: ctx})
-	if err != nil {
-		return nil, fmt.Errorf("error getting price oracle. %w", err)
-	}
 	vat, err := a.deployment.Vat(&bind.CallOpts{Context: ctx})
 	if err != nil {
 		return nil, fmt.Errorf("error getting vat. %w", err)
@@ -92,7 +68,6 @@ func (a *AddressLoader) LoadAddresses(ctx context.Context) (map[string]common.Ad
 	if err != nil {
 		return nil, fmt.Errorf("error getting vow. %w", err)
 	}
-
 	zar, err := a.deployment.Zar(&bind.CallOpts{Context: ctx})
 	if err != nil {
 		return nil, fmt.Errorf("error getting sim. %w", err)
@@ -103,24 +78,18 @@ func (a *AddressLoader) LoadAddresses(ctx context.Context) (map[string]common.Ad
 	}
 
 	return map[string]common.Address{
-		"deployment":         a.deploymentAddr,
-		"lending_pool":       lendingPoolAddr,
-		"emergency_admin":    emergencyAdmin,
-		"collateral_manager": collateralManager,
-		"configurator":       configurator,
-		"admin":              admin,
-		"price_oracle":       oracle,
-		"vat":                vat,
-		"jug":                jug,
-		"spot":               spot,
-		"dog":                dog,
-		"end":                end,
-		"vow":                vow,
-		"zar":                zar,
-		"zar_join":           zarJoin,
+		"deployment": a.deploymentAddr,
+		"vat":        vat,
+		"jug":        jug,
+		"spot":       spot,
+		"dog":        dog,
+		"end":        end,
+		"vow":        vow,
+		"zar":        zar,
+		"zar_join":   zarJoin,
 	}, nil
 }
 
 func (a *AddressLoader) SaveAddresses(ctx context.Context, addresses map[string]common.Address) error {
-	return a.store.SaveAddresses(ctx, addresses)
+	return a.cache.SaveAddresses(ctx, addresses)
 }

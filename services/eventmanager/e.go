@@ -1,9 +1,10 @@
 package eventmanager
 
 import (
+	"github.com/zarbanio/auction-keeper/services/bark"
 	"github.com/zarbanio/auction-keeper/services/loaders"
-	clipperServices "github.com/zarbanio/auction-keeper/services/processor/clipper"
-	dogServices "github.com/zarbanio/auction-keeper/services/processor/dog"
+	"github.com/zarbanio/auction-keeper/services/redo"
+	"github.com/zarbanio/auction-keeper/services/take"
 	"github.com/zarbanio/auction-keeper/store"
 )
 
@@ -13,18 +14,18 @@ type EventManager struct {
 	ilksLoader  *loaders.IlksLoader
 	vaultLoader *loaders.VaultLoader
 	// services
-	dogBarkService      *dogServices.DogBarkService
-	clipperTakeServices []*clipperServices.ClipperTakeService
-	clipperRedoServices []*clipperServices.ClipperRedoService
+	dogBarkService      *bark.Service
+	clipperTakeServices []*take.Service
+	clipperRedoServices []*redo.Service
 }
 
 func NewEventManager(
 	s store.IStore,
 	i *loaders.IlksLoader,
 	v *loaders.VaultLoader,
-	dogBarkService *dogServices.DogBarkService,
-	clipperTakeServices []*clipperServices.ClipperTakeService,
-	clipperRedoServices []*clipperServices.ClipperRedoService,
+	dogBarkService *bark.Service,
+	clipperTakeServices []*take.Service,
+	clipperRedoServices []*redo.Service,
 ) *EventManager {
 	return &EventManager{
 		store:               s,

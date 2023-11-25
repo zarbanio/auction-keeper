@@ -1,68 +1,78 @@
-package processor
+package redo
 
 import (
 	"context"
-	"log"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/clipper"
-	"github.com/zarbanio/auction-keeper/collateral"
 	"github.com/zarbanio/auction-keeper/services/logger"
 	"github.com/zarbanio/auction-keeper/services/sender"
 )
 
-type ClipperRedoService struct {
-	eth        *ethclient.Client
-	clipper    *clipper.Clipper
-	sender     sender.Sender
-	collateral collateral.Collateral
-	l          *logger.Logger
+type Service struct {
+	eth     *ethclient.Client
+	clipper *clipper.Clipper
+	sender  sender.Sender
+	l       *logger.Logger
 }
 
-func NewClipperRedoService(
+func NewService(
 	eth *ethclient.Client,
 	clipperAddr common.Address,
 	sender sender.Sender,
-	collateral collateral.Collateral,
 	l *logger.Logger,
-) *ClipperRedoService {
-
+) *Service {
 	c, err := clipper.NewClipper(clipperAddr, eth)
 	if err != nil {
 		l.Logger.Fatal().Str("service", "redo").Str("method", "NewClipperTakeService").Msg("err while instancing a clipper contract")
 	}
 
-	return &ClipperRedoService{
-		eth:        eth,
-		clipper:    c,
-		sender:     sender,
-		collateral: collateral,
-		l:          l,
+	return &Service{
+		eth:     eth,
+		clipper: c,
+		sender:  sender,
+		l:       l,
 	}
 }
 
-func (s *ClipperRedoService) Start(ctx context.Context) error {
-
-	// 1) Get the IDs of the auctions
+func (s *Service) Start(ctx context.Context) error {
 	auctionIds, err := s.clipper.List(&bind.CallOpts{Context: ctx})
 	if err != nil {
-		s.l.Logger.Error().Err(err).Str("service", "redo").Str("method", "Start").Msg("error while getting the list of auction IDs")
+		s.l.Logger.Error().
+			Err(err).Str("service", "redo").
+			Str("method", "start").
+			Msg("error while getting the list of auction IDs")
 		return err
 	}
 
-	for id, auctionId := range auctionIds {
-		log.Printf("\tprocessing auction id: %d\n", id)
-		needsRedo, err := s.collateral.ClipperLoader.GetAuctionStatus(auctionId)
+	for _, auctionId := range auctionIds {
+		status, err := s.clipper.GetStatus(&bind.CallOpts{Context: ctx}, auctionId)
 		if err != nil {
-			s.l.Logger.Error().Err(err).Str("service", "redo").Str("method", "Start").Msg("error while getting the status of the auction")
+			s.l.Logger.Error().Err(err).
+				Str("service", "redo").
+				Str("method", "start").
+				Int64("auctionId", auctionId.Int64()).
+				Msg("error while getting the status of the auction")
 			continue
 		}
 
-		if needsRedo {
-			s.Run(auctionId)
+		if status.NeedsRedo {
+			s.l.Logger.Info().
+				Str("service", "redo").
+				Str("method", "start").
+				Int64("auctionId", auctionId.Int64()).
+				Msg("auction needs redo")
+			err = s.Redo(auctionId)
+			if err != nil {
+				s.l.Logger.Error().Err(err).
+					Str("service", "redo").
+					Str("method", "start").
+					Int64("auctionId", auctionId.Int64()).
+					Msg("error while redoing the auction")
+			}
 		}
 	}
 
@@ -70,7 +80,7 @@ func (s *ClipperRedoService) Start(ctx context.Context) error {
 }
 
 // Run the service logic
-func (s *ClipperRedoService) Run(auctionId *big.Int) error {
+func (s *Service) Redo(auctionId *big.Int) error {
 	opts, err := s.sender.GetTransactOpts()
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "redo").Str("method", "Run").Msg("error while getting a transaction opts")
@@ -85,7 +95,6 @@ func (s *ClipperRedoService) Run(auctionId *big.Int) error {
 	return s.sender.HandleSentTx(tx)
 }
 
-// Stop the service
-func (s *ClipperRedoService) Stop() {
+func (s *Service) Stop() {
 	s.l.Logger.Panic().Str("service", "redo").Str("method", "Stop").Msg("Implement me!")
 }

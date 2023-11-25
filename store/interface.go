@@ -17,9 +17,7 @@ type IStore interface {
 	Migrateable
 	ITranasaction
 	IClipper
-	IVat
 	IDog
-	IVow
 	IBlockPtr
 	IEthereumLog
 	ILogMedianPrice
@@ -28,9 +26,6 @@ type IStore interface {
 	IFrob
 	IVatGrab
 	IFork
-	IFlog
-	IFess
-	IFlop
 	ILog
 }
 
@@ -48,17 +43,9 @@ type IClipper interface {
 	CreateTake(ctx context.Context, take *entities.ClipperTake, tx_id int64) (int64, error)
 	CreateRedo(ctx context.Context, redo entities.ClipperRedo, tx_id int64) (int64, error)
 }
-type IVat interface {
-	CreateHope(ctx context.Context, hope entities.VatHope, tx_id int64) (int64, error)
-}
 
 type IDog interface {
 	CreateBark(ctx context.Context, bark entities.DogBark, tx_id int64) (int64, error)
-}
-
-type IVow interface {
-	CreateKiss(ctx context.Context, kiss *entities.VowKiss, tx_id int64) (int64, error)
-	CreateHeal(ctx context.Context, heal *entities.VowHeal, tx_id int64) (int64, error)
 }
 
 type IBlockPtr interface {
@@ -118,10 +105,6 @@ type IFlog interface {
 
 type IFess interface {
 	CreateFess(ctx context.Context, fess vow.VowFess, logId uint64) (int64, error)
-}
-
-type IFlop interface {
-	CreateFlop(ctx context.Context, tx_id int64) (int64, error)
 }
 
 type ILog interface {

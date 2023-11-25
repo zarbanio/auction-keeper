@@ -71,16 +71,16 @@ func (p postgres) UpdateTransactionReceipt(ctx context.Context, id uint64, recip
 				cumulative_gas_used = $4, 
 				block_hash = $5 
 			WHERE id = $6`
-	err := p.conn.QueryRow(ctx, q,
+	_, err := p.conn.Exec(ctx, q,
 		header.Time,
-		recipt.BlockNumber,
+		recipt.BlockNumber.Uint64(),
 		recipt.Status,
 		recipt.CumulativeGasUsed,
 		header.Hash().String(),
 		id,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to update block data in transaction: %w", err)
+		return fmt.Errorf("failed to update block data in transaction: %s", err)
 	}
 	return nil
 }
