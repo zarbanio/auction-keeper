@@ -24,5 +24,13 @@ func Register(root *cobra.Command) {
 			listClippers(cfg)
 		},
 	})
+	auctions.AddCommand(&cobra.Command{
+		Use: "list",
+		Run: func(cmd *cobra.Command, args []string) {
+			configFile, _ := cmd.Flags().GetString("config")
+			cfg := configs.ReadConfig(configFile)
+			listAuctions(cfg)
+		},
+	})
 	root.AddCommand(auctions)
 }
