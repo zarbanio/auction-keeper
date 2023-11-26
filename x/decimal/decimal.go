@@ -122,17 +122,20 @@ func (d Decimal) IsNegative() bool {
 }
 
 func (d Decimal) Neg() Decimal {
-	val := new(big.Int).Neg(d.BigInt())
 	return Decimal{
-		value: apd.NewWithBigInt(val, 0),
+		value: d.value.Neg(d.value),
 	}
 }
 
 // BigInt returns integer component of the decimal as a BigInt.
-func (d Decimal) BigInt() *big.Int {
+func (d Decimal) BigInt() (*big.Int, error) {
 	i := &big.Int{}
-	i.SetString(d.value.String(), 10)
-	return i
+	v, err := d.value.Int64()
+	if err != nil {
+		return nil, err
+	}
+	i.SetInt64(v)
+	return i, nil
 }
 
 // Min returns the smallest Decimal that was passed in the arguments.
@@ -245,8 +248,43 @@ func (d Decimal) Mul(b Decimal) Decimal {
 	return Decimal{value: c, ctx: d.ctx}
 }
 
+func (d Decimal) Pow(b Decimal) Decimal {
+	c := &apd.Decimal{}
+	_, err := d.ctx.Pow(c, d.value, b.value)
+	if err != nil {
+		panic(err)
+	}
+	return Decimal{value: c, ctx: d.ctx}
+}
+
+func Round(d Decimal, precision uint32) Decimal {
+	ctx := apd.BaseContext.WithPrecision(precision)
+	c := &apd.Decimal{}
+	_, err := ctx.Round(c, d.value)
+	if err != nil {
+		panic(err)
+	}
+	return Decimal{value: c, ctx: ctx}
+}
+
 func (d Decimal) String() string {
-	return d.value.Text('f')
+	return removeTrailingZerosIterative(d.value.Text('f'))
+}
+
+func removeTrailingZerosIterative(s string) string {
+	if !strings.Contains(s, ".") {
+		return s
+	}
+
+	for i := len(s) - 1; i >= 0; i-- {
+		if s[i] != '0' {
+			if s[i] == '.' {
+				return s[:i]
+			}
+			return s[:i+1]
+		}
+	}
+	return s
 }
 
 func (d *Decimal) Scan(value interface{}) error {

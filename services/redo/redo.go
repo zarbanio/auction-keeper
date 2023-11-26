@@ -13,6 +13,7 @@ import (
 )
 
 type Service struct {
+	ilkName string
 	eth     *ethclient.Client
 	clipper *clipper.Clipper
 	sender  sender.Sender
@@ -20,6 +21,7 @@ type Service struct {
 }
 
 func NewService(
+	ilkName string,
 	eth *ethclient.Client,
 	clipperAddr common.Address,
 	sender sender.Sender,
@@ -31,6 +33,7 @@ func NewService(
 	}
 
 	return &Service{
+		ilkName: ilkName,
 		eth:     eth,
 		clipper: c,
 		sender:  sender,
@@ -38,12 +41,13 @@ func NewService(
 	}
 }
 
-func (s *Service) Start(ctx context.Context) error {
+func (s *Service) Run(ctx context.Context) error {
 	auctionIds, err := s.clipper.List(&bind.CallOpts{Context: ctx})
 	if err != nil {
 		s.l.Logger.Error().
 			Err(err).Str("service", "redo").
-			Str("method", "start").
+			Str("method", "run").
+			Str("ilkName", s.ilkName).
 			Msg("error while getting the list of auction IDs")
 		return err
 	}
@@ -53,7 +57,8 @@ func (s *Service) Start(ctx context.Context) error {
 		if err != nil {
 			s.l.Logger.Error().Err(err).
 				Str("service", "redo").
-				Str("method", "start").
+				Str("method", "run").
+				Str("ilkName", s.ilkName).
 				Int64("auctionId", auctionId.Int64()).
 				Msg("error while getting the status of the auction")
 			continue
@@ -62,19 +67,34 @@ func (s *Service) Start(ctx context.Context) error {
 		if status.NeedsRedo {
 			s.l.Logger.Info().
 				Str("service", "redo").
-				Str("method", "start").
+				Str("method", "run").
+				Str("ilkName", s.ilkName).
 				Int64("auctionId", auctionId.Int64()).
 				Msg("auction needs redo")
 			err = s.Redo(auctionId)
 			if err != nil {
 				s.l.Logger.Error().Err(err).
 					Str("service", "redo").
-					Str("method", "start").
+					Str("method", "run").
+					Str("ilkName", s.ilkName).
 					Int64("auctionId", auctionId.Int64()).
 					Msg("error while redoing the auction")
+			} else {
+				s.l.Logger.Info().
+					Str("service", "redo").
+					Str("method", "run").
+					Str("ilkName", s.ilkName).
+					Int64("auctionId", auctionId.Int64()).
+					Msg("auction redo successfully")
 			}
 		}
 	}
+
+	s.l.Logger.Info().
+		Str("service", "redo").
+		Str("method", "run").
+		Str("ilkName", s.ilkName).
+		Msg("auction redo service iteration completed")
 
 	return nil
 }

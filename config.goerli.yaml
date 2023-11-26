@@ -51,10 +51,24 @@ Ilks:
         Fee: 10000
         TokenA: '0x7df1d674021792630e15eca46467516660e021af'
         TokenB: '0x13e321ce763af4036d753b573527ff3f874ede59'
+  - Name: 'DAIA'
+    Decimals: 18
+    UniswapV3Path:
+      - # DAI -> ZAR
+        Fee: 10000
+        TokenA: '0x7df1d674021792630e15eca46467516660e021af'
+        TokenB: '0x13e321ce763af4036d753b573527ff3f874ede59'
+  - Name: 'DAIB'
+    Decimals: 18
+    UniswapV3Path:
+      - # DAI -> ZAR
+        Fee: 10000
+        TokenA: '0x7df1d674021792630e15eca46467516660e021af'
+        TokenB: '0x13e321ce763af4036d753b573527ff3f874ede59'
 Processor:
   MinProfitPercentage: 1025  # decimal is 3 -> float MinProfitPercentage = 1.025
   MinLotZarValue: 0
-  MaxLotZarValue: 1000000
+  MaxLotZarValue: 1000
 Times:
   VaultTicker: 60
   FlopperTicker: 60
@@ -72,6 +86,7 @@ Contracts:
   ETHMedian: '0x41ECBCe83cC5Da85B37bd02CeD243901EB0AFbE6'
   DAIMedian: '0x60777C494a9d72074aaF46F2cdAb7cd1E6AA6245'
   DAI: '0x7df1d674021792630e15eca46467516660e021af'
+  ZAR: '0x13e321ce763af4036d753b573527ff3f874ede59'
   WETH: '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6'
   UniswapV3Quoter: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6'
   UniswapV3Callee: '0x040bC072eE59551aFc67DDF3a265c42e762728fe'

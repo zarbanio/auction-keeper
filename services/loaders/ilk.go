@@ -39,7 +39,7 @@ type join struct {
 }
 
 func NewIlksLoader(
-	ceth eth.CachedEthereum,
+	ceth eth.Ethereum,
 	store store.IStore,
 	vatAddr,
 	jugAddr,

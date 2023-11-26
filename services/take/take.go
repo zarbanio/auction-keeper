@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"os"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -158,6 +160,9 @@ func NewService(
 		sender:        options.Sender,
 		quoter:        options.Quoter,
 		assetDecimals: options.AssetDecimals,
+		callee:        options.Callee,
+		gemjoin:       options.GemJoin,
+		path:          options.Path,
 		l:             options.Logger,
 	}
 }
@@ -233,6 +238,8 @@ func (s *Service) Start(ctx context.Context, minProfitPercentage, minLotZarValue
 
 		// determine configured lot sizes in Gem terms
 		minLot, maxLot := s.getMinAndMaxLot(minLotZarValue, maxLotZarValue, collateralPrice)
+		fmt.Println("minLot", minLot.String())
+		fmt.Println("maxLot", maxLot.String())
 
 		// adjust lot based upon slice taken at the current auction price
 		slice18 := math.BigMin(maxLot, auction.Lot)
@@ -290,9 +297,18 @@ func (s *Service) Start(ctx context.Context, minProfitPercentage, minLotZarValue
 
 		// Find the minimum effective exchange rate between collateral/Zar
 		// e.x. ETH price 1000 Zar -> minimum profit of 1% -> new ETH price is 1000*1.01 = 1010
-		calcMinProfit45 := new(big.Int).Mul(owe27, minProfitPercentage)
-		totalMinProfit45 := new(big.Int).Sub(calcMinProfit45, new(big.Int).Mul(owe27, Decimals18))
+		owe45 := new(big.Int).Mul(owe27, Decimals18)
+		minProfitPercentage18 := new(big.Int).Mul(minProfitPercentage, Decimals15)
+
+		calcMinProfit45 := new(big.Int).Mul(owe27, minProfitPercentage18) // owe * minProfitPercentage
+		totalMinProfit45 := new(big.Int).Sub(calcMinProfit45, owe45)
 		minProfit := new(big.Int).Div(totalMinProfit45, Decimals27)
+
+		fmt.Println("minProfitPercentage", minProfitPercentage.String())
+		fmt.Println("owe45           ", owe45.String())
+		fmt.Println("calcMinProfit45 ", calcMinProfit45.String())
+		fmt.Println("totalMinProfit45", totalMinProfit45.String())
+		fmt.Println("minProfit       ", minProfit.String())
 
 		debtToCover := new(big.Int).Div(owe27, Decimals9)
 
@@ -308,6 +324,8 @@ func (s *Service) Start(ctx context.Context, minProfitPercentage, minLotZarValue
 		// Do not increase too much to not significantly go over configured maxAmt.
 		amt := new(big.Int).Div(new(big.Int).Mul(lot, big.NewInt(1000001)), big.NewInt(1000000))
 
+		fmt.Println("debtToCover      ", debtToCover.String())
+		fmt.Println("minUniV3Proceeds ", minUniV3Proceeds.String())
 		if debtToCover.Cmp(minUniV3Proceeds) > 0 {
 			s.l.Logger.Info().
 				Str("service", "take").
@@ -359,6 +377,7 @@ func (s *Service) Take(take inputMethods.ClipperTake, minProfit *big.Int, profit
 		return fmt.Errorf(fmt.Sprintf("error in get route: %v", err))
 	}
 
+	fmt.Println("minProfit", minProfit.String())
 	flashData, err := args.Pack(profitAddr, gemJoinAdapter, minProfit, route, common.Address{0})
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "take").Msg("error while getting the flashData")
@@ -371,11 +390,22 @@ func (s *Service) Take(take inputMethods.ClipperTake, minProfit *big.Int, profit
 		return err
 	}
 
-	tx, err := s.clip.Take(opts, take.Auction_id, take.Amt, take.Max, take.Who, flashData)
+	fmt.Println("take.Auction_id", take.Auction_id)
+	fmt.Println("take.Amt", take.Amt)
+	fmt.Println("take.Max", take.Max)
+	fmt.Println("take.Who", take.Who)
+	fmt.Println("take.flashData", len(flashData))
+
+	// opts.GasLimit = 1_000_000
+	tx, err := s.clip.Take(opts, take.Auction_id, take.Amt, take.Max, take.Who, nil)
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "take").Msg("error while calling the clipper take method")
+		os.Exit(1)
 		return err
 	}
+	fmt.Println("tx.Hash", tx.Hash().String())
+	time.Sleep(10 * time.Second)
+	os.Exit(1)
 	return s.sender.HandleSentTx(tx)
 }
 
@@ -401,6 +431,10 @@ func (s *Service) getCurrentTime(ctx context.Context) (uint64, error) {
 
 func (s *Service) getMinAndMaxLot(minLotZarValue, maxLotZarValue, collateralPrice *big.Int) (*big.Int, *big.Int) {
 	// determine configured lot sizes in Gem terms
+	fmt.Println("minLotZarValue ", minLotZarValue.String())
+	fmt.Println("maxLotZarValue ", maxLotZarValue.String())
+	fmt.Println("collateralPrice", collateralPrice.String())
+
 	minLotZarValue18 := new(big.Int).Mul(minLotZarValue, Decimals18)
 	minLot := new(big.Int).Div(minLotZarValue18, new(big.Int).Div(collateralPrice, Decimals9))
 	maxLotZarValue18 := new(big.Int).Mul(new(big.Int).Mul(maxLotZarValue, Decimals18), Decimals18)

@@ -48,9 +48,7 @@ type Config struct {
 	}
 	Ilks []struct {
 		Name          string                    `yaml:"Name"`
-		Gem           common.Address            `yaml:"Gem"`
 		Decimals      int64                     `yaml:"Decimals"`
-		GemJoin       common.Address            `yaml:"GemJoin"`
 		UniswapV3Path []entities.UniswapV3Route `yaml:"UniswapV3Path"`
 	} `yaml:"Ilks"`
 	Processor struct {
@@ -76,6 +74,7 @@ type Config struct {
 		DAIMedian       common.Address `yaml:"DAIMedian"`
 		ETHMedian       common.Address `yaml:"ETHMedian"`
 		DAI             common.Address `yaml:"DAI"`
+		ZAR             common.Address `yaml:"ZAR"`
 		WETH            common.Address `yaml:"WETH"`
 		UniswapV3Quoter common.Address `yaml:"UniswapV3Quoter"`
 		UniswapV3Callee common.Address `yaml:"UniswapV3Callee"`
@@ -153,24 +152,6 @@ func (c Config) FindIlkUniswapPath(name string) []entities.UniswapV3Route {
 		}
 	}
 	return nil
-}
-
-func (c Config) FindIlkGemJoin(name string) common.Address {
-	for _, ilk := range c.Ilks {
-		if ilk.Name == name {
-			return ilk.GemJoin
-		}
-	}
-	return common.Address{}
-}
-
-func (c Config) FindIlkGem(name string) common.Address {
-	for _, ilk := range c.Ilks {
-		if ilk.Name == name {
-			return ilk.Gem
-		}
-	}
-	return common.Address{}
 }
 
 func (c Config) FindIlkDecimals(name string) *big.Int {

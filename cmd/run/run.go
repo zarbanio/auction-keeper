@@ -1,4 +1,4 @@
-package cmd
+package run
 
 import (
 	"context"
@@ -6,16 +6,18 @@ import (
 	"math/big"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/spf13/cobra"
 	"github.com/zarbanio/auction-keeper/cache"
 	"github.com/zarbanio/auction-keeper/configs"
 	"github.com/zarbanio/auction-keeper/services/bark"
 	"github.com/zarbanio/auction-keeper/services/cachedeth"
 	"github.com/zarbanio/auction-keeper/services/loaders"
-	loggerPkg "github.com/zarbanio/auction-keeper/services/logger"
+	"github.com/zarbanio/auction-keeper/services/logger"
 	"github.com/zarbanio/auction-keeper/services/redo"
 	"github.com/zarbanio/auction-keeper/services/sender"
 	"github.com/zarbanio/auction-keeper/services/signer"
@@ -24,10 +26,17 @@ import (
 	"github.com/zarbanio/auction-keeper/store"
 )
 
-func Execute() {
-	cfg := configs.ReadConfig("config.goerli.yaml")
+type Mode string
+
+const (
+	Bark Mode = "bark"
+	Redo Mode = "redo"
+	Take Mode = "take"
+)
+
+func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
-	logger := loggerPkg.NewLogger(context.Background(), postgresStore)
+	logger := logger.NewLogger(context.Background(), postgresStore)
 
 	eth, err := ethclient.Dial(cfg.Network.Node.Api)
 	if err != nil {
@@ -112,6 +121,10 @@ func Execute() {
 			log.Fatal("error saving ilks.", err)
 		}
 
+		if len(allowedIlks) > 0 && !contains(allowedIlks, ilk.Name) {
+			continue
+		}
+
 		clipperTakeServices = append(
 			clipperTakeServices,
 			take.NewService(
@@ -124,12 +137,14 @@ func Execute() {
 				take.WithSender(sender),
 				take.WithLogger(logger),
 				take.WithIlkName(ilk.Name),
+				take.WithCallee(cfg.Contracts.UniswapV3Callee),
 			),
 		)
 
 		clipperRedoServices = append(
 			clipperRedoServices,
 			redo.NewService(
+				ilk.Name,
 				eth,
 				ilk.Clipper,
 				sender,
@@ -143,55 +158,102 @@ func Execute() {
 		cfg.Contracts.Vat,
 	)
 
-	go func() {
-		for {
-			for _, rs := range clipperRedoServices {
-				err = rs.Start(context.Background())
-				if err != nil {
-					log.Fatal(err)
+	dogBarkService := bark.NewService(
+		context.Background(),
+		eth,
+		postgresStore,
+		addrs["dog"],
+		addrs["spot"],
+		vaultLoader,
+		vatLoader,
+		ilksLoader,
+		sender,
+		logger,
+	)
+
+	for _, mode := range modes {
+		switch mode {
+		case Bark:
+			go func() {
+				for {
+					dogBarkService.Start(context.Background())
 				}
-			}
-		}
-	}()
-
-	go func() {
-		for {
-			dogBarkService := bark.NewService(
-				context.Background(),
-				eth,
-				postgresStore,
-				addrs["dog"],
-				addrs["spot"],
-				vaultLoader,
-				vatLoader,
-				ilksLoader,
-				sender,
-				logger,
-			)
-
-			dogBarkService.Start(context.Background())
-		}
-	}()
-
-	go func() {
-		for {
-			for _, ts := range clipperTakeServices {
-				err = ts.Start(
-					context.Background(),
-					big.NewInt(cfg.Processor.MinProfitPercentage),
-					big.NewInt(cfg.Processor.MinLotZarValue),
-					big.NewInt(cfg.Processor.MaxLotZarValue),
-					cfg.Wallet.Address,
-				)
-				if err != nil {
-					log.Fatal(err)
+			}()
+		case Redo:
+			go func() {
+				for {
+					for _, rs := range clipperRedoServices {
+						err = rs.Run(context.Background())
+						if err != nil {
+							log.Fatal(err)
+						}
+					}
 				}
-			}
+			}()
+		case Take:
+			go func() {
+				for {
+					for _, ts := range clipperTakeServices {
+						err = ts.Start(
+							context.Background(),
+							big.NewInt(cfg.Processor.MinProfitPercentage),
+							big.NewInt(cfg.Processor.MinLotZarValue),
+							big.NewInt(cfg.Processor.MaxLotZarValue),
+							cfg.Wallet.Address,
+						)
+						if err != nil {
+							log.Fatal(err)
+						}
+					}
+				}
+			}()
 		}
-	}()
+	}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	os.Exit(1)
+}
+
+func Register(root *cobra.Command) {
+	root.PersistentFlags().String("modes", "bark,redo,take", "run mode")
+	root.PersistentFlags().String("ilks", "daia,daib,etha,ethb", "ilks to run on")
+	root.AddCommand(
+		&cobra.Command{
+			Use:   "run",
+			Short: "run keeper",
+			Run: func(cmd *cobra.Command, args []string) {
+				configFile, _ := cmd.Flags().GetString("config")
+				mode, _ := cmd.Flags().GetString("modes")
+				tokens := strings.Split(mode, ",")
+
+				if len(tokens) == 0 {
+					log.Fatal("no mode specified")
+				}
+
+				modes := []Mode{}
+				for _, m := range tokens {
+					if m != string(Bark) && m != string(Redo) && m != string(Take) {
+						log.Fatal("invalid mode specified")
+					}
+					modes = append(modes, Mode(m))
+				}
+
+				ilks, _ := cmd.Flags().GetString("ilks")
+				allowedIlks := strings.Split(ilks, ",")
+
+				cfg := configs.ReadConfig(configFile)
+				main(cfg, modes, allowedIlks)
+			},
+		},
+	)
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if strings.EqualFold(a, e) {
+			return true
+		}
+	}
+	return false
 }

@@ -13,7 +13,7 @@ func (a Actions) Hope(hope *entities.VatHope) (*types.Transaction, error) {
 		return nil, err
 	}
 
-	tx, err := a.vat.VatTransactor.Hope(opts, hope.Usr)
+	tx, err := a.vat.Hope(opts, hope.Usr)
 	if err != nil {
 		return nil, err
 	}
