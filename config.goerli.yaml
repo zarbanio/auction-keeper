@@ -68,7 +68,7 @@ Ilks:
 Processor:
   MinProfitPercentage: 1025  # decimal is 3 -> float MinProfitPercentage = 1.025
   MinLotZarValue: 0
-  MaxLotZarValue: 1000
+  MaxLotZarValue: 10000
 Times:
   VaultTicker: 60
   FlopperTicker: 60
