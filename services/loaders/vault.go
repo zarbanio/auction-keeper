@@ -111,7 +111,6 @@ func (vl *VaultLoader) fetchVaultByCDP(ctx context.Context, c cdp) (*domain.Vaul
 	if err != nil {
 		return nil, err
 	}
-
 	ilk, err := vl.store.GetIlkByName(ctx, domain.Bytes32ToString(c.ilk))
 	if err != nil {
 		if errors.Is(err, cache.ErrIlkNotFound) {
@@ -147,6 +146,7 @@ func (vl *VaultLoader) fetchVaultByCDP(ctx context.Context, c cdp) (*domain.Vaul
 
 func (vl *VaultLoader) FetchAllVaults(ctx context.Context) ([]domain.Vault, error) {
 	cdpi, err := vl.manager.Cdpi(&bind.CallOpts{Context: ctx})
+
 	if err != nil {
 		return []domain.Vault{}, err
 	}

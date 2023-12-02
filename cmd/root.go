@@ -7,6 +7,7 @@ import (
 	"github.com/zarbanio/auction-keeper/cmd/account"
 	"github.com/zarbanio/auction-keeper/cmd/auctions"
 	"github.com/zarbanio/auction-keeper/cmd/run"
+	"github.com/zarbanio/auction-keeper/cmd/vaults"
 )
 
 func Execute() {
@@ -20,6 +21,7 @@ func Execute() {
 	run.Register(root)
 	account.Register(root)
 	auctions.Register(root)
+	vaults.Register(root)
 
 	if err := root.Execute(); err != nil {
 		log.Fatal(err)
