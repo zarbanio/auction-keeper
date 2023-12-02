@@ -17,15 +17,6 @@ func Register(root *cobra.Command) {
 		},
 	}
 
-	vaults.AddCommand(&cobra.Command{
-		Use: "list",
-		Run: func(cmd *cobra.Command, args []string) {
-			configFile, _ := cmd.Flags().GetString("config")
-			cfg := configs.ReadConfig(configFile)
-			listVaults(cfg)
-		},
-	})
-
 	lsCmd := &cobra.Command{
 		Use: "ls [id]",
 		Run: func(cmd *cobra.Command, args []string) {
