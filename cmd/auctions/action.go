@@ -2,7 +2,6 @@ package auctions
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"math/big"
 
@@ -17,6 +16,8 @@ import (
 	"github.com/zarbanio/auction-keeper/services/redo"
 	"github.com/zarbanio/auction-keeper/services/sender"
 	"github.com/zarbanio/auction-keeper/services/signer"
+	"github.com/zarbanio/auction-keeper/services/take"
+	"github.com/zarbanio/auction-keeper/services/uniswap_v3"
 	"github.com/zarbanio/auction-keeper/store"
 )
 
@@ -105,8 +106,35 @@ func action(cfg configs.Config, mode Mode, ilkName string, auctionId *big.Int) {
 						}
 					}
 					if mode == "take" {
-						// ! TODO: TAKE SERVICE
-						fmt.Println("will be implemented")
+						quoter, err := uniswap_v3.NewUniswapV3Quoter(eth, cfg.Contracts.UniswapV3Quoter)
+						if err != nil {
+							log.Fatal("error loading uniswap v3 quoter.", err)
+						}
+
+						takeService := take.NewService(
+							take.WithEthClient(eth),
+							take.WithClipperAddr(ilk.Clipper),
+							take.WithQuoter(quoter),
+							take.WithPath(cfg.FindIlkUniswapPath(ilk.Name)),
+							take.WithGemJoin(ilk.Join),
+							take.WithAssetDecimals(cfg.FindIlkDecimals(ilk.Name)),
+							take.WithSender(sender),
+							take.WithLogger(logger),
+							take.WithIlkName(ilk.Name),
+							take.WithCallee(cfg.Contracts.UniswapV3Callee),
+						)
+
+						err = takeService.TakeById(
+							context.Background(),
+							auctionId,
+							big.NewInt(cfg.Processor.MinProfitPercentage),
+							big.NewInt(cfg.Processor.MinLotZarValue),
+							big.NewInt(cfg.Processor.MaxLotZarValue),
+							cfg.Wallet.Address,
+						)
+						if err != nil {
+							logger.ConsoleLogger.Err(err).Msg("error while taking the auction.")
+						}
 					}
 					break
 				}

@@ -351,6 +351,154 @@ func (s *Service) Start(ctx context.Context, minProfitPercentage, minLotZarValue
 	return nil
 }
 
+func (s *Service) TakeById(ctx context.Context, auctionId *big.Int, minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address) error {
+
+	currentTime, err := s.getCurrentTime(ctx)
+	if err != nil {
+		s.l.Logger.Error().Err(err).
+			Str("service", "take").
+			Str("method", "TakeById").
+			Msg("error while getting current time")
+		return err
+	}
+
+	auction, err := s.clip.Sales(&bind.CallOpts{Context: ctx}, auctionId)
+	if err != nil {
+		s.l.Logger.Error().Err(err).
+			Str("service", "take").
+			Str("method", "TakeById").
+			Str("ilk", s.IlkName).
+			Int64("auctionId", auctionId.Int64()).
+			Msg("error while getting an auction")
+		return err
+	}
+
+	collateralPrice, err := s.abacus.Price(&bind.CallOpts{Context: context.Background()}, auction.Top, big.NewInt(int64(currentTime)-auction.Tic.Int64()))
+	if err != nil {
+		s.l.Logger.Error().Err(err).
+			Str("service", "take").
+			Str("method", "TakeById").
+			Str("ilk", s.IlkName).
+			Int64("auctionId", auctionId.Int64()).
+			Msg("error while getting the collateral price")
+		return err
+	}
+	if collateralPrice.Cmp(big.NewInt(0)) <= 0 {
+		s.l.Logger.Error().
+			Err(err).
+			Str("service", "take").
+			Str("method", "TakeById").
+			Str("ilk", s.IlkName).
+			Msg("collateral price is less than or equal to zero")
+		return err
+	}
+
+	s.l.Logger.Info().
+		Str("service", "take").
+		Str("method", "TakeById").
+		Int64("auctionId", auctionId.Int64()).
+		Str("ilk", s.IlkName).
+		Msg("auction is active")
+	s.l.Logger.Info().Str("service", "take").
+		Str("method", "TakeById").
+		Int64("auctionId", auctionId.Int64()).
+		Str("collateralPrice", collateralPrice.String()).
+		Str("ilk", s.IlkName).
+		Msg("collateral price")
+
+	// determine configured lot sizes in Gem terms
+	minLot, maxLot := s.getMinAndMaxLot(minLotZarValue, maxLotZarValue, collateralPrice)
+
+	// adjust lot based upon slice taken at the current auction price
+	slice18 := math.BigMin(maxLot, auction.Lot)
+	owe27 := new(big.Int).Div(new(big.Int).Mul(slice18, collateralPrice), Decimals18)
+	tab27 := new(big.Int).Div(auction.Tab, Decimals18)
+
+	// adjust covered debt to tab, such that slice better reflects amount of collateral we'd receive
+	if owe27.Cmp(tab27) > 0 {
+		owe27 = tab27
+		slice18 = new(big.Int).Div(owe27, new(big.Int).Div(collateralPrice, Decimals18))
+	} else if owe27.Cmp(tab27) < 0 && slice18.Cmp(auction.Lot) < 0 {
+		chost27 := new(big.Int).Div(s.chost, Decimals18)
+		if new(big.Int).Sub(tab27, owe27).Cmp(chost27) < 0 {
+			if tab27.Cmp(chost27) <= 0 {
+				// If tab <= chost, buyers have to take the entire lot.
+				owe27 = chost27
+			} else {
+				// adjust amount to pay
+				owe27 = new(big.Int).Sub(tab27, chost27)
+			}
+			slice18 = new(big.Int).Div(owe27, new(big.Int).Div(collateralPrice, Decimals18))
+		}
+		if slice18.Cmp(maxLot) > 0 { // handle corner case where maxLotZarValue is set too low
+			log.Printf("Ignoring auction %d whose chost-adjusted slice of %d exceeds our maximum lot of %d\n", auctionId, slice18, maxLot)
+			s.l.Logger.Info().Str("service", "take").
+				Str("method", "TakeById").
+				Str("ilk", s.IlkName).
+				Int64("auctionId", auctionId.Int64()).
+				Str("slice18", slice18.String()).
+				Str("maxLot", maxLot.String()).
+				Msg("ignoring auction whose chost-adjusted slice exceeds our maximum lot")
+			return err
+		}
+	}
+
+	if slice18.Cmp(auction.Lot) > 0 {
+		// HACK: I suspect the issue involves interplay between reading price from the abacus and not having multicall.
+		slice18 = auction.Lot
+		owe27 = new(big.Int).Div(new(big.Int).Mul(slice18, collateralPrice), Decimals18)
+	}
+
+	lot := slice18
+	if lot.Cmp(minLot) < 0 {
+		// slice approaches lot as auction price decreases towards owe == tab
+		s.l.Logger.Info().
+			Str("service", "take").
+			Str("method", "TakeById").
+			Str("ilk", s.IlkName).
+			Int64("auctionId", auctionId.Int64()).
+			Str("slice18", slice18.String()).
+			Str("minLot", minLot.String()).
+			Msg("ignoring auction while slice is smaller than our minimum lot")
+		return err
+	}
+
+	// Find the minimum effective exchange rate between collateral/Zar
+	// e.x. ETH price 1000 Zar -> minimum profit of 1% -> new ETH price is 1000*1.01 = 1010
+	owe45 := new(big.Int).Mul(owe27, Decimals18)
+	minProfitPercentage18 := new(big.Int).Mul(minProfitPercentage, Decimals15)
+
+	calcMinProfit45 := new(big.Int).Mul(owe27, minProfitPercentage18) // owe * minProfitPercentage
+	totalMinProfit45 := new(big.Int).Sub(calcMinProfit45, owe45)
+	minProfit := new(big.Int).Div(totalMinProfit45, Decimals27)
+
+	amt := new(big.Int).Div(new(big.Int).Mul(lot, big.NewInt(1000001)), big.NewInt(1000000))
+
+	take := inputMethods.ClipperTake{
+		Auction_id: auctionId,
+		Amt:        amt,
+		Max:        collateralPrice,
+		Who:        s.callee,
+	}
+	err = s.Take(take, minProfit, profitAddress, s.gemjoin)
+	if err != nil {
+		s.l.Logger.Error().Err(err).
+			Str("service", "take").
+			Str("method", "TakeById").
+			Str("ilk", s.IlkName).
+			Int64("auctionId", auctionId.Int64()).
+			Msg("error while executing an auction")
+		return err
+	}
+	s.l.Logger.Info().
+		Str("service", "take").
+		Str("method", "TakeById").
+		Str("ilk", s.IlkName).
+		Msg("take Service iteration completed")
+
+	return nil
+}
+
 var (
 	Uint256, _ = abi.NewType("uint256", "", nil)
 	Bytes, _   = abi.NewType("bytes", "", nil)
