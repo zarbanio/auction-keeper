@@ -116,5 +116,37 @@ Wallet:
 go build
 ```
 
+## Commands
 
-    
+### account
+Manage account - check balance, join pool, etc.
+
+account balance         # Check account ETH balance
+account join <amount>   # Join pool with specified amount 
+account hope <address>  # Check account's hope balance
+
+### auctions
+
+Manage auctions - list auctions, redo, take, etc.
+
+auctions clippers       # List auction clippers
+auctions list           # List all auctions 
+auctions redo <ilk> <id> # Redo specific auction
+auctions take <ilk> <id>  # Take funds from specific auction
+
+### vaults
+
+View and list Maker vaults
+
+vaults ls               # List default vault set
+vaults ls --all         # List all vaults
+vaults ls <id>          # List specific vault by ID
+
+### run
+
+Run the keeper across different modes
+
+run                     # Runs in default bark, redo and take modes
+run --modes bark        # Run only in bark mode
+run --modes redo        # Run only in redo mode
+run --ilks ethb,daib    # Run on specific ilks
