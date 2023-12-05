@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/zarbanio/auction-keeper/bindings/uniswap_v3_quoter"
+	uniswap_v3_quoter "github.com/zarbanio/auction-keeper/bindings/uniswapv3/quoter"
 	"github.com/zarbanio/auction-keeper/domain/entities"
 )
 

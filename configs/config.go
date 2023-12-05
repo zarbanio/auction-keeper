@@ -2,6 +2,7 @@ package configs
 
 import (
 	"log"
+	"math/big"
 	"reflect"
 	"time"
 
@@ -45,21 +46,11 @@ type Config struct {
 		Private string         `yaml:"Private"`
 		Address common.Address `yaml:"Address"`
 	}
-	ZarJoin                common.Address `yaml:"ZarJoin"`
-	Vat                    common.Address `yaml:"Vat"`
-	Vow                    common.Address `yaml:"Vow"`
-	Dog                    common.Address `yaml:"Dog"`
-	Flopper                common.Address `yaml:"Flopper"`
-	UniswapV3QuoterAddress common.Address `yaml:"UniswapV3QuoterAddress"`
-	Collaterals            []struct {
-		Name            string                    `yaml:"Name"`
-		Erc20addr       common.Address            `yaml:"Erc20addr"`
-		Decimals        int64                     `yaml:"Decimals"`
-		Clipper         common.Address            `yaml:"Clipper"`
-		GemJoinAdapter  common.Address            `yaml:"GemJoinAdapter"`
-		UniswapV3Callee common.Address            `yaml:"UniswapV3Callee"`
-		UniswapV3Path   []entities.UniswapV3Route `yaml:"UniswapV3Path"`
-	}
+	Ilks []struct {
+		Name          string                    `yaml:"Name"`
+		Decimals      int64                     `yaml:"Decimals"`
+		UniswapV3Path []entities.UniswapV3Route `yaml:"UniswapV3Path"`
+	} `yaml:"Ilks"`
 	Processor struct {
 		MinProfitPercentage int64 `yaml:"MinProfitPercentage"`
 		MinLotZarValue      int64 `yaml:"MinLotZarValue"`
@@ -83,7 +74,14 @@ type Config struct {
 		DAIMedian       common.Address `yaml:"DAIMedian"`
 		ETHMedian       common.Address `yaml:"ETHMedian"`
 		DAI             common.Address `yaml:"DAI"`
+		ZAR             common.Address `yaml:"ZAR"`
 		WETH            common.Address `yaml:"WETH"`
+		UniswapV3Quoter common.Address `yaml:"UniswapV3Quoter"`
+		UniswapV3Callee common.Address `yaml:"UniswapV3Callee"`
+		ZarJoin         common.Address `yaml:"ZarJoin"`
+		Vat             common.Address `yaml:"Vat"`
+		Vow             common.Address `yaml:"Vow"`
+		Dog             common.Address `yaml:"Dog"`
 	}
 }
 
@@ -145,4 +143,22 @@ func EthAddressDecodeHookFunc() mapstructure.DecodeHookFuncType {
 		// Format/decode/parse the data and return the new value
 		return common.HexToAddress(data.(string)), nil
 	}
+}
+
+func (c Config) FindIlkUniswapPath(name string) []entities.UniswapV3Route {
+	for _, ilk := range c.Ilks {
+		if ilk.Name == name {
+			return ilk.UniswapV3Path
+		}
+	}
+	return nil
+}
+
+func (c Config) FindIlkDecimals(name string) *big.Int {
+	for _, ilk := range c.Ilks {
+		if ilk.Name == name {
+			return big.NewInt(ilk.Decimals)
+		}
+	}
+	return big.NewInt(0)
 }

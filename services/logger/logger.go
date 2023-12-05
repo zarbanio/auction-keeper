@@ -40,9 +40,9 @@ type Logger struct {
 func NewLogger(ctx context.Context, s store.IStore) *Logger {
 	customWriter := NewCustomWriter(ctx, s, os.Stdout)
 	// logger writes logs to the database using CustomWriter
-	logger := zerolog.New(customWriter).With().Caller().Logger().Output(customWriter)
+	logger := zerolog.New(customWriter).With().Timestamp().Logger().Output(customWriter)
 	// consoleLogger writes logs only to the console, not to the database
-	consoleLogger := zerolog.New(os.Stdout).With().Caller().Logger()
+	consoleLogger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	return &Logger{
 		ConsoleLogger: consoleLogger,

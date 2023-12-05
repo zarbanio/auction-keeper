@@ -22,15 +22,16 @@ type Sender interface {
 
 type sender struct {
 	signer  signer.Signer
-	eth     *ethclient.Client // TODO: create a custom interface with only pendingStateReader and GasPricer
+	eth     *ethclient.Client
 	txs     store.ITranasaction
 	timeout time.Duration
 }
 
-func NewSender(signer signer.Signer, eth *ethclient.Client) Sender {
+func NewSender(signer signer.Signer, txs store.ITranasaction, eth *ethclient.Client) Sender {
 	return &sender{
 		signer:  signer,
 		eth:     eth,
+		txs:     txs,
 		timeout: 1 * time.Minute, // TODO: make this configurable
 	}
 }

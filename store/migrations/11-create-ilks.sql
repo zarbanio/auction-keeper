@@ -8,5 +8,8 @@ CREATE TABLE if not exists ilks (
     dust_limit                          VARCHAR(255) NOT NULL,
     price                               VARCHAR(255) NOT NULL,
     rate                                NUMERIC(78) NOT NULL,
-    "join"                              VARCHAR(42) NOT NULL
+    "join"                              VARCHAR(42) NOT NULL,
+    median VARCHAR(42) NOT NULL DEFAULT '0x0000000000000000000000000000000000000000',
+    gem VARCHAR(42) NOT NULL DEFAULT '0x0000000000000000000000000000000000000000',
+    pip VARCHAR(42) NOT NULL
 );

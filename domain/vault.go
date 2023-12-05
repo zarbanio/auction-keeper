@@ -23,6 +23,7 @@ type Vault struct {
 }
 
 type Ilk struct {
+	Bytes32                       [32]byte
 	Name                          string          `json:"name"`
 	Symbol                        Symbol          `json:"symbol"`
 	MinimumCollateralizationRatio decimal.Decimal `json:"minimum_collateralization_ratio"`

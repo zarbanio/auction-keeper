@@ -25,11 +25,7 @@ type ilkModel struct {
 	join                          string
 	median                        string
 	gem                           string
-	clipper                       string
 	pip                           string
-	liquidation_penalty           string
-	hole                          string
-	dirt                          string
 }
 
 func (i *ilkModel) toDomain() *domain.Ilk {
@@ -46,18 +42,14 @@ func (i *ilkModel) toDomain() *domain.Ilk {
 		Join:                          common.HexToAddress(i.join),
 		Median:                        common.HexToAddress(i.median),
 		Gem:                           common.HexToAddress(i.gem),
-		Clipper:                       common.HexToAddress(i.clipper),
 		Pip:                           common.HexToAddress(i.pip),
-		LiquidationPenalty:            decimal.MustNewFromString(i.liquidation_penalty),
-		Hole:                          decimal.MustNewFromString(i.hole),
-		Dirt:                          decimal.MustNewFromString(i.dirt),
 	}
 }
 
 func (p postgres) CreateOrUpdateIlk(ctx context.Context, ilk domain.Ilk) error {
 	query := `
-		INSERT INTO ilks (name, symbol, minimum_collateralization_ratio, debt_ceiling, debt, annual_stability_fee, dust_limit, price, rate, "join", median, gem)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		INSERT INTO ilks (name, symbol, minimum_collateralization_ratio, debt_ceiling, debt, annual_stability_fee, dust_limit, price, rate, "join", median, gem, pip)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		ON CONFLICT (name) DO UPDATE
 		SET symbol = $2, 
 		minimum_collateralization_ratio = $3, 
@@ -70,11 +62,7 @@ func (p postgres) CreateOrUpdateIlk(ctx context.Context, ilk domain.Ilk) error {
 		"join" = $10,
 		median = $11,
 		gem = $12,
-		clipper = $13,
-		pip = $14,
-		liquidation_penalty = $15,
-		hole = $16,
-		dirt = $17
+		pip = $13
 	`
 
 	_, err := p.conn.Exec(ctx, query,
@@ -90,11 +78,7 @@ func (p postgres) CreateOrUpdateIlk(ctx context.Context, ilk domain.Ilk) error {
 		ilk.Join.Hex(),
 		ilk.Median.Hex(),
 		ilk.Gem.Hex(),
-		ilk.Clipper.Hex(),
 		ilk.Pip.Hex(),
-		ilk.LiquidationPenalty,
-		ilk.Hole,
-		ilk.Dirt,
 	)
 	if err != nil {
 		return fmt.Errorf("error creating or updating ilk. %w", err)
@@ -119,11 +103,7 @@ func (p postgres) GetIlkByName(ctx context.Context, name string) (*domain.Ilk, e
 		&ilk.join,
 		&ilk.median,
 		&ilk.gem,
-		&ilk.clipper,
 		&ilk.pip,
-		&ilk.liquidation_penalty,
-		&ilk.hole,
-		&ilk.dirt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

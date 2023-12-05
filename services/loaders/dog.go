@@ -17,7 +17,6 @@ type DogLoader struct {
 }
 
 func NewDogLoader(eth *ethclient.Client, dogAddr common.Address) *DogLoader {
-
 	d, err := dog.NewDog(dogAddr, eth)
 	if err != nil {
 		log.Fatal(err)
@@ -56,4 +55,13 @@ func (dl *DogLoader) GetIlk(ctx context.Context, ilkId [32]byte) (*entities.DogI
 		Hole: ilkInfo.Hole,
 		Dirt: ilkInfo.Dirt,
 	}, nil
+}
+
+func (dl *DogLoader) GetIlkClipper(ctx context.Context, ilkId [32]byte) (common.Address, error) {
+	ilkInfo, err := dl.dog.Ilks(&bind.CallOpts{Context: ctx}, ilkId)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	return ilkInfo.Clip, nil
 }

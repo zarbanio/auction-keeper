@@ -13,6 +13,7 @@ type ICache interface {
 	IVatIlk
 	IVault
 	IEra
+	IAddress
 }
 
 type MemCache interface {

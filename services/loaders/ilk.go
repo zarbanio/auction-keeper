@@ -39,7 +39,7 @@ type join struct {
 }
 
 func NewIlksLoader(
-	ceth eth.CachedEthereum,
+	ceth eth.Ethereum,
 	store store.IStore,
 	vatAddr,
 	jugAddr,
@@ -155,7 +155,8 @@ func (l *IlksLoader) fetchIlkByJoin(ctx context.Context, j join) (*domain.Ilk, e
 	}
 
 	name := domain.Bytes32ToString(j.ilk)
-	ilk := domain.Ilk{
+	ilk := &domain.Ilk{
+		Bytes32:                       j.ilk,
 		Name:                          name,
 		Symbol:                        IlkToSymbol(name),
 		MinimumCollateralizationRatio: liquidationRatio(spotInfo.Mat),
@@ -175,8 +176,7 @@ func (l *IlksLoader) fetchIlkByJoin(ctx context.Context, j join) (*domain.Ilk, e
 		Pip:                           pip,
 	}
 
-	return &ilk, nil
-
+	return ilk, nil
 }
 
 func (l *IlksLoader) LoadIlks(ctx context.Context) ([]domain.Ilk, error) {
@@ -189,19 +189,4 @@ func (l *IlksLoader) LoadIlks(ctx context.Context) ([]domain.Ilk, error) {
 		ilks = append(ilks, *ilk)
 	}
 	return ilks, nil
-}
-
-func (l *IlksLoader) LoadIlkByID(ctx context.Context, ilkId [32]byte) (*domain.Ilk, error) {
-	var ilk *domain.Ilk
-	var err error
-	for _, join := range l.joins {
-		if join.ilk == ilkId {
-			ilk, err = l.fetchIlkByJoin(ctx, join)
-			if err != nil {
-				return nil, fmt.Errorf("error getting ilk. %w", err)
-			}
-			break
-		}
-	}
-	return ilk, nil
 }

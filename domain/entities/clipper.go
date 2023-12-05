@@ -4,7 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/zarbanio/auction-keeper/bindings/abacus"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/abacus"
 )
 
 type Clipper struct {

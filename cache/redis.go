@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/zarbanio/auction-keeper/domain/entities"
 
 	"github.com/go-redis/redis/v8"
@@ -15,6 +16,16 @@ import (
 
 type redisStore struct {
 	client redis.UniversalClient
+}
+
+// GetAddresses implements ICache.
+func (*redisStore) GetAddresses(ctx context.Context) (map[string]common.Address, error) {
+	panic("unimplemented")
+}
+
+// SaveAddresses implements ICache.
+func (*redisStore) SaveAddresses(ctx context.Context, addresses map[string]common.Address) error {
+	panic("unimplemented")
 }
 
 func NewRedisStore(addr string) ICache {

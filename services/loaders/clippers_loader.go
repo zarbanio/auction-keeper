@@ -1,12 +1,15 @@
 package loaders
 
 import (
+	"context"
+	"fmt"
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/zarbanio/auction-keeper/bindings/abacus"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/abacus"
 	clipper "github.com/zarbanio/auction-keeper/bindings/zarban/clipper"
 	"github.com/zarbanio/auction-keeper/domain/entities"
 )
@@ -74,10 +77,11 @@ func (cp *ClipperLoader) GetChost() (*big.Int, error) {
 
 func (cp *ClipperLoader) GetAbacusInstance() (*abacus.Abacus, error) {
 	// clipper.calc() returns the abacus address of the collateral
-	abacusAddress, err := cp.Clipper.Calc(nil)
+	abacusAddress, err := cp.Clipper.Calc(&bind.CallOpts{Context: context.Background()})
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("abacusAddress", abacusAddress.Hex())
 
 	abacusInstance, err := abacus.NewAbacus(abacusAddress, cp.eth)
 	if err != nil {
