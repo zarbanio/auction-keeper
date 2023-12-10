@@ -18,6 +18,7 @@ type Config struct {
 		BlockInterval time.Duration `yaml:"BlockInterval"`
 		StartBlock    uint64        `yaml:"StartBlock"`
 		BlockRange    int64         `yaml:"BlockRange"`
+		RollBack      int64         `yaml:"RollBack"`
 	} `yaml:"General"`
 	Redis struct {
 		URL string `yaml:"URL"`

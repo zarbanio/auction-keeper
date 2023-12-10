@@ -12,10 +12,13 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/cobra"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/median"
 	"github.com/zarbanio/auction-keeper/cache"
 	"github.com/zarbanio/auction-keeper/configs"
 	"github.com/zarbanio/auction-keeper/services/bark"
 	"github.com/zarbanio/auction-keeper/services/cachedeth"
+	"github.com/zarbanio/auction-keeper/services/eventmanager"
+	"github.com/zarbanio/auction-keeper/services/indexer"
 	"github.com/zarbanio/auction-keeper/services/loaders"
 	"github.com/zarbanio/auction-keeper/services/logger"
 	"github.com/zarbanio/auction-keeper/services/redo"
@@ -24,6 +27,7 @@ import (
 	"github.com/zarbanio/auction-keeper/services/take"
 	"github.com/zarbanio/auction-keeper/services/uniswap_v3"
 	"github.com/zarbanio/auction-keeper/store"
+	"github.com/zarbanio/auction-keeper/x/events"
 )
 
 type Mode string
@@ -171,6 +175,55 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 		logger,
 	)
 
+	// indexing
+	e := eventmanager.NewEventManager(
+		postgresStore,
+		ilksLoader,
+		vaultLoader,
+		dogBarkService,
+		clipperTakeServices,
+		clipperRedoServices)
+
+	eventHandlers := getEventHandlers(e, eth, addrs)
+
+	var addressesArr []common.Address
+	for k, v := range addrs {
+		if k == "weth_gateway" || k == "weth" || k == "eth" || k == "zar" || k == "usdt" || k == "usdc" || k == "wbtc" || k == "dai" {
+			continue
+		}
+		addressesArr = append(addressesArr, v)
+	}
+
+	eventHandlersMap := make(map[string]events.Handler)
+	for _, h := range eventHandlers {
+		eventHandlersMap[h.ID()] = h
+	}
+
+	header, err := eth.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		log.Fatal("error getting chain head.", err)
+	}
+
+	historyBlockPtr := indexer.CreateBlockPtrIfNotExists(postgresStore, "history", cfg.Indexer.StartBlock)
+	err = historyBlockPtr.Update(uint64(header.Number.Int64()) - uint64(cfg.Indexer.RollBack))
+	if err != nil {
+		log.Fatal("error updating history block pointer.", err)
+	}
+
+	startBlock, err := historyBlockPtr.Read()
+	if err != nil {
+		log.Fatal("error reading history block pointer.", err)
+	}
+
+	liveBlockPtr := indexer.CreateBlockPtrIfNotExists(postgresStore, "live", startBlock)
+	indexer := indexer.NewIndexer(ceth, cfg.Indexer.BlockInterval, liveBlockPtr, historyBlockPtr, cfg.Indexer.BlockRange, addressesArr, eventHandlersMap)
+
+	log.Println("indexing history.")
+	err = indexer.IndexHistory(big.NewInt(int64(startBlock)), header.Number)
+	if err != nil {
+		log.Fatal("error indexing history.", err)
+	}
+
 	for _, mode := range modes {
 		switch mode {
 		case Bark:
@@ -213,6 +266,15 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+}
+
+func getEventHandlers(e *eventmanager.EventManager, eth *ethclient.Client, addresses map[string]common.Address) []events.Handler {
+	eventHandlers := []events.Handler{
+		median.NewLogMedianPriceHandler(addresses["dai_median"], eth, e.MedianLogMedianPriceCallback()),
+		median.NewLogMedianPriceHandler(addresses["eth_median"], eth, e.MedianLogMedianPriceCallback()),
+	}
+
+	return eventHandlers
 }
 
 func Register(root *cobra.Command) {

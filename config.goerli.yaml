@@ -2,6 +2,8 @@ Indexer:
   BlockInterval: '10s'
   PoolSize: 2
   BlockPtr: 8485879
+  BlockRange: 2000
+  RollBack: 2160
 Redis:
   URL: 'localhost:6379'
 postgres:
