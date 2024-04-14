@@ -4,7 +4,6 @@ import (
 	"log"
 	"math/big"
 	"reflect"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/zarbanio/auction-keeper/domain/entities"
@@ -14,14 +13,6 @@ import (
 )
 
 type Config struct {
-	Indexer struct {
-		BlockInterval time.Duration `yaml:"BlockInterval"`
-		StartBlock    uint64        `yaml:"StartBlock"`
-		BlockRange    int64         `yaml:"BlockRange"`
-	} `yaml:"General"`
-	Redis struct {
-		URL string `yaml:"URL"`
-	}
 	Postgres struct {
 		Host           string `yaml:"Host"`
 		User           string `yaml:"User"`
@@ -30,8 +21,6 @@ type Config struct {
 		MigrationsPath string `yaml:"MigrationsPath"`
 	} `yaml:"Postgres"`
 	Network struct {
-		Name        string `yaml:"Name"`
-		ChainId     int64  `yaml:"ChainId"`
 		NativeAsset struct {
 			Name        string         `yaml:"Name"`
 			Symbol      string         `yaml:"Symbol"`
@@ -56,15 +45,9 @@ type Config struct {
 		MinLotZarValue      int64 `yaml:"MinLotZarValue"`
 		MaxLotZarValue      int64 `yaml:"MaxLotZarValue"`
 	}
-	Times struct {
-		VaultTicker      int64 `yaml:"VaultTicker"`
-		FlopperTicker    int64 `yaml:"FlopperTicker"`
-		LiquidatorTicker int64 `yaml:"LiquidatorTicker"`
-	}
 	Contracts struct {
 		Deployment      common.Address `yaml:"Deployment"`
 		IlkRegistry     common.Address `yaml:"IlkRegistry"`
-		AddressProvider common.Address `yaml:"AddressProvider"`
 		CDPManager      common.Address `yaml:"CDPManager"`
 		GetCDPs         common.Address `yaml:"GetCDPs"`
 		ETHAJoin        common.Address `yaml:"ETHAJoin"`

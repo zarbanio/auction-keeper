@@ -9,7 +9,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/clipper"
-	"github.com/zarbanio/auction-keeper/cache"
 	"github.com/zarbanio/auction-keeper/configs"
 	"github.com/zarbanio/auction-keeper/services/loaders"
 	"github.com/zarbanio/auction-keeper/services/logger"
@@ -37,20 +36,18 @@ func action(cfg configs.Config, mode Mode, ilkName string, auctionId *big.Int) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	chainId, err := eth.ChainID(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	memCache := cache.NewMemCache()
-
-	newSigner, err := signer.NewSigner(cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
+	newSigner, err := signer.NewSigner(cfg.Wallet.Private, chainId)
 	if err != nil {
 		log.Fatal(err)
 	}
 	sender := sender.NewSender(newSigner, postgresStore, eth)
 
-	addressesLoader := loaders.NewAddressLoader(eth, memCache, cfg.Contracts.Deployment, cfg.Contracts.AddressProvider)
-	addrs, err := addressesLoader.LoadAddresses(context.Background())
-	if err != nil {
-		log.Fatal("error loading addresses.", err)
-	}
+	addrs := make(map[string]common.Address)
 
 	addrs["cdp_manager"] = cfg.Contracts.CDPManager
 	addrs["get_cdps"] = cfg.Contracts.GetCDPs

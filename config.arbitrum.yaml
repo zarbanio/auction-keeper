@@ -1,0 +1,83 @@
+postgres:
+  Host: 'localhost:5432'
+  User: 'postgres'
+  Password: 'postgres'
+  DB: 'auction-keeper'
+  MigrationsPath: 'store/migrations'
+Network:
+  NativeAsset:
+    Name: 'Ethereum'
+    Symbol: 'ETH'
+    Decimals: 18
+    MockAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
+  Node:
+    Api: 'wss://arb-mainnet.g.alchemy.com/v2/kycQeBnUEFQUR55_-Dy13f0tJmnSK0sO'
+Wallet:
+  Private: '46ddc9290e53d6722d22ec7b95ab6122c8541d55d339c22c9f67aa6814057bb1'
+  Address: '0xF97a5CCB7b1892Afcb8A4635E21E075F31805aCD'
+Ilks:
+  - Name: 'ETHA'
+    Gem: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
+    Decimals: 18
+    GemJoin: '0x5158d591c4F90521091c8Fad2358dd45cE07f6Fe'
+    UniswapV3Path:
+      - # WETH -> DAI
+        Fee: 10000
+        TokenA: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
+        TokenB: '0x7df1d674021792630e15eca46467516660e021af'
+      - # DAI -> Zar
+        Fee: 10000
+        TokenA: '0x7df1d674021792630e15eca46467516660e021af'
+        TokenB: '0x13e321ce763af4036d753b573527ff3f874ede59'
+  - Name: 'ETHB'
+    Erc20addr: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
+    Decimals: 18
+    Clipper: '0xD1DDbB0C23146Ac9963C57F6e5F44189F769b7Ad'
+    GemJoinAdapter: '0x214A89120b4B0F8558bA43f566B86C500301E820'
+    UniswapV3Path:
+      - # WETH -> DAI
+        Fee: 10000
+        TokenA: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
+        TokenB: '0x7df1d674021792630e15eca46467516660e021af'
+      - # DAI -> ZAR
+        Fee: 10000
+        TokenA: '0x7df1d674021792630e15eca46467516660e021af'
+        TokenB: '0x13e321ce763af4036d753b573527ff3f874ede59'
+  - Name: 'DAIA'
+    Decimals: 18
+    UniswapV3Path:
+      - # DAI -> ZAR
+        Fee: 10000
+        TokenA: '0x7df1d674021792630e15eca46467516660e021af'
+        TokenB: '0x13e321ce763af4036d753b573527ff3f874ede59'
+  - Name: 'DAIB'
+    Decimals: 18
+    UniswapV3Path:
+      - # DAI -> ZAR
+        Fee: 10000
+        TokenA: '0x7df1d674021792630e15eca46467516660e021af'
+        TokenB: '0x13e321ce763af4036d753b573527ff3f874ede59'
+Processor:
+  MinProfitPercentage: 1025  # decimal is 3 -> float MinProfitPercentage = 1.025
+  MinLotZarValue: 0
+  MaxLotZarValue: 10000
+Contracts:
+  Deployment: '0x133cBcABA5aef86Ce3B5ED8434Ccc95b7A0309bF'
+  IlkRegistry: '0x4576C18bD4C7FB053DceF62f3620f95bea97dFF6'
+  ETHAJoin: '0x5158d591c4F90521091c8Fad2358dd45cE07f6Fe'
+  ETHBJoin: '0x214A89120b4B0F8558bA43f566B86C500301E820'
+  DAIAJoin: '0x9E0d5f6D0550bA1959E35642FFd39F5f4336F7A7'
+  DAIBJoin: '0xa523463671A9B3BDb419Df1bC6e5E09c5b8a4c17'
+  CDPManager: '0x794DbAbef8833A748BDB8bf661Eb8165Bb01FBbe'
+  GetCDPs: '0x7843fd599F5382328DeBB45255deB3E2e0DEC876'
+  ETHMedian: '0x41ECBCe83cC5Da85B37bd02CeD243901EB0AFbE6'
+  DAIMedian: '0x60777C494a9d72074aaF46F2cdAb7cd1E6AA6245'
+  DAI: '0x7df1d674021792630e15eca46467516660e021af'
+  ZAR: '0x13e321ce763af4036d753b573527ff3f874ede59'
+  WETH: '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6'
+  UniswapV3Quoter: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6'
+  UniswapV3Callee: '0x040bC072eE59551aFc67DDF3a265c42e762728fe'
+  ZarJoin: '0x30470ce6dc75df6819187ea05d759b5859e1aea2'
+  Vat: '0x7ff3ae53276554ce6ec561a8fd292411edd6c7d5'
+  Vow: '0x4ae738d5f22d58af868a50ca8896a47517fa9be5'
+  Dog: '0xb1940cb860269fe904c982b899a31e593e29afc2'

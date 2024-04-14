@@ -1,6 +1,7 @@
 package account
 
 import (
+	"context"
 	"log"
 	"math/big"
 
@@ -21,7 +22,11 @@ func hope(cfg configs.Config, addrs ...common.Address) {
 		log.Fatal(err)
 	}
 	defer eth.Close()
-	newSigner, err := signer.NewSigner(cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
+	chainId, err := eth.ChainID(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+	newSigner, err := signer.NewSigner(cfg.Wallet.Private, chainId)
 	if err != nil {
 		log.Fatal(err)
 	}
