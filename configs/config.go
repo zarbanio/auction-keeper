@@ -46,7 +46,6 @@ type Config struct {
 		MaxLotZarValue      int64 `yaml:"MaxLotZarValue"`
 	}
 	Contracts struct {
-		Deployment      common.Address `yaml:"Deployment"`
 		IlkRegistry     common.Address `yaml:"IlkRegistry"`
 		CDPManager      common.Address `yaml:"CDPManager"`
 		GetCDPs         common.Address `yaml:"GetCDPs"`
