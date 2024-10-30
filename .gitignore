@@ -7,7 +7,7 @@ config.yaml
 goerli.ptr
 mainnet.ptr
 
-# ethereume generator
+# ethereum generator
 eh-gen
 
 # IDEA
