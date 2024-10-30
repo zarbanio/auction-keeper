@@ -43,6 +43,7 @@ type Options struct {
 	AssetDecimals *big.Int
 	Sender        sender.Sender
 	Logger        *logger.Logger
+	UseUniswap    bool
 }
 
 type Option func(*Options)
@@ -107,6 +108,12 @@ func WithLogger(logger *logger.Logger) Option {
 	}
 }
 
+func WithUseUniswap(useUniswap bool) Option {
+	return func(opts *Options) {
+		opts.UseUniswap = useUniswap
+	}
+}
+
 type Service struct {
 	IlkName string
 	eth     *ethclient.Client
@@ -121,9 +128,9 @@ type Service struct {
 	path          []entities.UniswapV3Route
 	callee        common.Address
 	gemjoin       common.Address
-	vowAddress    common.Address
 	assetDecimals *big.Int
 	l             *logger.Logger
+	useUniswap    bool
 }
 
 func NewService(
@@ -161,11 +168,6 @@ func NewService(
 		options.Logger.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while instancing a vat contract")
 	}
 
-	vowAddr, err := clip.Vow(&bind.CallOpts{Context: context.Background()})
-	if err != nil {
-		options.Logger.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while getting the vow address")
-	}
-
 	return &Service{
 		IlkName:       options.IlkName,
 		eth:           options.Eth,
@@ -180,33 +182,16 @@ func NewService(
 		gemjoin:       options.GemJoin,
 		path:          options.Path,
 		l:             options.Logger,
-		vowAddress:    vowAddr,
+		useUniswap:    options.UseUniswap,
 	}
 }
 
-func (s *Service) Start(ctx context.Context, minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address, useExternalService bool) error {
+func (s *Service) Start(ctx context.Context, minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address) error {
 	s.l.Logger.Info().
 		Str("service", "take").
 		Str("method", "start").
 		Str("ilk", s.IlkName).
 		Msg("take Service is starting")
-	hope, err := s.vat.Can(&bind.CallOpts{Context: ctx}, s.sender.GetAddress(), s.vowAddress)
-	if err != nil {
-		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Start").Msg("error while checking if the sender can take")
-		return err
-	}
-	if hope.Cmp(big.NewInt(0)) == 0 {
-		s.l.Logger.Info().Str("service", "take").Str("method", "Start").Msg("Calling hope method")
-		err = s.Hope(s.vowAddress)
-		if err != nil {
-			s.l.Logger.Error().Err(err).
-				Str("service", "take").
-				Str("method", "start").
-				Str("usr", s.vowAddress.String()).
-				Msg("error while calling hope")
-			return err
-		}
-	}
 
 	// 1) Get the IDs of active auctions
 	activeAuctions, err := s.clip.List(&bind.CallOpts{Context: ctx})
@@ -220,7 +205,7 @@ func (s *Service) Start(ctx context.Context, minProfitPercentage, minLotZarValue
 	}
 
 	for _, auctionId := range activeAuctions {
-		err = s.TakeById(ctx, auctionId, minProfitPercentage, minLotZarValue, maxLotZarValue, profitAddress, useExternalService)
+		err = s.TakeById(ctx, auctionId, minProfitPercentage, minLotZarValue, maxLotZarValue, profitAddress)
 		if err != nil {
 			s.l.Logger.Error().Err(err).
 				Str("service", "take").
@@ -247,7 +232,7 @@ func (s *Service) Start(ctx context.Context, minProfitPercentage, minLotZarValue
 	return nil
 }
 
-func (s *Service) TakeById(ctx context.Context, auctionId *big.Int, minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address, useExternalService bool) error {
+func (s *Service) TakeById(ctx context.Context, auctionId *big.Int, minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address) error {
 	currentTime, err := s.getCurrentTime(ctx)
 	if err != nil {
 		s.l.Logger.Error().Err(err).
@@ -392,7 +377,7 @@ func (s *Service) TakeById(ctx context.Context, auctionId *big.Int, minProfitPer
 	// 		Msg("profit amount is less than cost")
 	// }
 
-	if useExternalService {
+	if s.useUniswap {
 		take := inputMethods.ClipperTake{
 			Auction_id: auctionId,
 			Amt:        amt,
@@ -414,9 +399,9 @@ func (s *Service) TakeById(ctx context.Context, auctionId *big.Int, minProfitPer
 			Auction_id: auctionId,
 			Amt:        amt,
 			Max:        collateralPrice,
-			Who:        s.sender.GetAddress(),
+			Who:        profitAddress, // be careful with this. user should have access to profitAddress to exit gems
 		}
-		err = s.TakeUsingUniswap(take, minProfit, profitAddress, s.gemjoin)
+		err = s.TakeUsingWalletFunds(ctx, take)
 		if err != nil {
 			s.l.Logger.Error().Err(err).
 				Str("service", "take").
@@ -433,6 +418,22 @@ func (s *Service) TakeById(ctx context.Context, auctionId *big.Int, minProfitPer
 		Str("method", "TakeById").
 		Str("ilk", s.IlkName).
 		Msg("take Service iteration completed")
+
+	return nil
+}
+
+func (s *Service) TakeUsingWalletFunds(ctx context.Context, take inputMethods.ClipperTake) error {
+	s.l.Logger.Info().Str("service", "take").Str("method", "TakeUsingWalletFunds").Msg("Calling take method")
+	err := s.Take(take)
+	if err != nil {
+		s.l.Logger.Error().Err(err).
+			Str("service", "take").
+			Str("method", "TakeUsingWalletFunds").
+			Str("profitReceiver", take.Who.String()).
+			Str("auctionId", take.Auction_id.String()).
+			Msg("error while calling take")
+		return err
+	}
 
 	return nil
 }
@@ -454,43 +455,42 @@ func (s *Service) TakeUsingUniswap(take inputMethods.ClipperTake, minProfit *big
 	route, err := uniswap_v3.GetRouter(s.path)
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "take").Msg("error while getting the route from uniswapV3")
-		return fmt.Errorf(fmt.Sprintf("error in get route: %v", err))
+		return fmt.Errorf("error in get route: %v", err)
 	}
 
-	_, err = args.Pack(profitAddr, gemJoinAdapter, minProfit, route, common.Address{0})
+	take.Data, err = args.Pack(profitAddr, gemJoinAdapter, minProfit, route, common.Address{0})
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "take").Msg("error while getting the flashData")
-		return fmt.Errorf(fmt.Sprintf("error in pack flash data: : %v", err))
+		return fmt.Errorf("error in pack flash data: : %v", err)
 	}
 
+	err = s.Take(take)
+	if err != nil {
+		s.l.Logger.Error().Err(err).
+			Str("service", "take").
+			Str("method", "TakeUsingUniswap").
+			Str("profitReceiver", take.Who.String()).
+			Str("auctionId", take.Auction_id.String()).
+			Msg("error while calling take")
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) Take(take inputMethods.ClipperTake) error {
 	opts, err := s.sender.GetTransactOpts()
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "take").Msg("error while getting a transaction opts")
 		return err
 	}
 
-	tx, err := s.clip.Take(opts, take.Auction_id, take.Amt, take.Max, take.Who, nil)
+	tx, err := s.clip.Take(opts, take.Auction_id, take.Amt, take.Max, take.Who, take.Data)
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "take").Msg("error while calling the clipper take method")
 		return err
 	}
-	fmt.Println("take tx.Hash", tx.Hash().String())
-	return s.sender.HandleSentTx(tx)
-}
-
-func (s *Service) Hope(usr common.Address) error {
-	opts, err := s.sender.GetTransactOpts()
-	if err != nil {
-		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "hope").Msg("error while getting a transaction opts")
-		return err
-	}
-
-	tx, err := s.vat.Hope(opts, usr)
-	if err != nil {
-		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "hope").Msg("error while calling the vat hope method")
-		return err
-	}
-
+	fmt.Println("take tx sent:", tx.Hash().String())
 	return s.sender.HandleSentTx(tx)
 }
 

@@ -44,7 +44,7 @@ func Register(root *cobra.Command) {
 				ilkName := strings.ToUpper(args[0])
 				auctionId := math.BigIntFromString(args[1])
 				fmt.Printf("Performing redo on ilk: %s with auction ID: %s\n", ilkName, auctionId)
-				action(cfg, "redo", ilkName, auctionId)
+				action(cfg, "redo", false, ilkName, auctionId)
 			} else {
 				fmt.Println("Not enough args! Usage: redo [ilkName] [auctionId]")
 			}
@@ -53,8 +53,9 @@ func Register(root *cobra.Command) {
 	}
 
 	takeCmd := &cobra.Command{
-		Use: "take [ilkName] [auctionId]",
+		Use: "take [ilkName] [auctionId] [--uniswap]",
 		Run: func(cmd *cobra.Command, args []string) {
+			useUniswap, _ := cmd.Flags().GetBool("uniswap")
 			configFile, _ := cmd.Flags().GetString("config")
 			cfg := configs.ReadConfig(configFile)
 			// Check if ID is provided as an argument
@@ -62,9 +63,9 @@ func Register(root *cobra.Command) {
 				ilkName := strings.ToUpper(args[0])
 				auctionId := math.BigIntFromString(args[1])
 				fmt.Printf("Performing take on ilk: %s with auction ID: %s\n", ilkName, auctionId)
-				action(cfg, "take", ilkName, auctionId)
+				action(cfg, "take", useUniswap, ilkName, auctionId)
 			} else {
-				fmt.Println("Not enough args! Usage: take [ilkName] [auctionId]")
+				fmt.Println("Not enough args! Usage: take [ilkName] [auctionId] [--uniswap]")
 			}
 
 		},

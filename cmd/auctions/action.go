@@ -29,7 +29,7 @@ const (
 	Take Mode = "take"
 )
 
-func action(cfg configs.Config, mode Mode, ilkName string, auctionId *big.Int) {
+func action(cfg configs.Config, mode Mode, useUniswap bool, ilkName string, auctionId *big.Int) {
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
 	logger := logger.NewLogger(context.Background(), postgresStore)
 
@@ -130,6 +130,7 @@ func action(cfg configs.Config, mode Mode, ilkName string, auctionId *big.Int) {
 							take.WithLogger(logger),
 							take.WithIlkName(ilk.Name),
 							take.WithCallee(cfg.Contracts.UniswapV3Callee),
+							take.WithUseUniswap(useUniswap),
 						)
 
 						err = takeService.TakeById(

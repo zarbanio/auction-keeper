@@ -38,8 +38,7 @@ func Register(root *cobra.Command) {
 				fmt.Println("ex: account hope 0x1234 0x5678")
 				return
 			}
-
-			addrs := make([]common.Address, len(args))
+			addrs := make([]common.Address, 0, len(args))
 			for _, arg := range args {
 				addrs = append(addrs, common.HexToAddress(arg))
 			}

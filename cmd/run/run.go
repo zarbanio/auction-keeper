@@ -35,7 +35,7 @@ const (
 	Take Mode = "take"
 )
 
-func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
+func main(cfg configs.Config, modes []Mode, useUniswap bool, allowedIlks []string) {
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
 	logger := logger.NewLogger(context.Background(), postgresStore)
 
@@ -141,6 +141,7 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 				take.WithLogger(logger),
 				take.WithIlkName(ilk.Name),
 				take.WithCallee(cfg.Contracts.UniswapV3Callee),
+				take.WithUseUniswap(useUniswap),
 			),
 		)
 
@@ -218,6 +219,7 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 func Register(root *cobra.Command) {
 	root.PersistentFlags().String("modes", "bark,redo,take", "run mode")
 	root.PersistentFlags().String("ilks", "daia,daib,etha,ethb,wsteth-a", "ilks to run on")
+	root.PersistentFlags().Bool("uniswap", false, "set it to true for swapping the released collateral to zar for liquidating a vault")
 	root.AddCommand(
 		&cobra.Command{
 			Use:   "run",
@@ -225,6 +227,7 @@ func Register(root *cobra.Command) {
 			Run: func(cmd *cobra.Command, args []string) {
 				configFile, _ := cmd.Flags().GetString("config")
 				mode, _ := cmd.Flags().GetString("modes")
+				useUniswap, _ := cmd.Flags().GetBool("uniswap")
 				tokens := strings.Split(mode, ",")
 
 				if len(tokens) == 0 {
@@ -243,7 +246,7 @@ func Register(root *cobra.Command) {
 				allowedIlks := strings.Split(ilks, ",")
 
 				cfg := configs.ReadConfig(configFile)
-				main(cfg, modes, allowedIlks)
+				main(cfg, modes, useUniswap, allowedIlks)
 			},
 		},
 	)
