@@ -42,7 +42,7 @@ func (p postgres) CreateBark(ctx context.Context, bark entities.DogBark, tx_id i
 			SET ilk = EXCLUDED.ilk,
 			urn = EXCLUDED.urn
 		RETURNING id
-	`, string(bark.Ilk[:]), bark.Urn.Hash(), tx_id).Scan(&id)
+	`, string(bark.Ilk[:]), bark.Urn.Hex(), tx_id).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("failed to upsert . %w", err)
 	}
