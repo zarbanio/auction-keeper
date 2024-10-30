@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/abacus"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/clipper"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/vat"
 	"github.com/zarbanio/auction-keeper/domain/entities"
 	inputMethods "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
 	"github.com/zarbanio/auction-keeper/services/logger"
@@ -113,12 +114,14 @@ type Service struct {
 
 	clip   *clipper.Clipper
 	abacus *abacus.Abacus
+	vat    *vat.Vat
 	chost  *big.Int
 
 	quoter        *uniswap_v3.UniswapV3Quoter
 	path          []entities.UniswapV3Route
 	callee        common.Address
 	gemjoin       common.Address
+	vowAddress    common.Address
 	assetDecimals *big.Int
 	l             *logger.Logger
 }
@@ -131,29 +134,44 @@ func NewService(
 		opt(options)
 	}
 
-	c, err := clipper.NewClipper(options.ClipperAddr, options.Eth)
+	clip, err := clipper.NewClipper(options.ClipperAddr, options.Eth)
 	if err != nil {
 		options.Logger.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while instancing a clipper contract")
 	}
-	abacusAddr, err := c.Calc(&bind.CallOpts{Context: context.Background()})
+	abacusAddr, err := clip.Calc(&bind.CallOpts{Context: context.Background()})
 	if err != nil {
 		options.Logger.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while getting the abacus address")
 	}
-	a, err := abacus.NewAbacus(abacusAddr, options.Eth)
+	abacus, err := abacus.NewAbacus(abacusAddr, options.Eth)
 	if err != nil {
 		options.Logger.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while instancing an abacus contract")
 	}
 
-	chost, err := c.Chost(&bind.CallOpts{Context: context.Background()})
+	chost, err := clip.Chost(&bind.CallOpts{Context: context.Background()})
 	if err != nil {
 		options.Logger.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while getting the chost")
+	}
+
+	vatAddr, err := clip.Vat(&bind.CallOpts{Context: context.Background()})
+	if err != nil {
+		options.Logger.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while getting the vat address")
+	}
+	vat, err := vat.NewVat(vatAddr, options.Eth)
+	if err != nil {
+		options.Logger.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while instancing a vat contract")
+	}
+
+	vowAddr, err := clip.Vow(&bind.CallOpts{Context: context.Background()})
+	if err != nil {
+		options.Logger.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while getting the vow address")
 	}
 
 	return &Service{
 		IlkName:       options.IlkName,
 		eth:           options.Eth,
-		abacus:        a,
-		clip:          c,
+		abacus:        abacus,
+		clip:          clip,
+		vat:           vat,
 		chost:         chost,
 		sender:        options.Sender,
 		quoter:        options.Quoter,
@@ -162,6 +180,7 @@ func NewService(
 		gemjoin:       options.GemJoin,
 		path:          options.Path,
 		l:             options.Logger,
+		vowAddress:    vowAddr,
 	}
 }
 
@@ -171,6 +190,23 @@ func (s *Service) Start(ctx context.Context, minProfitPercentage, minLotZarValue
 		Str("method", "start").
 		Str("ilk", s.IlkName).
 		Msg("take Service is starting")
+	hope, err := s.vat.Can(&bind.CallOpts{Context: ctx}, s.sender.GetAddress(), s.vowAddress)
+	if err != nil {
+		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Start").Msg("error while checking if the sender can take")
+		return err
+	}
+	if hope.Cmp(big.NewInt(0)) == 0 {
+		s.l.Logger.Info().Str("service", "take").Str("method", "Start").Msg("Calling hope method")
+		err = s.Hope(s.vowAddress)
+		if err != nil {
+			s.l.Logger.Error().Err(err).
+				Str("service", "take").
+				Str("method", "start").
+				Str("usr", s.vowAddress.String()).
+				Msg("error while calling hope")
+			return err
+		}
+	}
 
 	currentTime, err := s.getCurrentTime(ctx)
 	if err != nil {
@@ -305,8 +341,8 @@ func (s *Service) Start(ctx context.Context, minProfitPercentage, minLotZarValue
 		// Determine proceeds from swapping gem for Zar on Uniswap
 		// uniswapV3Proceeds, err := s.quoter.GetQuotedAmountOut(lot, s.path, s.assetDecimals)
 		// if err != nil {
-		// 	s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Start").Msg("error while getting the uniswapV3 proceeds")
-		// 	continue
+		// s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Start").Msg("error while getting the uniswapV3 proceeds")
+		// continue
 		// }
 		// minUniV3Proceeds := new(big.Int).Sub(uniswapV3Proceeds, minProfit)
 
@@ -537,6 +573,22 @@ func (s *Service) Take(take inputMethods.ClipperTake, minProfit *big.Int, profit
 		return err
 	}
 	fmt.Println("take tx.Hash", tx.Hash().String())
+	return s.sender.HandleSentTx(tx)
+}
+
+func (s *Service) Hope(usr common.Address) error {
+	opts, err := s.sender.GetTransactOpts()
+	if err != nil {
+		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "hope").Msg("error while getting a transaction opts")
+		return err
+	}
+
+	tx, err := s.vat.Hope(opts, usr)
+	if err != nil {
+		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "hope").Msg("error while calling the vat hope method")
+		return err
+	}
+
 	return s.sender.HandleSentTx(tx)
 }
 
