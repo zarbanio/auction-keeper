@@ -1,6 +1,7 @@
 package account
 
 import (
+	"fmt"
 	"log"
 	"math/big"
 
@@ -40,14 +41,17 @@ func hope(cfg configs.Config, addrs ...common.Address) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Println("hoping for:", addr.String())
 		tx, err := vat.Hope(ops, addr)
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Println("hope tx sent:", tx.Hash().String())
 		err = sender.HandleSentTx(tx)
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Println("hope tx confirmed.")
 	}
 }
 

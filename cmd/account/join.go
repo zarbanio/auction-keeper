@@ -53,7 +53,7 @@ func joinZar(cfg configs.Config, amount *big.Int) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("approve tx confirmed:", tx.Hash().String())
+	fmt.Println("approve tx confirmed.")
 
 	ops, err := sender.GetTransactOpts()
 	if err != nil {
@@ -68,5 +68,5 @@ func joinZar(cfg configs.Config, amount *big.Int) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("join tx confirmed:", tx.Hash().String())
+	fmt.Println("join tx confirmed.")
 }
