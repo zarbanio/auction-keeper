@@ -21,7 +21,6 @@ type Service struct {
 	spot        *spot.Spot
 	osms        map[common.Address]*osm.Osm
 	vaultLoader *loaders.VaultLoader
-	vatLoader   *loaders.VatLoader
 	sender      sender.Sender
 	l           *logger.Logger
 }
@@ -33,7 +32,6 @@ func NewService(
 	dogAddr common.Address,
 	spotAddr common.Address,
 	vaultLoader *loaders.VaultLoader,
-	vatLoader *loaders.VatLoader,
 	ilkLoader *loaders.IlksLoader,
 	sender sender.Sender,
 	l *logger.Logger,
@@ -68,7 +66,6 @@ func NewService(
 		spot:        s,
 		store:       store,
 		vaultLoader: vaultLoader,
-		vatLoader:   vatLoader,
 		osms:        osms,
 		sender:      sender,
 		l:           l,

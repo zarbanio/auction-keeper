@@ -156,11 +156,6 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 		)
 	}
 
-	vatLoader := loaders.NewVatLoader(
-		eth,
-		cfg.Contracts.Vat,
-	)
-
 	dogBarkService := bark.NewService(
 		context.Background(),
 		eth,
@@ -168,7 +163,6 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 		addrs["dog"],
 		addrs["spot"],
 		vaultLoader,
-		vatLoader,
 		ilksLoader,
 		sender,
 		logger,
