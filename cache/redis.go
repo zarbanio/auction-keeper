@@ -117,7 +117,7 @@ func (r redisStore) GetEras(ctx context.Context) ([]*big.Int, error) {
 		return nil, err
 	}
 
-	eras := make([]*big.Int, len(keys))
+	eras := make([]*big.Int, 0, len(keys))
 	for _, key := range keys {
 		res, err := r.client.Get(ctx, key).Result()
 		if err != nil {
