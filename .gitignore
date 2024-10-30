@@ -27,3 +27,6 @@ types
 
 #environment
 .env
+
+# generated binary file
+main
