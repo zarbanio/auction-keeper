@@ -10,6 +10,7 @@ const (
 	WBTC   Symbol = "WBTC"
 	ETH    Symbol = "ETH"
 	WETH   Symbol = "WETH"
+	WstETH Symbol = "WstETH"
 	NEAR   Symbol = "NEAR"
 	AURORA Symbol = "AURORA"
 	ZAR    Symbol = "ZAR"

@@ -25,6 +25,10 @@ func balance(cfg configs.Config) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	err = postgresStore.Migrate(cfg.Postgres.MigrationsPath)
+	if err != nil {
+		log.Fatal(err)
+	}
 	newSigner, err := signer.NewSigner(cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
 	if err != nil {
 		log.Fatal(err)

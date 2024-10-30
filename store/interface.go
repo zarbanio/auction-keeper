@@ -71,7 +71,7 @@ type IEthereumLog interface {
 }
 
 type ILogMedianPrice interface {
-	CreateLogMedianPrice(ctx context.Context, logMedainPrice median.MedianLogMedianPrice, logId uint64) (int64, error)
+	CreateLogMedianPrice(ctx context.Context, logmedianPrice median.MedianLogMedianPrice, logId uint64) (int64, error)
 	GetLogMedianPriceById(ctx context.Context, id int64) (*median.MedianLogMedianPrice, error)
 	GetLogMedianPriceByOrder(ctx context.Context, address common.Address, cursor, limit int64) ([]median.MedianLogMedianPrice, error)
 	GetLastLogMedianPrice(ctx context.Context, address common.Address) (*median.MedianLogMedianPrice, error)

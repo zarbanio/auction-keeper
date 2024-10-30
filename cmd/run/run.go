@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -70,20 +71,20 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 	}
 
 	addrs["cdp_manager"] = cfg.Contracts.CDPManager
-	addrs["get_cdps"] = cfg.Contracts.GetCDPs
 	addrs["ilk_registry"] = cfg.Contracts.IlkRegistry
 	addrs["eth_a_join"] = cfg.Contracts.ETHAJoin
 	addrs["eth_b_join"] = cfg.Contracts.ETHBJoin
 	addrs["dai_a_join"] = cfg.Contracts.DAIAJoin
 	addrs["dai_b_join"] = cfg.Contracts.DAIBJoin
+	addrs["wsteth_a_join"] = cfg.Contracts.WstETHAJoin
 	addrs["dai_median"] = cfg.Contracts.DAIMedian
 	addrs["eth_median"] = cfg.Contracts.ETHMedian
+	addrs["wsteth_median"] = cfg.Contracts.WstETHMedian
 
 	vaultLoader := loaders.NewVaultLoader(
 		eth,
 		postgresStore,
 		addrs["cdp_manager"],
-		addrs["get_cdps"],
 		addrs["vat"],
 	)
 
@@ -100,10 +101,12 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 			addrs["eth_b_join"],
 			addrs["dai_a_join"],
 			addrs["dai_b_join"],
+			addrs["wsteth_a_join"],
 		},
 		map[common.Address]common.Address{
-			cfg.Contracts.DAI:  addrs["dai_median"],
-			cfg.Contracts.WETH: addrs["eth_median"],
+			cfg.Contracts.DAI:    addrs["dai_median"],
+			cfg.Contracts.WETH:   addrs["eth_median"],
+			cfg.Contracts.WstETH: addrs["wsteth_median"],
 		},
 	)
 
@@ -177,6 +180,7 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 			go func() {
 				for {
 					dogBarkService.Start(context.Background())
+					time.Sleep(1 * time.Minute)
 				}
 			}()
 		case Redo:
@@ -188,6 +192,7 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 							log.Fatal(err)
 						}
 					}
+					time.Sleep(1 * time.Minute)
 				}
 			}()
 		case Take:
@@ -205,6 +210,7 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 							log.Fatal(err)
 						}
 					}
+					time.Sleep(1 * time.Minute)
 				}
 			}()
 		}
@@ -217,7 +223,7 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 
 func Register(root *cobra.Command) {
 	root.PersistentFlags().String("modes", "bark,redo,take", "run mode")
-	root.PersistentFlags().String("ilks", "daia,daib,etha,ethb", "ilks to run on")
+	root.PersistentFlags().String("ilks", "daia,daib,etha,ethb,wsteth-a", "ilks to run on")
 	root.AddCommand(
 		&cobra.Command{
 			Use:   "run",

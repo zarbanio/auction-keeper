@@ -15,12 +15,12 @@ import (
 
 type UniswapV3Quoter struct {
 	eth           *ethclient.Client
-	Quoter        *uniswap_v3_quoter.UniswapV3Quoter
+	Quoter        *uniswap_v3_quoter.Quoter
 	QuoterAddress common.Address
 }
 
 func NewUniswapV3Quoter(eth *ethclient.Client, quoterAddr common.Address) (*UniswapV3Quoter, error) {
-	quoter, err := uniswap_v3_quoter.NewUniswapV3Quoter(quoterAddr, eth)
+	quoter, err := uniswap_v3_quoter.NewQuoter(quoterAddr, eth)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (q *UniswapV3Quoter) GetQuotedAmountOut(amount *big.Int, path []entities.Un
 	decNormalized := math.BigPow(10, new(big.Int).Sub(big.NewInt(18), assetDecimal).Int64())
 	quotedAmountOut := new(big.Int).Div(amount, decNormalized)
 
-	quoterABI, _ := uniswap_v3_quoter.UniswapV3QuoterMetaData.GetAbi()
+	quoterABI, _ := uniswap_v3_quoter.QuoterMetaData.GetAbi()
 
 	for _, r := range path {
 		data, err := quoterABI.Pack("quoteExactInputSingle", r.TokenA, r.TokenB, big.NewInt(r.Fee), quotedAmountOut, big.NewInt(0))

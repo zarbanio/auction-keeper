@@ -25,7 +25,7 @@ func (l *logMedianPriceModel) toDomain() *median.MedianLogMedianPrice {
 	}
 }
 
-func (p postgres) CreateLogMedianPrice(ctx context.Context, logMedainPrice median.MedianLogMedianPrice, logId uint64) (int64, error) {
+func (p postgres) CreateLogMedianPrice(ctx context.Context, logmedianPrice median.MedianLogMedianPrice, logId uint64) (int64, error) {
 	query := `
 		INSERT INTO median_prices (val, age, log_id) 
 		VALUES ($1, $2, $3) 
@@ -34,7 +34,7 @@ func (p postgres) CreateLogMedianPrice(ctx context.Context, logMedainPrice media
 		RETURNING id
 	`
 	var id int64
-	err := p.conn.QueryRow(ctx, query, logMedainPrice.Val.String(), logMedainPrice.Age.String(), logId).Scan(&id)
+	err := p.conn.QueryRow(ctx, query, logmedianPrice.Val.String(), logmedianPrice.Age.String(), logId).Scan(&id)
 	if err != nil {
 		return 0, err
 	}

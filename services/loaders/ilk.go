@@ -137,12 +137,12 @@ func (l *IlksLoader) fetchIlkByJoin(ctx context.Context, j join) (*domain.Ilk, e
 		return nil, fmt.Errorf("error getting dog info. %w", err)
 	}
 
-	medain, ok := l.medians[j.gem]
+	median, ok := l.medians[j.gem]
 	if !ok {
 		return nil, errors.New("median not found")
 	}
 
-	medainLog, err := l.store.GetLastLogMedianPrice(ctx, medain)
+	medianLog, err := l.store.GetLastLogMedianPrice(ctx, median)
 	if err != nil {
 		if !errors.Is(err, store.ErrMedianLogPriceMedianNotFound) {
 			return nil, fmt.Errorf("error getting median log. %w", err)
@@ -150,8 +150,8 @@ func (l *IlksLoader) fetchIlkByJoin(ctx context.Context, j join) (*domain.Ilk, e
 	}
 
 	price := price(par, vatInfo.Spot, spotInfo.Mat)
-	if medainLog != nil {
-		price = math.Normalize(medainLog.Val, int64(math.WadDecimals))
+	if medianLog != nil {
+		price = math.Normalize(medianLog.Val, int64(math.WadDecimals))
 	}
 
 	name := domain.Bytes32ToString(j.ilk)
@@ -171,7 +171,7 @@ func (l *IlksLoader) fetchIlkByJoin(ctx context.Context, j join) (*domain.Ilk, e
 		Rate:                          vatInfo.Rate,
 		Join:                          j.address,
 		Gem:                           j.gem,
-		Median:                        medain,
+		Median:                        median,
 		Clipper:                       clipAddr,
 		Pip:                           pip,
 	}

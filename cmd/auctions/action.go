@@ -38,6 +38,11 @@ func action(cfg configs.Config, mode Mode, ilkName string, auctionId *big.Int) {
 		log.Fatal(err)
 	}
 
+	err = postgresStore.Migrate(cfg.Postgres.MigrationsPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	memCache := cache.NewMemCache()
 
 	newSigner, err := signer.NewSigner(cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
@@ -53,14 +58,15 @@ func action(cfg configs.Config, mode Mode, ilkName string, auctionId *big.Int) {
 	}
 
 	addrs["cdp_manager"] = cfg.Contracts.CDPManager
-	addrs["get_cdps"] = cfg.Contracts.GetCDPs
 	addrs["ilk_registry"] = cfg.Contracts.IlkRegistry
 	addrs["eth_a_join"] = cfg.Contracts.ETHAJoin
 	addrs["eth_b_join"] = cfg.Contracts.ETHBJoin
 	addrs["dai_a_join"] = cfg.Contracts.DAIAJoin
 	addrs["dai_b_join"] = cfg.Contracts.DAIBJoin
+	addrs["wsteth_a_join"] = cfg.Contracts.WstETHAJoin
 	addrs["dai_median"] = cfg.Contracts.DAIMedian
 	addrs["eth_median"] = cfg.Contracts.ETHMedian
+	addrs["wsteth_median"] = cfg.Contracts.WstETHMedian
 	ilksLoader := loaders.NewIlksLoader(
 		eth,
 		postgresStore,
@@ -74,10 +80,12 @@ func action(cfg configs.Config, mode Mode, ilkName string, auctionId *big.Int) {
 			addrs["eth_b_join"],
 			addrs["dai_a_join"],
 			addrs["dai_b_join"],
+			addrs["wsteth_a_join"],
 		},
 		map[common.Address]common.Address{
-			cfg.Contracts.DAI:  addrs["dai_median"],
-			cfg.Contracts.WETH: addrs["eth_median"],
+			cfg.Contracts.DAI:    addrs["dai_median"],
+			cfg.Contracts.WETH:   addrs["eth_median"],
+			cfg.Contracts.WstETH: addrs["wsteth_median"],
 		},
 	)
 

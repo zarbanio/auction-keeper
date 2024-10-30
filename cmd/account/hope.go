@@ -21,6 +21,10 @@ func hope(cfg configs.Config, addrs ...common.Address) {
 		log.Fatal(err)
 	}
 	defer eth.Close()
+	err = postgresStore.Migrate(cfg.Postgres.MigrationsPath)
+	if err != nil {
+		log.Fatal(err)
+	}
 	newSigner, err := signer.NewSigner(cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
 	if err != nil {
 		log.Fatal(err)
