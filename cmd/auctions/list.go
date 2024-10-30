@@ -20,10 +20,10 @@ import (
 	"github.com/zarbanio/auction-keeper/x/decimal"
 )
 
-func listAuctions(cfg configs.Config) {
+func listAuctions(cfg configs.Config, secrets configs.Secrets) {
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
 
-	eth, err := ethclient.Dial(cfg.Network.Node.Api)
+	eth, err := ethclient.Dial(secrets.RpcArbitrum)
 	if err != nil {
 		log.Fatal(err)
 	}

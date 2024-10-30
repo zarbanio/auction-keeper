@@ -23,14 +23,15 @@ func Register(root *cobra.Command) {
 			all, _ := cmd.Flags().GetBool("all")
 			configFile, _ := cmd.Flags().GetString("config")
 			cfg := configs.ReadConfig(configFile)
+			secrets := configs.ReadSecrets()
 			// Check if ID is provided as an argument
 			if len(args) > 0 {
 				id := args[0]
 				fmt.Printf("Listing vault with ID: %s\n", id)
-				listVault(cfg, math.BigIntFromString(id))
+				listVault(cfg, secrets, math.BigIntFromString(id))
 			} else if all {
 				fmt.Println("Listing all vaults")
-				listVaults(cfg)
+				listVaults(cfg, secrets)
 			} else {
 				fmt.Println("Listing default set of vaults")
 			}

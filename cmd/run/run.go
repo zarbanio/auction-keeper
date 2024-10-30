@@ -35,11 +35,11 @@ const (
 	Take Mode = "take"
 )
 
-func main(cfg configs.Config, modes []Mode, useUniswap bool, allowedIlks []string) {
+func main(cfg configs.Config, secrets configs.Secrets, modes []Mode, useUniswap bool, allowedIlks []string) {
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
 	logger := logger.NewLogger(context.Background(), postgresStore)
 
-	eth, err := ethclient.Dial(cfg.Network.Node.Api)
+	eth, err := ethclient.Dial(secrets.RpcArbitrum)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func main(cfg configs.Config, modes []Mode, useUniswap bool, allowedIlks []strin
 	memCache := cache.NewMemCache()
 	ceth := cachedeth.NewEthProxy(eth, postgresStore, bcache)
 
-	newSigner, err := signer.NewSigner(cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
+	newSigner, err := signer.NewSigner(secrets.PrivateKey, big.NewInt(cfg.Network.ChainId))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -199,7 +199,7 @@ func main(cfg configs.Config, modes []Mode, useUniswap bool, allowedIlks []strin
 							big.NewInt(cfg.Processor.MinProfitPercentage),
 							big.NewInt(cfg.Processor.MinLotZarValue),
 							big.NewInt(cfg.Processor.MaxLotZarValue),
-							cfg.Wallet.Address,
+							secrets.WalletAddress,
 						)
 						if err != nil {
 							log.Fatal(err)
@@ -246,7 +246,8 @@ func Register(root *cobra.Command) {
 				allowedIlks := strings.Split(ilks, ",")
 
 				cfg := configs.ReadConfig(configFile)
-				main(cfg, modes, useUniswap, allowedIlks)
+				secrets := configs.ReadSecrets()
+				main(cfg, secrets, modes, useUniswap, allowedIlks)
 			},
 		},
 	)

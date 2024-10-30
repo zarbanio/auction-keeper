@@ -12,11 +12,6 @@ Network:
     Symbol: 'ETH'
     Decimals: 18
     MockAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
-  Node:
-    Api: ''
-Wallet:
-  Private: ''
-  Address: ''
 Ilks:
   - Name: 'wstETH-A'
     Decimals: 18

@@ -38,14 +38,7 @@ type Config struct {
 			Decimals    int64          `yaml:"Decimals"`
 			MockAddress common.Address `yaml:"MockAddress"`
 		} `yaml:"NativeAsset"`
-		Node struct {
-			Api string `yaml:"Api"`
-		} `yaml:"Node"`
 	} `yaml:"Network"`
-	Wallet struct {
-		Private string         `yaml:"Private"`
-		Address common.Address `yaml:"Address"`
-	} `yaml:"Wallet"`
 	Ilks []struct {
 		Name          string                    `yaml:"Name"`
 		Decimals      int64                     `yaml:"Decimals"`

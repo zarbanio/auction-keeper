@@ -14,10 +14,10 @@ import (
 	"github.com/zarbanio/auction-keeper/store"
 )
 
-func listVaults(cfg configs.Config) {
+func listVaults(cfg configs.Config, secrets configs.Secrets) {
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
 
-	eth, err := ethclient.Dial(cfg.Network.Node.Api)
+	eth, err := ethclient.Dial(secrets.RpcArbitrum)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -109,10 +109,10 @@ func listVaults(cfg configs.Config) {
 	}
 }
 
-func listVault(cfg configs.Config, vaultId *big.Int) {
+func listVault(cfg configs.Config, secrets configs.Secrets, vaultId *big.Int) {
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
 
-	eth, err := ethclient.Dial(cfg.Network.Node.Api)
+	eth, err := ethclient.Dial(secrets.RpcArbitrum)
 	if err != nil {
 		log.Fatal(err)
 	}

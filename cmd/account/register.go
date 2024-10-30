@@ -24,7 +24,8 @@ func Register(root *cobra.Command) {
 		Run: func(cmd *cobra.Command, args []string) {
 			configFile, _ := cmd.Flags().GetString("config")
 			cfg := configs.ReadConfig(configFile)
-			balance(cfg)
+			secrets := configs.ReadSecrets()
+			balance(cfg, secrets)
 		},
 	})
 	account.AddCommand(&cobra.Command{
@@ -32,6 +33,7 @@ func Register(root *cobra.Command) {
 		Run: func(cmd *cobra.Command, args []string) {
 			configFile, _ := cmd.Flags().GetString("config")
 			cfg := configs.ReadConfig(configFile)
+			secrets := configs.ReadSecrets()
 
 			if len(args) == 0 {
 				fmt.Println("you must specify at least one address")
@@ -42,7 +44,7 @@ func Register(root *cobra.Command) {
 			for _, arg := range args {
 				addrs = append(addrs, common.HexToAddress(arg))
 			}
-			hope(cfg, addrs...)
+			hope(cfg, secrets, addrs...)
 		},
 	})
 	account.AddCommand(&cobra.Command{
@@ -50,6 +52,7 @@ func Register(root *cobra.Command) {
 		Run: func(cmd *cobra.Command, args []string) {
 			configFile, _ := cmd.Flags().GetString("config")
 			cfg := configs.ReadConfig(configFile)
+			secrets := configs.ReadSecrets()
 
 			if len(args) == 0 {
 				fmt.Println("you must specify amount to join")
@@ -69,7 +72,7 @@ func Register(root *cobra.Command) {
 				return
 			}
 			b = new(big.Int).Mul(math.BigPow(10, 15), b)
-			joinZar(cfg, b)
+			joinZar(cfg, secrets, b)
 		},
 	})
 	root.AddCommand(account)

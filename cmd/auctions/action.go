@@ -29,11 +29,11 @@ const (
 	Take Mode = "take"
 )
 
-func action(cfg configs.Config, mode Mode, useUniswap bool, ilkName string, auctionId *big.Int) {
+func action(cfg configs.Config, secrets configs.Secrets, mode Mode, useUniswap bool, ilkName string, auctionId *big.Int) {
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
 	logger := logger.NewLogger(context.Background(), postgresStore)
 
-	eth, err := ethclient.Dial(cfg.Network.Node.Api)
+	eth, err := ethclient.Dial(secrets.RpcArbitrum)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func action(cfg configs.Config, mode Mode, useUniswap bool, ilkName string, auct
 
 	memCache := cache.NewMemCache()
 
-	newSigner, err := signer.NewSigner(cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
+	newSigner, err := signer.NewSigner(secrets.PrivateKey, big.NewInt(cfg.Network.ChainId))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -139,7 +139,7 @@ func action(cfg configs.Config, mode Mode, useUniswap bool, ilkName string, auct
 							big.NewInt(cfg.Processor.MinProfitPercentage),
 							big.NewInt(cfg.Processor.MinLotZarValue),
 							big.NewInt(cfg.Processor.MaxLotZarValue),
-							cfg.Wallet.Address,
+							secrets.WalletAddress,
 						)
 						if err != nil {
 							logger.ConsoleLogger.Err(err).Msg("error while taking the auction.")
