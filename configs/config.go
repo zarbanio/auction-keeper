@@ -50,9 +50,9 @@ type Config struct {
 		MaxLotZarValue      int64 `yaml:"MaxLotZarValue"`
 	} `yaml:"Processor"`
 	Times struct {
-		VaultTicker      int64 `yaml:"VaultTicker"`
-		FlopperTicker    int64 `yaml:"FlopperTicker"`
-		LiquidatorTicker int64 `yaml:"LiquidatorTicker"`
+		BarkTicker time.Duration `yaml:"BarkTicker"`
+		RedoTicker time.Duration `yaml:"RedoTicker"`
+		TakeTicker time.Duration `yaml:"TakeTicker"`
 	} `yaml:"Times"`
 	Contracts struct {
 		Deployment      common.Address `yaml:"Deployment"`

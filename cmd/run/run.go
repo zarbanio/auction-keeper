@@ -175,7 +175,7 @@ func main(cfg configs.Config, secrets configs.Secrets, modes []Mode, useUniswap 
 			go func() {
 				for {
 					dogBarkService.Start(context.Background())
-					time.Sleep(1 * time.Minute)
+					time.Sleep(cfg.Times.BarkTicker)
 				}
 			}()
 		case Redo:
@@ -187,7 +187,7 @@ func main(cfg configs.Config, secrets configs.Secrets, modes []Mode, useUniswap 
 							log.Fatal(err)
 						}
 					}
-					time.Sleep(1 * time.Minute)
+					time.Sleep(cfg.Times.RedoTicker)
 				}
 			}()
 		case Take:
@@ -205,7 +205,7 @@ func main(cfg configs.Config, secrets configs.Secrets, modes []Mode, useUniswap 
 							log.Fatal(err)
 						}
 					}
-					time.Sleep(1 * time.Minute)
+					time.Sleep(cfg.Times.TakeTicker)
 				}
 			}()
 		}

@@ -70,9 +70,9 @@ Processor:
   MinLotZarValue: 0
   MaxLotZarValue: 10000
 Times:
-  VaultTicker: 60
-  FlopperTicker: 60
-  LiquidatorTicker: 60
+  BarkTicker: '15m'
+  RedoTicker: '30m'
+  TakeTicker: '1m'
 Contracts:
   Deployment: '0x77ce8366fAFb7534B034ca45754304CdaED99B1f'
   IlkRegistry: '0xCd24EA214ddf81C95cEC38649DCA6e75EEa427Aa'
