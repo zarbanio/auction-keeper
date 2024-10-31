@@ -1,0 +1,96 @@
+Postgres:
+  Host: 'localhost:5432'
+  User: 'user'
+  Password: 'password'
+  DB: 'auction-keeper'
+  MigrationsPath: 'store/migrations'
+Network:
+  Name: 'Arbitrum'
+  ChainId: 42161
+  NativeAsset:
+    Name: 'Ethereum'
+    Symbol: 'ETH'
+    Decimals: 18
+    MockAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
+Ilks:
+  - Name: 'wstETH-A'
+    Decimals: 18
+    UniswapV3Path:
+      - # wstETH -> WETH
+        Fee: 100
+        TokenA: '0x5979d7b546e38e414f7e9822514be443a4800529'
+        TokenB: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
+      - # WETH -> DAI
+        Fee: 10000
+        TokenA: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
+        TokenB: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1'
+      - # DAI -> Zar
+        Fee: 10000
+        TokenA: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1'
+        TokenB: '0xd946188A614A0d9d0685a60F541bba1e8CC421ae'
+        
+  - Name: 'ETHA'
+    Decimals: 18
+    UniswapV3Path:
+      - # WETH -> DAI
+        Fee: 10000
+        TokenA: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
+        TokenB: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1'
+      - # DAI -> Zar
+        Fee: 10000
+        TokenA: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1'
+        TokenB: '0xd946188A614A0d9d0685a60F541bba1e8CC421ae'
+  - Name: 'ETHB'
+    Decimals: 18
+    UniswapV3Path:
+      - # WETH -> DAI
+        Fee: 10000
+        TokenA: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
+        TokenB: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1'
+      - # DAI -> ZAR
+        Fee: 10000
+        TokenA: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1'
+        TokenB: '0xd946188A614A0d9d0685a60F541bba1e8CC421ae'
+  - Name: 'DAIA'
+    Decimals: 18
+    UniswapV3Path:
+      - # DAI -> ZAR
+        Fee: 10000
+        TokenA: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1'
+        TokenB: '0xd946188A614A0d9d0685a60F541bba1e8CC421ae'
+  - Name: 'DAIB'
+    Decimals: 18
+    UniswapV3Path:
+      - # DAI -> ZAR
+        Fee: 10000
+        TokenA: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1'
+        TokenB: '0xd946188A614A0d9d0685a60F541bba1e8CC421ae'
+Processor:
+  MinProfitPercentage: 1025  # decimal is 3 -> float MinProfitPercentage = 1.025
+  MinLotZarValue: 0
+  MaxLotZarValue: 10000
+Times:
+  BarkTicker: '15m'
+  RedoTicker: '30m'
+  TakeTicker: '1m'
+Contracts:
+  Deployment: '0x7569D671D95b6215203f091FeBEa65e1369c5037'
+  IlkRegistry: '0x821282748EB5b63155DF21c62D6a6699ffCb01CF'
+  AddressProvider: '0x11804AC1d57B8b703AEDDCcE3dDB54844d123632'
+  ETHAJoin: '0x5a3eeF82ee3D2f24613653E049a43f9bA44968e0'
+  ETHBJoin: '0x305Be7D96C7A95A4F94D0d7a7a02825de031Ecb3'
+  DAIAJoin: '0x19aE4b8993023Eb25dF4948f8D0dd2cD5AA33b10'
+  DAIBJoin: '0xE234F872C90b9b0F38541D3D7f0f5C96e7774860'
+  WstETHAJoin: ''
+  CDPManager: '0xe1063E05f94BeCAA1cACc917D0Dd19F6b2f3CB8a'
+  ETHMedian: '0x269766ab73E0C15afE219804AC775dc6AB542e47'
+  DAIMedian: '0x0cF62d57f5832D73DdF1297454d7a51A6344F6b3'
+  WstETHMedian: ''
+  DAI: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1'
+  ZAR: '0xd946188A614A0d9d0685a60F541bba1e8CC421ae'
+  WETH: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
+  WstETH: '0x5979d7b546e38e414f7e9822514be443a4800529'
+  UniswapV3Quoter: '0x61fFE014bA17989E743c5F6cB21bF9697530B21e'
+  UniswapV3Callee: ''
+  ZarJoin: '0x088279c20F279170aaAC4605cd5a91c6Fb016A8b'
+  Vat: '0x975Eb113D580c44aa5676370E2CdF8f56bf3F99F'
