@@ -72,27 +72,25 @@ func NewIlksLoader(
 
 	joins := make(map[common.Address]join)
 	for _, addr := range joinsAddr {
-		gj, err := gemjoin.NewGemjoin(addr, ceth)
+		gemJoin, err := gemjoin.NewGemjoin(addr, ceth)
 		if err != nil {
 			log.Fatal(err)
 		}
-		i, err := gj.Ilk(&bind.CallOpts{Context: context.Background()})
+		ilk, err := gemJoin.Ilk(&bind.CallOpts{Context: context.Background()})
 		if err != nil {
 			log.Fatal(err)
 		}
-		gem, err := gj.Gem(&bind.CallOpts{Context: context.Background()})
+		gem, err := gemJoin.Gem(&bind.CallOpts{Context: context.Background()})
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		j := join{
-			bind:    gj,
+		joins[addr] = join{
+			bind:    gemJoin,
 			address: addr,
-			ilk:     i,
+			ilk:     ilk,
 			gem:     gem,
 		}
-
-		joins[addr] = j
 	}
 
 	return &IlksLoader{
