@@ -17,11 +17,11 @@ Ilks:
     Decimals: 18
     UniswapV3Path:
       - # wstETH -> WETH
-        Fee: 100
+        Fee: 500
         TokenA: '0x5979d7b546e38e414f7e9822514be443a4800529'
         TokenB: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
       - # WETH -> DAI
-        Fee: 10000
+        Fee: 3000
         TokenA: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
         TokenB: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1'
       - # DAI -> Zar
@@ -33,7 +33,7 @@ Ilks:
     Decimals: 18
     UniswapV3Path:
       - # WETH -> DAI
-        Fee: 10000
+        Fee: 3000
         TokenA: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
         TokenB: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1'
       - # DAI -> Zar
@@ -44,7 +44,7 @@ Ilks:
     Decimals: 18
     UniswapV3Path:
       - # WETH -> DAI
-        Fee: 10000
+        Fee: 3000
         TokenA: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
         TokenB: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1'
       - # DAI -> ZAR
