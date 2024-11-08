@@ -75,5 +75,49 @@ func Register(root *cobra.Command) {
 			joinZar(cfg, secrets, b)
 		},
 	})
+	account.AddCommand(&cobra.Command{
+		Use: "exit [ilk] [amount]",
+		Run: func(cmd *cobra.Command, args []string) {
+			configFile, _ := cmd.Flags().GetString("config")
+			cfg := configs.ReadConfig(configFile)
+			secrets := configs.ReadSecrets()
+
+			if len(args) == 0 {
+				fmt.Println("you must specify amount to exit")
+				fmt.Println("ex: account exit 100.15")
+				return
+			}
+
+			if len(args) == 1 {
+				amount, err := decimal.NewFromString(args[0])
+				if err != nil {
+					fmt.Println("invalid amount specified", err)
+					return
+				}
+				amount = amount.Mul(decimal.NewFromInt(1000))
+				b, err := amount.BigInt()
+				if err != nil {
+					fmt.Println("invalid amount specified", err)
+					return
+				}
+				b = new(big.Int).Mul(math.BigPow(10, 15), b)
+				exitZar(cfg, secrets, b)
+			} else {
+				amount, err := decimal.NewFromString(args[1])
+				if err != nil {
+					fmt.Println("invalid amount specified", err)
+					return
+				}
+				amount = amount.Mul(decimal.NewFromInt(1000))
+				b, err := amount.BigInt()
+				if err != nil {
+					fmt.Println("invalid amount specified", err)
+					return
+				}
+				b = new(big.Int).Mul(math.BigPow(10, 15), b)
+				exitGem(cfg, secrets, args[0], b)
+			}
+		},
+	})
 	root.AddCommand(account)
 }

@@ -10,13 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/cobra"
 	"github.com/zarbanio/auction-keeper/cache"
 	"github.com/zarbanio/auction-keeper/configs"
 	"github.com/zarbanio/auction-keeper/services/bark"
-	"github.com/zarbanio/auction-keeper/services/cachedeth"
 	"github.com/zarbanio/auction-keeper/services/loaders"
 	"github.com/zarbanio/auction-keeper/services/logger"
 	"github.com/zarbanio/auction-keeper/services/redo"
@@ -49,9 +47,7 @@ func main(cfg configs.Config, secrets configs.Secrets, modes []Mode, useUniswap 
 		log.Fatal(err)
 	}
 
-	bcache := cachedeth.NewBlockCache(eth)
 	memCache := cache.NewMemCache()
-	ceth := cachedeth.NewEthProxy(eth, postgresStore, bcache)
 
 	newSigner, err := signer.NewSigner(secrets.PrivateKey, big.NewInt(cfg.Network.ChainId))
 	if err != nil {
@@ -70,44 +66,22 @@ func main(cfg configs.Config, secrets configs.Secrets, modes []Mode, useUniswap 
 		log.Fatal("error loading uniswap v3 quoter.", err)
 	}
 
-	addrs["cdp_manager"] = cfg.Contracts.CDPManager
-	addrs["ilk_registry"] = cfg.Contracts.IlkRegistry
-	addrs["eth_a_join"] = cfg.Contracts.ETHAJoin
-	addrs["eth_b_join"] = cfg.Contracts.ETHBJoin
-	addrs["dai_a_join"] = cfg.Contracts.DAIAJoin
-	addrs["dai_b_join"] = cfg.Contracts.DAIBJoin
-	addrs["wsteth_a_join"] = cfg.Contracts.WstETHAJoin
-	addrs["dai_median"] = cfg.Contracts.DAIMedian
-	addrs["eth_median"] = cfg.Contracts.ETHMedian
-	addrs["wsteth_median"] = cfg.Contracts.WstETHMedian
-
 	vaultLoader := loaders.NewVaultLoader(
 		eth,
 		postgresStore,
-		addrs["cdp_manager"],
+		cfg.Contracts.CDPManager,
 		addrs["vat"],
 	)
 
 	ilksLoader := loaders.NewIlksLoader(
-		ceth,
+		eth,
 		postgresStore,
 		addrs["vat"],
 		addrs["jug"],
 		addrs["spot"],
 		addrs["dog"],
-		addrs["ilk_registry"],
-		[]common.Address{
-			addrs["eth_a_join"],
-			addrs["eth_b_join"],
-			addrs["dai_a_join"],
-			addrs["dai_b_join"],
-			addrs["wsteth_a_join"],
-		},
-		map[common.Address]common.Address{
-			cfg.Contracts.DAI:    addrs["dai_median"],
-			cfg.Contracts.WETH:   addrs["eth_median"],
-			cfg.Contracts.WstETH: addrs["wsteth_median"],
-		},
+		cfg.Contracts.IlkRegistry,
+		cfg.Contracts.OsmRegistry,
 	)
 
 	ilks, err := ilksLoader.LoadIlks(context.Background())

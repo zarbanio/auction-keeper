@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/clipper"
@@ -40,16 +39,6 @@ func listAuctions(cfg configs.Config, secrets configs.Secrets) {
 		log.Fatal("error loading addresses.", err)
 	}
 
-	addrs["cdp_manager"] = cfg.Contracts.CDPManager
-	addrs["ilk_registry"] = cfg.Contracts.IlkRegistry
-	addrs["eth_a_join"] = cfg.Contracts.ETHAJoin
-	addrs["eth_b_join"] = cfg.Contracts.ETHBJoin
-	addrs["dai_a_join"] = cfg.Contracts.DAIAJoin
-	addrs["dai_b_join"] = cfg.Contracts.DAIBJoin
-	addrs["wsteth_a_join"] = cfg.Contracts.WstETHAJoin
-	addrs["dai_median"] = cfg.Contracts.DAIMedian
-	addrs["eth_median"] = cfg.Contracts.ETHMedian
-	addrs["wsteth_median"] = cfg.Contracts.WstETHMedian
 	ilksLoader := loaders.NewIlksLoader(
 		eth,
 		postgresStore,
@@ -57,19 +46,8 @@ func listAuctions(cfg configs.Config, secrets configs.Secrets) {
 		addrs["jug"],
 		addrs["spot"],
 		addrs["dog"],
-		addrs["ilk_registry"],
-		[]common.Address{
-			addrs["eth_a_join"],
-			addrs["eth_b_join"],
-			addrs["dai_a_join"],
-			addrs["dai_b_join"],
-			addrs["wsteth_a_join"],
-		},
-		map[common.Address]common.Address{
-			cfg.Contracts.DAI:    addrs["dai_median"],
-			cfg.Contracts.WETH:   addrs["eth_median"],
-			cfg.Contracts.WstETH: addrs["wsteth_median"],
-		},
+		cfg.Contracts.IlkRegistry,
+		cfg.Contracts.OsmRegistry,
 	)
 
 	ilks, err := ilksLoader.LoadIlks(context.Background())

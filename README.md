@@ -50,9 +50,11 @@ go build
 ### account
 Manage account - check balance, join pool, etc.
 ```
-account balance         # Check wallet balance and account balance in system
-account join <amount>   # Deposit ZAR to the system for executing 'take' actions
-account hope <address>  # Check account's hope
+account balance               # Check wallet balance and account balance in system
+account join <amount>         # Deposit ZAR to the system for executing 'take' actions
+account hope <address>        # Check account's hope
+account exit <amount>         # Withdraw ZAR from system
+account exit <ilk> <amount>   # Withdraw tokens from ilk
 ```
 
 
@@ -95,10 +97,11 @@ go run main.go auctions clippers --config=/PATH/TO/YOUR/CONFIG
 ```
 After it, you need to give access to the clippers that you want to run `take` action on vaults that are on those ilks. You need to run it once and for all. So, we suggest to give access to each clipper address by running the following command:
 ```bash
-go run main.go account [clipper-address-1] [clipper-address-2] ... --config=/PATH/TO/YOUR/CONFIG
+go run main.go account hope [clipper-address-1] [clipper-address-2] ... --config=/PATH/TO/YOUR/CONFIG
 ```
 If you want to run bot in the `take` mode and don't set `uniswap` flag, then you have to deposit some ZAR to the system to use it for repaying debt. To do so, run this command:
 ```bash
-go run main.go account join <amount>
+go run main.go account join <amount> --config=/PATH/TO/YOUR/CONFIG
 ```
+If you want to exit your ZAR or other ERC20s from the system, you need to first give access to the `join` contracts by running hope command.
 Now, you've done all initializations you need. It's time to run bot in the mode that you want.

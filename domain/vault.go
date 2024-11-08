@@ -137,6 +137,12 @@ func Bytes32ToString(id [32]byte) string {
 	return string(removeZeroBytes(id[:]))
 }
 
+func StringToBytes32(s string) [32]byte {
+	var array [32]byte
+	copy(array[:], s)
+	return array
+}
+
 func removeZeroBytes(arr []byte) []byte {
 	var res []byte
 	for _, elem := range arr {

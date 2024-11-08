@@ -13,7 +13,7 @@ devtools:
 abi-gen-ierc20:
 	$(ABIGEN) --abi=$(IERC20)/ierc20.json --pkg=ierc20 --out=$(IERC20)/ierc20.go
 
-ABI_GEN_TARGETS := zarjoin median osm jug vat spot gemjoin cdpmanager proxy proxy_registry deployment lendingpool lendingpool_address_provider lendingpool_address_provider_registry ui_pool_data_provider wallet_balance_provider dog ilkregistry clipper abacus flopper
+ABI_GEN_TARGETS := zarjoin median osm osmregistry jug vat spot gemjoin cdpmanager proxy proxy_registry deployment lendingpool lendingpool_address_provider lendingpool_address_provider_registry ui_pool_data_provider wallet_balance_provider dog ilkregistry clipper abacus flopper
 
 $(ABI_GEN_TARGETS):
 	$(ABIGEN) --abi=$(ZARBAN)/$@/$@.json --pkg=$@ --out=$(ZARBAN)/$@/$@.go

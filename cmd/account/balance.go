@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -13,8 +12,10 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/bindings/ierc20"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/vat"
+	"github.com/zarbanio/auction-keeper/cache"
 	"github.com/zarbanio/auction-keeper/configs"
 	"github.com/zarbanio/auction-keeper/domain"
+	"github.com/zarbanio/auction-keeper/services/loaders"
 	"github.com/zarbanio/auction-keeper/services/sender"
 	"github.com/zarbanio/auction-keeper/services/signer"
 	"github.com/zarbanio/auction-keeper/store"
@@ -37,12 +38,35 @@ func balance(cfg configs.Config, secrets configs.Secrets) {
 	}
 	sender := sender.NewSender(newSigner, postgresStore, eth)
 
+	memCache := cache.NewMemCache()
+
+	addressesLoader := loaders.NewAddressLoader(eth, memCache, cfg.Contracts.Deployment, cfg.Contracts.AddressProvider)
+	addrs, err := addressesLoader.LoadAddresses(context.Background())
+	if err != nil {
+		log.Fatal("error loading addresses.", err)
+	}
+
+	ilksLoader := loaders.NewIlksLoader(
+		eth,
+		postgresStore,
+		addrs["vat"],
+		addrs["jug"],
+		addrs["spot"],
+		addrs["dog"],
+		cfg.Contracts.IlkRegistry,
+		cfg.Contracts.OsmRegistry,
+	)
+
+	ilks, err := ilksLoader.LoadIlks(context.Background())
+	if err != nil {
+		log.Fatal("error fetching ilks.", err)
+	}
+
 	vat, err := vat.NewVat(cfg.Contracts.Vat, eth)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ilkNames := []string{"ETHA", "ETHB", "DAIA", "DAIB", "wstETH-A"}
 	tokens := []domain.Token{
 		{
 			Decimals: 18,
@@ -67,7 +91,7 @@ func balance(cfg configs.Config, secrets configs.Secrets) {
 	}
 
 	fmt.Println("Address:", sender.GetAddress().String())
-	printSystemBalances(ilkNames, vat, sender.GetAddress())
+	printSystemBalances(ilks, vat, sender.GetAddress())
 	fmt.Println()
 	printWalletBalances(eth, tokens, sender.GetAddress())
 }
@@ -99,7 +123,7 @@ func printWalletBalances(eth *ethclient.Client, tokens []domain.Token, walletAdd
 	fmt.Printf("%s: %s\n", "ETH", nativeBalanceNormalized.String())
 }
 
-func printSystemBalances(ilkNames []string, vat *vat.Vat, walletAddress common.Address) {
+func printSystemBalances(ilks []domain.Ilk, vat *vat.Vat, walletAddress common.Address) {
 	wad := decimal.NewFromInt(10).Pow(decimal.NewFromInt(18))
 	zarInSystem, err := vat.Zar(&bind.CallOpts{Context: context.Background()}, walletAddress)
 	if err != nil {
@@ -111,35 +135,12 @@ func printSystemBalances(ilkNames []string, vat *vat.Vat, walletAddress common.A
 	fmt.Println("System balances:")
 	fmt.Printf("ZAR: %s\n", zarBalanceNormalized.String())
 
-	for _, ilk := range ilkNames {
-		balance, err := vat.Gem(&bind.CallOpts{Context: context.Background()}, StringToBytes32(ilk), walletAddress)
+	for _, ilk := range ilks {
+		balance, err := vat.Gem(&bind.CallOpts{Context: context.Background()}, ilk.Bytes32, walletAddress)
 		if err != nil {
 			log.Fatal(err)
 		}
 		balanceNormalized := decimal.NewFromBigInt(balance).Div(wad)
-		fmt.Printf("%s(%s): %s\n", IlkToSymbol(ilk), ilk, balanceNormalized.String())
+		fmt.Printf("%s(%s): %s\n", ilk.Symbol, ilk.Name, balanceNormalized.String())
 	}
-}
-
-func StringToBytes32(s string) [32]byte {
-	var array [32]byte
-	copy(array[:], s)
-	return array
-}
-
-func IlkToSymbol(name string) domain.Symbol {
-	if name == "ETHA" {
-		return "ETH"
-	}
-	if name == "ETHB" {
-		return "ETH"
-	}
-	if name == "DAIA" {
-		return "DAI"
-	}
-	if name == "DAIB" {
-		return "DAI"
-	}
-	s := strings.Split(name, "-")
-	return domain.Symbol(s[0])
 }

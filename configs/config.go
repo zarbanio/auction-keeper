@@ -59,14 +59,6 @@ type Config struct {
 		IlkRegistry     common.Address `yaml:"IlkRegistry"`
 		AddressProvider common.Address `yaml:"AddressProvider"`
 		CDPManager      common.Address `yaml:"CDPManager"`
-		ETHAJoin        common.Address `yaml:"ETHAJoin"`
-		ETHBJoin        common.Address `yaml:"ETHBJoin"`
-		DAIAJoin        common.Address `yaml:"DAIAJoin"`
-		DAIBJoin        common.Address `yaml:"DAIBJoin"`
-		WstETHAJoin     common.Address `yaml:"WstETHAJoin`
-		DAIMedian       common.Address `yaml:"DAIMedian"`
-		ETHMedian       common.Address `yaml:"ETHMedian"`
-		WstETHMedian    common.Address `yaml:"WstETHMedian`
 		DAI             common.Address `yaml:"DAI"`
 		ZAR             common.Address `yaml:"ZAR"`
 		WETH            common.Address `yaml:"WETH"`
@@ -75,6 +67,7 @@ type Config struct {
 		UniswapV3Callee common.Address `yaml:"UniswapV3Callee"`
 		ZarJoin         common.Address `yaml:"ZarJoin"`
 		Vat             common.Address `yaml:"Vat"`
+		OsmRegistry     common.Address `yaml:"OsmRegistry"`
 	} `yaml:"Contracts"`
 }
 

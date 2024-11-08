@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/vat"
-	"github.com/zarbanio/auction-keeper/bindings/zarban/zarjoin"
 	"github.com/zarbanio/auction-keeper/configs"
 	"github.com/zarbanio/auction-keeper/services/sender"
 	"github.com/zarbanio/auction-keeper/services/signer"
@@ -52,20 +51,5 @@ func hope(cfg configs.Config, secrets configs.Secrets, addrs ...common.Address) 
 			log.Fatal(err)
 		}
 		fmt.Println("hope tx confirmed.")
-	}
-}
-
-func exitZars(zarjoin *zarjoin.Zarjoin, sender sender.Sender, amount *big.Int) {
-	ops, err := sender.GetTransactOpts()
-	if err != nil {
-		log.Fatal(err)
-	}
-	tx, err := zarjoin.Exit(ops, sender.GetAddress(), amount)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = sender.HandleSentTx(tx)
-	if err != nil {
-		log.Fatal(err)
 	}
 }
