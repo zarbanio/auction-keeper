@@ -3,7 +3,7 @@
 ### contracts .env template:
 ```
 # Add wallet private key
-Private=
+PRIVATE_KEY=
 
 # Add Alchemy or Infura provider keys, alchemy takes preference at the config level
 ALCHEMY_KEY=

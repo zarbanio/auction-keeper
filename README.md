@@ -62,10 +62,10 @@ account exit <ilk> <amount>   # Withdraw tokens from ilk
 
 Manage auctions - list auctions, redo, take, etc.
 ```
-auctions clippers         # List auction clippers
-auctions list             # List all auctions 
-auctions redo <ilk> <id>  # Redo specific auction
-auctions take <ilk> <id>  # Take funds from specific auction
+auctions clippers                     # List auction clippers
+auctions list                         # List all auctions 
+auctions redo <ilk> <id>              # Redo specific auction
+auctions take <ilk> <id> [--uniswap]  # Take funds from specific auction
 ```
 
 ### vaults

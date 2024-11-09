@@ -352,37 +352,37 @@ func (s *Service) TakeById(ctx context.Context, auctionId *big.Int, minProfitPer
 	totalMinProfit45 := new(big.Int).Sub(calcMinProfit45, owe45)
 	minProfit := new(big.Int).Div(totalMinProfit45, Decimals27)
 
-	// debtToCover := new(big.Int).Div(owe27, Decimals9)
-
-	// Determine proceeds from swapping gem for Zar on Uniswap
-	// uniswapV3Proceeds, err := s.quoter.GetQuotedAmountOut(lot, s.path, s.assetDecimals)
-	// if err != nil {
-	// s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Start").Msg("error while getting the uniswapV3 proceeds")
-	// continue
-	// }
-	// minUniV3Proceeds := new(big.Int).Sub(uniswapV3Proceeds, minProfit)
-
 	// Increase actual take amount to account for rounding errors and edge cases.
 	// Do not increase too much to not significantly go over configured maxAmt.
 	amt := new(big.Int).Div(new(big.Int).Mul(lot, big.NewInt(1000001)), big.NewInt(1000000))
 
-	// if debtToCover.Cmp(minUniV3Proceeds) > 0 {
-	// 	s.l.Logger.Info().
-	// 		Str("service", "take").
-	// 		Str("method", "start").
-	// 		Str("ilk", s.IlkName).
-	// 		Int64("auctionId", auctionId.Int64()).
-	// 		Str("debtToCover", debtToCover.String()).
-	// 		Str("minUniV3Proceeds", minUniV3Proceeds.String()).
-	// 		Msg("profit amount is less than cost")
-	// }
-
 	if s.useUniswap {
+		debtToCover := new(big.Int).Div(owe27, Decimals9)
+
+		// Determine proceeds from swapping gem for Zar on Uniswap
+		uniswapV3Proceeds, err := s.quoter.GetQuotedAmountOut(amt, s.path, s.assetDecimals)
+		if err != nil {
+			s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Start").Msg("error while getting the uniswapV3 proceeds")
+			return err
+		}
+		minUniV3Proceeds := new(big.Int).Sub(uniswapV3Proceeds, minProfit)
+
+		if debtToCover.Cmp(minUniV3Proceeds) > 0 {
+			s.l.Logger.Info().
+				Str("service", "take").
+				Str("method", "start").
+				Str("ilk", s.IlkName).
+				Int64("auctionId", auctionId.Int64()).
+				Str("debtToCover", debtToCover.String()).
+				Str("minUniV3Proceeds", minUniV3Proceeds.String()).
+				Msg("profit amount is less than cost")
+		}
+
 		take := inputMethods.ClipperTake{
-			Auction_id: auctionId,
-			Amt:        amt,
-			Max:        collateralPrice,
-			Who:        s.callee,
+			AuctionId: auctionId,
+			Amt:       amt,
+			Max:       collateralPrice,
+			Who:       s.callee,
 		}
 		err = s.TakeUsingUniswap(take, minProfit, profitAddress, s.gemjoin)
 		if err != nil {
@@ -396,10 +396,10 @@ func (s *Service) TakeById(ctx context.Context, auctionId *big.Int, minProfitPer
 		}
 	} else {
 		take := inputMethods.ClipperTake{
-			Auction_id: auctionId,
-			Amt:        amt,
-			Max:        collateralPrice,
-			Who:        profitAddress, // be careful with this. user should have access to profitAddress to exit gems
+			AuctionId: auctionId,
+			Amt:       amt,
+			Max:       collateralPrice,
+			Who:       profitAddress, // be careful with this. user should have access to profitAddress to exit gems
 		}
 		err = s.TakeUsingWalletFunds(ctx, take)
 		if err != nil {
@@ -430,7 +430,7 @@ func (s *Service) TakeUsingWalletFunds(ctx context.Context, take inputMethods.Cl
 			Str("service", "take").
 			Str("method", "TakeUsingWalletFunds").
 			Str("profitReceiver", take.Who.String()).
-			Str("auctionId", take.Auction_id.String()).
+			Str("auctionId", take.AuctionId.String()).
 			Msg("error while calling take")
 		return err
 	}
@@ -458,7 +458,7 @@ func (s *Service) TakeUsingUniswap(take inputMethods.ClipperTake, minProfit *big
 		return fmt.Errorf("error in get route: %v", err)
 	}
 
-	take.Data, err = args.Pack(profitAddr, gemJoinAdapter, minProfit, route, common.Address{0})
+	take.Data, err = args.Pack(profitAddr, gemJoinAdapter, minProfit, route, common.HexToAddress("0x"))
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "take").Msg("error while getting the flashData")
 		return fmt.Errorf("error in pack flash data: : %v", err)
@@ -470,7 +470,7 @@ func (s *Service) TakeUsingUniswap(take inputMethods.ClipperTake, minProfit *big
 			Str("service", "take").
 			Str("method", "TakeUsingUniswap").
 			Str("profitReceiver", take.Who.String()).
-			Str("auctionId", take.Auction_id.String()).
+			Str("auctionId", take.AuctionId.String()).
 			Msg("error while calling take")
 		return err
 	}
@@ -485,7 +485,7 @@ func (s *Service) Take(take inputMethods.ClipperTake) error {
 		return err
 	}
 
-	tx, err := s.clip.Take(opts, take.Auction_id, take.Amt, take.Max, take.Who, take.Data)
+	tx, err := s.clip.Take(opts, take.AuctionId, take.Amt, take.Max, take.Who, take.Data)
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "take").Msg("error while calling the clipper take method")
 		return err
@@ -500,12 +500,12 @@ func (s *Service) Stop() {
 }
 
 func (s *Service) getCurrentTime(ctx context.Context) (uint64, error) {
-	blockNum, err := s.eth.BlockNumber(context.Background())
+	blockNum, err := s.eth.BlockNumber(ctx)
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "getCurrentTime").Msg("error while getting the last block number")
 		return 0, err
 	}
-	block, err := s.eth.BlockByNumber(context.Background(), big.NewInt(int64(blockNum)))
+	block, err := s.eth.BlockByNumber(ctx, big.NewInt(int64(blockNum)))
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "getCurrentTime").Msg("error while getting the head")
 		return 0, err

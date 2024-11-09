@@ -9,7 +9,6 @@ import (
 )
 
 func GetRouter(routes []entities.UniswapV3Route) ([]byte, error) {
-
 	routeStr := ""
 	preDestinationToken := ""
 	for _, r := range routes {

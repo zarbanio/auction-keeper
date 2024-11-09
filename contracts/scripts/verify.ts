@@ -46,22 +46,22 @@ const verifyWithRetry = async (contractAddress: string, params: any, times: numb
     } catch (error) {
         counter--;
 
-        if (okErrors.some((okReason) => error.message.includes(okReason))) {
-            console.info('[ETHERSCAN][INFO] Skipping due OK response: ', error.message);
+        if (okErrors.some((okReason) => (error as Error).message.includes(okReason))) {
+            console.info('[ETHERSCAN][INFO] Skipping due OK response: ', (error as Error).message);
             return;
         }
 
-        if (fatalErrors.some((fatalError) => error.message.includes(fatalError))) {
+        if (fatalErrors.some((fatalError) => (error as Error).message.includes(fatalError))) {
             console.error(
                 '[ETHERSCAN][ERROR] Fatal error detected, skip retries and resume deployment.',
-                error.message
+                (error as Error).message
             );
             return;
         }
-        console.error('[ETHERSCAN][ERROR]', error.message);
+        console.error('[ETHERSCAN][ERROR]', (error as Error).message);
         console.log();
         console.info(`[ETHERSCAN][[INFO] Retrying attemps: ${counter}.`);
-        if (error.message.includes(unableVerifyError)) {
+        if ((error as Error).message.includes(unableVerifyError)) {
             console.log('[ETHERSCAN][WARNING] Trying to verify via uploading all sources.');
             delete params.relatedSources;
         }

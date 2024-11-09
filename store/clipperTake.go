@@ -11,30 +11,30 @@ import (
 )
 
 type takeModel struct {
-	auction_id string
-	amt        string
-	max        string
-	who        string
-	data       string
+	auctionId string
+	amt       string
+	max       string
+	who       string
+	data      string
 }
 
 func (f takeModel) ToDomain() *entities.ClipperTake {
 	return &entities.ClipperTake{
-		Auction_id: math.BigIntFromString(f.auction_id),
-		Amt:        math.BigIntFromString(f.amt),
-		Max:        math.BigIntFromString(f.max),
-		Who:        common.HexToAddress(f.who),
-		Data:       []byte(f.data),
+		AuctionId: math.BigIntFromString(f.auctionId),
+		Amt:       math.BigIntFromString(f.amt),
+		Max:       math.BigIntFromString(f.max),
+		Who:       common.HexToAddress(f.who),
+		Data:      []byte(f.data),
 	}
 }
 
 func NewTake(id *big.Int, amt *big.Int, max *big.Int, who common.Address, data []byte) *takeModel {
 	return &takeModel{
-		auction_id: id.String(),
-		amt:        amt.String(),
-		max:        max.String(),
-		who:        who.String(),
-		data:       string(data),
+		auctionId: id.String(),
+		amt:       amt.String(),
+		max:       max.String(),
+		who:       who.String(),
+		data:      string(data),
 	}
 }
 
@@ -52,7 +52,7 @@ func (p postgres) CreateTake(ctx context.Context, take *entities.ClipperTake, tx
 			who = EXCLUDED.who,
 			data = EXCLUDED.data
         RETURNING id
-    `, take.Auction_id, take.Amt, take.Max, take.Who, take.Data, tx_id).Scan(&id)
+    `, take.AuctionId, take.Amt, take.Max, take.Who, take.Data, tx_id).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("failed to upsert . %w", err)
 	}

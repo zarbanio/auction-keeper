@@ -17,7 +17,7 @@ Ilks:
     Decimals: 18
     UniswapV3Path:
       - # wstETH -> WETH
-        Fee: 500
+        Fee: 100
         TokenA: '0x5979d7b546e38e414f7e9822514be443a4800529'
         TokenB: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
       - # WETH -> DAI
@@ -83,7 +83,7 @@ Contracts:
   WETH: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
   WstETH: '0x5979d7b546e38e414f7e9822514be443a4800529'
   UniswapV3Quoter: '0x61fFE014bA17989E743c5F6cB21bF9697530B21e'
-  UniswapV3Callee: ''
+  UniswapV3Callee: '0xF9481FC9fFe08549f06F1858DC7c3EA83bC9C613'
   ZarJoin: '0x088279c20F279170aaAC4605cd5a91c6Fb016A8b'
   Vat: '0x975Eb113D580c44aa5676370E2CdF8f56bf3F99F'
   OsmRegistry: '0xD1580f1a9eD4c4C13Bb94A7557dFFe6ef768DDF1'

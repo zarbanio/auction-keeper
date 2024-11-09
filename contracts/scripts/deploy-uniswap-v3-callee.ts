@@ -10,8 +10,8 @@ async function main() {
   const uniV3Router = deploymentConfig.UniV3Router
   const zarJoin = deploymentConfig.ZarJoin
 
-  const UniswapV3Callee = await ethers.getContractFactory("UniswapV3Callee");
-  const uniswapV3Callee = await UniswapV3Callee.deploy(uniV3Router, zarJoin);
+  const uniswapV3CalleeFactory = await ethers.getContractFactory("UniswapV3Callee");
+  const uniswapV3Callee = await uniswapV3CalleeFactory.deploy(uniV3Router, zarJoin);
 
   await uniswapV3Callee.deployed();
 

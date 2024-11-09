@@ -60,7 +60,7 @@ contract UniswapV3Callee {
         zarJoin = ZarJoinLike(zarJoin_);
         zar = zarJoin.zar();
 
-        zar.approve(zarJoin_, uint256(-1));
+        zar.approve(zarJoin_, type(uint256).max);
     }
 
     function _fromWad(address gemJoin, uint256 wad) internal view returns (uint256 amt) {

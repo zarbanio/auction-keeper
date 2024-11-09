@@ -16,7 +16,7 @@ func (a Actions) Take(clipper *clipper.Clipper, take *entities.ClipperTake) (*ty
 		return nil, err
 	}
 
-	tx, err := clipper.ClipperTransactor.Take(opts, take.Auction_id, take.Amt, take.Max, take.Who, take.Data)
+	tx, err := clipper.ClipperTransactor.Take(opts, take.AuctionId, take.Amt, take.Max, take.Who, take.Data)
 	if err != nil {
 		return nil, err
 	}
