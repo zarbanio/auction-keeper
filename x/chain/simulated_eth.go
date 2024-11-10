@@ -140,11 +140,11 @@ func (s *simulatedEthereum) SendTransaction(ctx context.Context, tx *types.Trans
 }
 
 func (s *simulatedEthereum) BlockNumber(ctx context.Context) (uint64, error) {
-	return s.backEnd.Blockchain().CurrentBlock().Number().Uint64(), nil
+	return s.backEnd.BlockNumber(ctx)
 }
 
 func (s *simulatedEthereum) ChainID(ctx context.Context) (*big.Int, error) {
-	return s.backEnd.Blockchain().Config().ChainID, nil
+	return s.backEnd.ChainID(ctx)
 }
 
 func NewSimulatedEthereum(backend *backends.SimulatedBackend) SimulatedEthereum {
