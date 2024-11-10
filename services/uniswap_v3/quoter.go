@@ -2,6 +2,8 @@ package uniswap_v3
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"math/big"
 
@@ -9,7 +11,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 	uniswap_v3_quoter "github.com/zarbanio/auction-keeper/bindings/uniswapv3/quoter"
+	"github.com/zarbanio/auction-keeper/domain"
 	"github.com/zarbanio/auction-keeper/domain/entities"
 )
 
@@ -39,22 +43,43 @@ func (q *UniswapV3Quoter) GetQuotedAmountOut(amount *big.Int, path []entities.Un
 	quoterABI, _ := uniswap_v3_quoter.QuoterMetaData.GetAbi()
 
 	for _, r := range path {
-		data, err := quoterABI.Pack("quoteExactInputSingle", r.TokenA, r.TokenB, big.NewInt(r.Fee), quotedAmountOut, big.NewInt(0))
+		data, err := quoterABI.Pack("quoteExactInputSingle", domain.QuoteExactInputSingleParams{
+			TokenIn:           r.TokenA,
+			TokenOut:          r.TokenB,
+			AmountIn:          quotedAmountOut,
+			Fee:               big.NewInt(r.Fee),
+			SqrtPriceLimitX96: big.NewInt(0),
+		})
 		if err != nil {
 			log.Println("error in pack quoteExactInputSingle data: ", err)
 			return nil, err
 		}
 
-		output, err := q.eth.CallContract(context.Background(), ethereum.CallMsg{
-			To:   &q.QuoterAddress,
-			Data: data,
-		}, nil)
+		result, err := q.eth.CallContract(
+			context.Background(),
+			ethereum.CallMsg{
+				To:   &q.QuoterAddress,
+				Data: data,
+			}, nil,
+		)
 		if err != nil {
+			if err.Error() == "execution reverted" {
+				var revertData rpc.DataError
+				success := errors.As(err, &revertData)
+				if !success {
+					return nil, fmt.Errorf("failed to parse error message: %w", err)
+				}
+			}
 			log.Println("error in get quoted amount: ", err)
 			return nil, err
 		}
 
-		quotedAmountOut = new(big.Int).SetBytes(output)
+		outputs, err := quoterABI.Unpack("quoteExactInputSingle", result)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unpack Quote: %w", err)
+		}
+
+		quotedAmountOut = outputs[0].(*big.Int)
 	}
 
 	return quotedAmountOut, nil
