@@ -17,7 +17,7 @@ func Execute() {
 		Version: "0.1",
 	}
 
-	root.PersistentFlags().String("config", "config.goerli.yaml", "read config file")
+	root.PersistentFlags().String("config", "config.sepolia.arbitrum.yaml", "read config file")
 	run.Register(root)
 	account.Register(root)
 	auctions.Register(root)

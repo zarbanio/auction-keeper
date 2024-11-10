@@ -9,9 +9,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/dog"
-	"github.com/zarbanio/auction-keeper/bindings/zarban/gemjoin"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/ilkregistry"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/jug"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/osmregistry"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/spot"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/vat"
 	"github.com/zarbanio/auction-keeper/domain"
@@ -26,16 +26,8 @@ type IlksLoader struct {
 	jug         *jug.Jug
 	spot        *spot.Spot
 	ilkregistry *ilkregistry.Ilkregistry
+	osmregistry *osmregistry.Osmregistry
 	dog         *dog.Dog
-	joins       map[common.Address]join           // join address to join contract
-	medians     map[common.Address]common.Address // gem address to median address
-}
-
-type join struct {
-	bind    *gemjoin.Gemjoin
-	address common.Address
-	ilk     [32]byte
-	gem     common.Address
 }
 
 func NewIlksLoader(
@@ -46,8 +38,8 @@ func NewIlksLoader(
 	spotAddr,
 	dogAddr,
 	ilkregistryAddr common.Address,
-	joinsAddr []common.Address,
-	medians map[common.Address]common.Address) *IlksLoader {
+	osmregistryAddr common.Address,
+) *IlksLoader {
 
 	v, err := vat.NewVat(vatAddr, ceth)
 	if err != nil {
@@ -70,29 +62,9 @@ func NewIlksLoader(
 		log.Fatal(err)
 	}
 
-	joins := make(map[common.Address]join)
-	for _, addr := range joinsAddr {
-		gj, err := gemjoin.NewGemjoin(addr, ceth)
-		if err != nil {
-			log.Fatal(err)
-		}
-		i, err := gj.Ilk(&bind.CallOpts{Context: context.Background()})
-		if err != nil {
-			log.Fatal(err)
-		}
-		gem, err := gj.Gem(&bind.CallOpts{Context: context.Background()})
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		j := join{
-			bind:    gj,
-			address: addr,
-			ilk:     i,
-			gem:     gem,
-		}
-
-		joins[addr] = j
+	or, err := osmregistry.NewOsmregistry(osmregistryAddr, ceth)
+	if err != nil {
+		log.Fatal("error creating osm registry.", err)
 	}
 
 	return &IlksLoader{
@@ -101,64 +73,57 @@ func NewIlksLoader(
 		spot:        s,
 		dog:         d,
 		ilkregistry: ir,
+		osmregistry: or,
 		vat:         v,
-		joins:       joins,
-		medians:     medians,
 	}
 }
 
-func (l *IlksLoader) fetchIlkByJoin(ctx context.Context, j join) (*domain.Ilk, error) {
-	vatInfo, err := l.vat.Ilks(&bind.CallOpts{Context: ctx}, j.ilk)
+func (l *IlksLoader) LoadIlkByName(ctx context.Context, name string) (*domain.Ilk, error) {
+	id := domain.StringToBytes32(name)
+	return l.LoadIlkById(ctx, id)
+}
+
+func (l *IlksLoader) LoadIlkById(ctx context.Context, id [32]byte) (*domain.Ilk, error) {
+	vatInfo, err := l.vat.Ilks(&bind.CallOpts{Context: ctx}, id)
 	if err != nil {
 		return nil, fmt.Errorf("error getting vat info. %w", err)
 	}
-	jugInfo, err := l.jug.Ilks(&bind.CallOpts{Context: ctx}, j.ilk)
+	jugInfo, err := l.jug.Ilks(&bind.CallOpts{Context: ctx}, id)
 	if err != nil {
 		return nil, fmt.Errorf("error getting jug info. %w", err)
 	}
-	spotInfo, err := l.spot.Ilks(&bind.CallOpts{Context: ctx}, j.ilk)
+	spotInfo, err := l.spot.Ilks(&bind.CallOpts{Context: ctx}, id)
 	if err != nil {
 		return nil, fmt.Errorf("error getting spot info. %w", err)
+	}
+	dogInfo, err := l.dog.Ilks(&bind.CallOpts{Context: ctx}, id)
+	if err != nil {
+		return nil, fmt.Errorf("error getting dog info. %w", err)
 	}
 	par, err := l.spot.Par(&bind.CallOpts{Context: ctx})
 	if err != nil {
 		return nil, fmt.Errorf("error getting par. %w", err)
 	}
-	clipAddr, err := l.ilkregistry.Xlip(&bind.CallOpts{Context: ctx}, j.ilk)
+	data, err := l.ilkregistry.IlkData(&bind.CallOpts{Context: ctx}, id)
 	if err != nil {
-		return nil, fmt.Errorf("error getting clipper. %w", err)
+		return nil, fmt.Errorf("error getting ilk data. %w", err)
 	}
-	pip, err := l.ilkregistry.Pip(&bind.CallOpts{Context: ctx}, j.ilk)
-	if err != nil {
-		return nil, fmt.Errorf("error getting pip. %w", err)
-	}
-	dogInfo, err := l.dog.Ilks(&bind.CallOpts{Context: ctx}, j.ilk)
-	if err != nil {
-		return nil, fmt.Errorf("error getting dog info. %w", err)
+	if data.Gem == common.HexToAddress("0x") {
+		return nil, errors.New("ilk is not supported")
 	}
 
-	medain, ok := l.medians[j.gem]
-	if !ok {
-		return nil, errors.New("median not found")
-	}
-
-	medainLog, err := l.store.GetLastLogMedianPrice(ctx, medain)
+	_, median, err := l.osmregistry.Get(&bind.CallOpts{Context: ctx}, data.Gem)
 	if err != nil {
-		if !errors.Is(err, store.ErrMedianLogPriceMedianNotFound) {
-			return nil, fmt.Errorf("error getting median log. %w", err)
-		}
+		return nil, fmt.Errorf("error getting osm src. %w", err)
 	}
 
 	price := price(par, vatInfo.Spot, spotInfo.Mat)
-	if medainLog != nil {
-		price = math.Normalize(medainLog.Val, int64(math.WadDecimals))
-	}
 
-	name := domain.Bytes32ToString(j.ilk)
-	ilk := &domain.Ilk{
-		Bytes32:                       j.ilk,
+	name := domain.Bytes32ToString(id)
+	ilk := domain.Ilk{
+		Bytes32:                       id,
 		Name:                          name,
-		Symbol:                        IlkToSymbol(name),
+		Symbol:                        domain.Symbol(data.Symbol),
 		MinimumCollateralizationRatio: liquidationRatio(spotInfo.Mat),
 		AnnualStabilityFee:            annualStabilityFee(jugInfo.Duty),
 		DustLimit:                     math.Normalize(vatInfo.Dust, int64(math.RadDecimals)),
@@ -169,20 +134,24 @@ func (l *IlksLoader) fetchIlkByJoin(ctx context.Context, j join) (*domain.Ilk, e
 		Price:                         price,
 		Debt:                          debtValue(vatInfo.Art, vatInfo.Rate),
 		Rate:                          vatInfo.Rate,
-		Join:                          j.address,
-		Gem:                           j.gem,
-		Median:                        medain,
-		Clipper:                       clipAddr,
-		Pip:                           pip,
+		Join:                          data.Join,
+		Gem:                           data.Gem,
+		Median:                        median,
+		Clipper:                       data.Xlip,
+		Pip:                           data.Pip,
 	}
 
-	return ilk, nil
+	return &ilk, nil
 }
 
 func (l *IlksLoader) LoadIlks(ctx context.Context) ([]domain.Ilk, error) {
+	ids, err := l.ilkregistry.List(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return nil, fmt.Errorf("error getting ilk count. %w", err)
+	}
 	var ilks []domain.Ilk
-	for _, join := range l.joins {
-		ilk, err := l.fetchIlkByJoin(ctx, join)
+	for _, id := range ids {
+		ilk, err := l.LoadIlkById(ctx, id)
 		if err != nil {
 			return nil, fmt.Errorf("error getting ilk. %w", err)
 		}

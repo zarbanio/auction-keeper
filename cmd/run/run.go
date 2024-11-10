@@ -8,14 +8,13 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/cobra"
 	"github.com/zarbanio/auction-keeper/cache"
 	"github.com/zarbanio/auction-keeper/configs"
 	"github.com/zarbanio/auction-keeper/services/bark"
-	"github.com/zarbanio/auction-keeper/services/cachedeth"
 	"github.com/zarbanio/auction-keeper/services/loaders"
 	"github.com/zarbanio/auction-keeper/services/logger"
 	"github.com/zarbanio/auction-keeper/services/redo"
@@ -34,11 +33,11 @@ const (
 	Take Mode = "take"
 )
 
-func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
+func main(cfg configs.Config, secrets configs.Secrets, modes []Mode, useUniswap bool, allowedIlks []string) {
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
 	logger := logger.NewLogger(context.Background(), postgresStore)
 
-	eth, err := ethclient.Dial(cfg.Network.Node.Api)
+	eth, err := ethclient.Dial(secrets.RpcArbitrum)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,11 +47,9 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 		log.Fatal(err)
 	}
 
-	bcache := cachedeth.NewBlockCache(eth)
 	memCache := cache.NewMemCache()
-	ceth := cachedeth.NewEthProxy(eth, postgresStore, bcache)
 
-	newSigner, err := signer.NewSigner(cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
+	newSigner, err := signer.NewSigner(secrets.PrivateKey, big.NewInt(cfg.Network.ChainId))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -69,42 +66,22 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 		log.Fatal("error loading uniswap v3 quoter.", err)
 	}
 
-	addrs["cdp_manager"] = cfg.Contracts.CDPManager
-	addrs["get_cdps"] = cfg.Contracts.GetCDPs
-	addrs["ilk_registry"] = cfg.Contracts.IlkRegistry
-	addrs["eth_a_join"] = cfg.Contracts.ETHAJoin
-	addrs["eth_b_join"] = cfg.Contracts.ETHBJoin
-	addrs["dai_a_join"] = cfg.Contracts.DAIAJoin
-	addrs["dai_b_join"] = cfg.Contracts.DAIBJoin
-	addrs["dai_median"] = cfg.Contracts.DAIMedian
-	addrs["eth_median"] = cfg.Contracts.ETHMedian
-
 	vaultLoader := loaders.NewVaultLoader(
 		eth,
 		postgresStore,
-		addrs["cdp_manager"],
-		addrs["get_cdps"],
+		cfg.Contracts.CDPManager,
 		addrs["vat"],
 	)
 
 	ilksLoader := loaders.NewIlksLoader(
-		ceth,
+		eth,
 		postgresStore,
 		addrs["vat"],
 		addrs["jug"],
 		addrs["spot"],
 		addrs["dog"],
-		addrs["ilk_registry"],
-		[]common.Address{
-			addrs["eth_a_join"],
-			addrs["eth_b_join"],
-			addrs["dai_a_join"],
-			addrs["dai_b_join"],
-		},
-		map[common.Address]common.Address{
-			cfg.Contracts.DAI:  addrs["dai_median"],
-			cfg.Contracts.WETH: addrs["eth_median"],
-		},
+		cfg.Contracts.IlkRegistry,
+		cfg.Contracts.OsmRegistry,
 	)
 
 	ilks, err := ilksLoader.LoadIlks(context.Background())
@@ -138,6 +115,7 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 				take.WithLogger(logger),
 				take.WithIlkName(ilk.Name),
 				take.WithCallee(cfg.Contracts.UniswapV3Callee),
+				take.WithUseUniswap(useUniswap),
 			),
 		)
 
@@ -153,11 +131,6 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 		)
 	}
 
-	vatLoader := loaders.NewVatLoader(
-		eth,
-		cfg.Contracts.Vat,
-	)
-
 	dogBarkService := bark.NewService(
 		context.Background(),
 		eth,
@@ -165,7 +138,6 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 		addrs["dog"],
 		addrs["spot"],
 		vaultLoader,
-		vatLoader,
 		ilksLoader,
 		sender,
 		logger,
@@ -177,6 +149,7 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 			go func() {
 				for {
 					dogBarkService.Start(context.Background())
+					time.Sleep(cfg.Times.BarkTicker)
 				}
 			}()
 		case Redo:
@@ -188,6 +161,7 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 							log.Fatal(err)
 						}
 					}
+					time.Sleep(cfg.Times.RedoTicker)
 				}
 			}()
 		case Take:
@@ -199,12 +173,13 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 							big.NewInt(cfg.Processor.MinProfitPercentage),
 							big.NewInt(cfg.Processor.MinLotZarValue),
 							big.NewInt(cfg.Processor.MaxLotZarValue),
-							cfg.Wallet.Address,
+							secrets.WalletAddress,
 						)
 						if err != nil {
 							log.Fatal(err)
 						}
 					}
+					time.Sleep(cfg.Times.TakeTicker)
 				}
 			}()
 		}
@@ -217,7 +192,8 @@ func main(cfg configs.Config, modes []Mode, allowedIlks []string) {
 
 func Register(root *cobra.Command) {
 	root.PersistentFlags().String("modes", "bark,redo,take", "run mode")
-	root.PersistentFlags().String("ilks", "daia,daib,etha,ethb", "ilks to run on")
+	root.PersistentFlags().String("ilks", "daia,daib,etha,ethb,wsteth-a", "ilks to run on")
+	root.PersistentFlags().Bool("uniswap", false, "set it to true for swapping the released collateral to zar for liquidating a vault")
 	root.AddCommand(
 		&cobra.Command{
 			Use:   "run",
@@ -225,6 +201,7 @@ func Register(root *cobra.Command) {
 			Run: func(cmd *cobra.Command, args []string) {
 				configFile, _ := cmd.Flags().GetString("config")
 				mode, _ := cmd.Flags().GetString("modes")
+				useUniswap, _ := cmd.Flags().GetBool("uniswap")
 				tokens := strings.Split(mode, ",")
 
 				if len(tokens) == 0 {
@@ -243,7 +220,8 @@ func Register(root *cobra.Command) {
 				allowedIlks := strings.Split(ilks, ",")
 
 				cfg := configs.ReadConfig(configFile)
-				main(cfg, modes, allowedIlks)
+				secrets := configs.ReadSecrets()
+				main(cfg, secrets, modes, useUniswap, allowedIlks)
 			},
 		},
 	)

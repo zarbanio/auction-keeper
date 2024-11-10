@@ -2,6 +2,7 @@ package take
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math/big"
@@ -13,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/abacus"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/clipper"
+	"github.com/zarbanio/auction-keeper/bindings/zarban/vat"
 	"github.com/zarbanio/auction-keeper/domain/entities"
 	inputMethods "github.com/zarbanio/auction-keeper/domain/entities/inputMethods"
 	"github.com/zarbanio/auction-keeper/services/logger"
@@ -42,6 +44,7 @@ type Options struct {
 	AssetDecimals *big.Int
 	Sender        sender.Sender
 	Logger        *logger.Logger
+	UseUniswap    bool
 }
 
 type Option func(*Options)
@@ -106,6 +109,12 @@ func WithLogger(logger *logger.Logger) Option {
 	}
 }
 
+func WithUseUniswap(useUniswap bool) Option {
+	return func(opts *Options) {
+		opts.UseUniswap = useUniswap
+	}
+}
+
 type Service struct {
 	IlkName string
 	eth     *ethclient.Client
@@ -113,6 +122,7 @@ type Service struct {
 
 	clip   *clipper.Clipper
 	abacus *abacus.Abacus
+	vat    *vat.Vat
 	chost  *big.Int
 
 	quoter        *uniswap_v3.UniswapV3Quoter
@@ -121,6 +131,7 @@ type Service struct {
 	gemjoin       common.Address
 	assetDecimals *big.Int
 	l             *logger.Logger
+	useUniswap    bool
 }
 
 func NewService(
@@ -131,29 +142,39 @@ func NewService(
 		opt(options)
 	}
 
-	c, err := clipper.NewClipper(options.ClipperAddr, options.Eth)
+	clip, err := clipper.NewClipper(options.ClipperAddr, options.Eth)
 	if err != nil {
 		options.Logger.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while instancing a clipper contract")
 	}
-	abacusAddr, err := c.Calc(&bind.CallOpts{Context: context.Background()})
+	abacusAddr, err := clip.Calc(&bind.CallOpts{Context: context.Background()})
 	if err != nil {
 		options.Logger.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while getting the abacus address")
 	}
-	a, err := abacus.NewAbacus(abacusAddr, options.Eth)
+	abacus, err := abacus.NewAbacus(abacusAddr, options.Eth)
 	if err != nil {
 		options.Logger.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while instancing an abacus contract")
 	}
 
-	chost, err := c.Chost(&bind.CallOpts{Context: context.Background()})
+	chost, err := clip.Chost(&bind.CallOpts{Context: context.Background()})
 	if err != nil {
 		options.Logger.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while getting the chost")
+	}
+
+	vatAddr, err := clip.Vat(&bind.CallOpts{Context: context.Background()})
+	if err != nil {
+		options.Logger.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while getting the vat address")
+	}
+	vat, err := vat.NewVat(vatAddr, options.Eth)
+	if err != nil {
+		options.Logger.Logger.Fatal().Str("service", "take").Str("method", "NewClipperTakeService").Msg("err while instancing a vat contract")
 	}
 
 	return &Service{
 		IlkName:       options.IlkName,
 		eth:           options.Eth,
-		abacus:        a,
-		clip:          c,
+		abacus:        abacus,
+		clip:          clip,
+		vat:           vat,
 		chost:         chost,
 		sender:        options.Sender,
 		quoter:        options.Quoter,
@@ -162,6 +183,7 @@ func NewService(
 		gemjoin:       options.GemJoin,
 		path:          options.Path,
 		l:             options.Logger,
+		useUniswap:    options.UseUniswap,
 	}
 }
 
@@ -171,12 +193,6 @@ func (s *Service) Start(ctx context.Context, minProfitPercentage, minLotZarValue
 		Str("method", "start").
 		Str("ilk", s.IlkName).
 		Msg("take Service is starting")
-
-	currentTime, err := s.getCurrentTime(ctx)
-	if err != nil {
-		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Start").Msg("error while getting current time")
-		return err
-	}
 
 	// 1) Get the IDs of active auctions
 	activeAuctions, err := s.clip.List(&bind.CallOpts{Context: ctx})
@@ -190,148 +206,7 @@ func (s *Service) Start(ctx context.Context, minProfitPercentage, minLotZarValue
 	}
 
 	for _, auctionId := range activeAuctions {
-		auction, err := s.clip.Sales(&bind.CallOpts{Context: ctx}, auctionId)
-		if err != nil {
-			s.l.Logger.Error().Err(err).
-				Str("service", "take").
-				Str("method", "start").
-				Str("ilk", s.IlkName).
-				Int64("auctionId", auctionId.Int64()).
-				Msg("error while getting an auction")
-			return err
-		}
-
-		collateralPrice, err := s.abacus.Price(&bind.CallOpts{Context: context.Background()}, auction.Top, big.NewInt(int64(currentTime)-auction.Tic.Int64()))
-		if err != nil {
-			s.l.Logger.Error().Err(err).
-				Str("service", "take").
-				Str("method", "start").
-				Str("ilk", s.IlkName).
-				Int64("auctionId", auctionId.Int64()).
-				Msg("error while getting the collateral price")
-			continue
-		}
-		if collateralPrice.Cmp(big.NewInt(0)) <= 0 {
-			s.l.Logger.Error().
-				Err(err).
-				Str("service", "take").
-				Str("method", "Start").
-				Str("ilk", s.IlkName).
-				Msg("collateral price is less than or equal to zero")
-			continue
-		}
-
-		s.l.Logger.Info().
-			Str("service", "take").
-			Str("method", "start").
-			Int64("auctionId", auctionId.Int64()).
-			Str("ilk", s.IlkName).
-			Msg("auction is active")
-		s.l.Logger.Info().Str("service", "take").
-			Str("method", "start").
-			Int64("auctionId", auctionId.Int64()).
-			Str("collateralPrice", collateralPrice.String()).
-			Str("ilk", s.IlkName).
-			Msg("collateral price")
-
-		// determine configured lot sizes in Gem terms
-		minLot, maxLot := s.getMinAndMaxLot(minLotZarValue, maxLotZarValue, collateralPrice)
-
-		// adjust lot based upon slice taken at the current auction price
-		slice18 := math.BigMin(maxLot, auction.Lot)
-		owe27 := new(big.Int).Div(new(big.Int).Mul(slice18, collateralPrice), Decimals18)
-		tab27 := new(big.Int).Div(auction.Tab, Decimals18)
-
-		// adjust covered debt to tab, such that slice better reflects amount of collateral we'd receive
-		if owe27.Cmp(tab27) > 0 {
-			owe27 = tab27
-			slice18 = new(big.Int).Div(owe27, new(big.Int).Div(collateralPrice, Decimals18))
-		} else if owe27.Cmp(tab27) < 0 && slice18.Cmp(auction.Lot) < 0 {
-			chost27 := new(big.Int).Div(s.chost, Decimals18)
-			if new(big.Int).Sub(tab27, owe27).Cmp(chost27) < 0 {
-				if tab27.Cmp(chost27) <= 0 {
-					// If tab <= chost, buyers have to take the entire lot.
-					owe27 = chost27
-				} else {
-					// adjust amount to pay
-					owe27 = new(big.Int).Sub(tab27, chost27)
-				}
-				slice18 = new(big.Int).Div(owe27, new(big.Int).Div(collateralPrice, Decimals18))
-			}
-			if slice18.Cmp(maxLot) > 0 { // handle corner case where maxLotZarValue is set too low
-				log.Printf("Ignoring auction %d whose chost-adjusted slice of %d exceeds our maximum lot of %d\n", auctionId, slice18, maxLot)
-				s.l.Logger.Info().Str("service", "take").
-					Str("method", "start").
-					Str("ilk", s.IlkName).
-					Int64("auctionId", auctionId.Int64()).
-					Str("slice18", slice18.String()).
-					Str("maxLot", maxLot.String()).
-					Msg("ignoring auction whose chost-adjusted slice exceeds our maximum lot")
-				continue
-			}
-		}
-
-		if slice18.Cmp(auction.Lot) > 0 {
-			// HACK: I suspect the issue involves interplay between reading price from the abacus and not having multicall.
-			slice18 = auction.Lot
-			owe27 = new(big.Int).Div(new(big.Int).Mul(slice18, collateralPrice), Decimals18)
-		}
-
-		lot := slice18
-		if lot.Cmp(minLot) < 0 {
-			// slice approaches lot as auction price decreases towards owe == tab
-			s.l.Logger.Info().
-				Str("service", "take").
-				Str("method", "start").
-				Str("ilk", s.IlkName).
-				Int64("auctionId", auctionId.Int64()).
-				Str("slice18", slice18.String()).
-				Str("minLot", minLot.String()).
-				Msg("ignoring auction while slice is smaller than our minimum lot")
-			continue
-		}
-
-		// Find the minimum effective exchange rate between collateral/Zar
-		// e.x. ETH price 1000 Zar -> minimum profit of 1% -> new ETH price is 1000*1.01 = 1010
-		owe45 := new(big.Int).Mul(owe27, Decimals18)
-		minProfitPercentage18 := new(big.Int).Mul(minProfitPercentage, Decimals15)
-
-		calcMinProfit45 := new(big.Int).Mul(owe27, minProfitPercentage18) // owe * minProfitPercentage
-		totalMinProfit45 := new(big.Int).Sub(calcMinProfit45, owe45)
-		minProfit := new(big.Int).Div(totalMinProfit45, Decimals27)
-
-		// debtToCover := new(big.Int).Div(owe27, Decimals9)
-
-		// Determine proceeds from swapping gem for Zar on Uniswap
-		// uniswapV3Proceeds, err := s.quoter.GetQuotedAmountOut(lot, s.path, s.assetDecimals)
-		// if err != nil {
-		// 	s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Start").Msg("error while getting the uniswapV3 proceeds")
-		// 	continue
-		// }
-		// minUniV3Proceeds := new(big.Int).Sub(uniswapV3Proceeds, minProfit)
-
-		// Increase actual take amount to account for rounding errors and edge cases.
-		// Do not increase too much to not significantly go over configured maxAmt.
-		amt := new(big.Int).Div(new(big.Int).Mul(lot, big.NewInt(1000001)), big.NewInt(1000000))
-
-		// if debtToCover.Cmp(minUniV3Proceeds) > 0 {
-		// 	s.l.Logger.Info().
-		// 		Str("service", "take").
-		// 		Str("method", "start").
-		// 		Str("ilk", s.IlkName).
-		// 		Int64("auctionId", auctionId.Int64()).
-		// 		Str("debtToCover", debtToCover.String()).
-		// 		Str("minUniV3Proceeds", minUniV3Proceeds.String()).
-		// 		Msg("profit amount is less than cost")
-		// }
-
-		take := inputMethods.ClipperTake{
-			Auction_id: auctionId,
-			Amt:        amt,
-			Max:        collateralPrice,
-			Who:        s.callee,
-		}
-		err = s.Take(take, minProfit, profitAddress, s.gemjoin)
+		err = s.TakeById(ctx, auctionId, minProfitPercentage, minLotZarValue, maxLotZarValue, profitAddress)
 		if err != nil {
 			s.l.Logger.Error().Err(err).
 				Str("service", "take").
@@ -341,6 +216,13 @@ func (s *Service) Start(ctx context.Context, minProfitPercentage, minLotZarValue
 				Msg("error while executing an auction")
 			continue
 		}
+
+		s.l.Logger.Info().
+			Str("service", "take").
+			Str("method", "start").
+			Str("ilk", s.IlkName).
+			Int64("auctionId", auctionId.Int64()).
+			Msg("auction executed successfully")
 	}
 	s.l.Logger.Info().
 		Str("service", "take").
@@ -352,7 +234,6 @@ func (s *Service) Start(ctx context.Context, minProfitPercentage, minLotZarValue
 }
 
 func (s *Service) TakeById(ctx context.Context, auctionId *big.Int, minProfitPercentage, minLotZarValue, maxLotZarValue *big.Int, profitAddress common.Address) error {
-
 	currentTime, err := s.getCurrentTime(ctx)
 	if err != nil {
 		s.l.Logger.Error().Err(err).
@@ -472,29 +353,89 @@ func (s *Service) TakeById(ctx context.Context, auctionId *big.Int, minProfitPer
 	totalMinProfit45 := new(big.Int).Sub(calcMinProfit45, owe45)
 	minProfit := new(big.Int).Div(totalMinProfit45, Decimals27)
 
+	// Increase actual take amount to account for rounding errors and edge cases.
+	// Do not increase too much to not significantly go over configured maxAmt.
 	amt := new(big.Int).Div(new(big.Int).Mul(lot, big.NewInt(1000001)), big.NewInt(1000000))
 
-	take := inputMethods.ClipperTake{
-		Auction_id: auctionId,
-		Amt:        amt,
-		Max:        collateralPrice,
-		Who:        s.callee,
+	if s.useUniswap {
+		debtToCover := new(big.Int).Div(owe27, Decimals9)
+
+		// Determine proceeds from swapping gem for Zar on Uniswap
+		uniswapV3Proceeds, err := s.quoter.GetQuotedAmountOut(amt, s.path, s.assetDecimals)
+		if err != nil {
+			s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "Start").Msg("error while getting the uniswapV3 proceeds")
+			return err
+		}
+		minUniV3Proceeds := new(big.Int).Sub(uniswapV3Proceeds, minProfit)
+
+		if debtToCover.Cmp(minUniV3Proceeds) > 0 {
+			s.l.Logger.Info().
+				Str("service", "take").
+				Str("method", "start").
+				Str("ilk", s.IlkName).
+				Int64("auctionId", auctionId.Int64()).
+				Str("debtToCover", debtToCover.String()).
+				Str("minUniV3Proceeds", minUniV3Proceeds.String()).
+				Msg("profit amount is less than cost")
+			return errors.New("profit amount is less than cost")
+		}
+
+		take := inputMethods.ClipperTake{
+			AuctionId: auctionId,
+			Amt:       amt,
+			Max:       collateralPrice,
+			Who:       s.callee,
+		}
+		err = s.TakeUsingUniswap(take, minProfit, profitAddress, s.gemjoin)
+		if err != nil {
+			s.l.Logger.Error().Err(err).
+				Str("service", "take").
+				Str("method", "TakeById").
+				Str("ilk", s.IlkName).
+				Int64("auctionId", auctionId.Int64()).
+				Msg("error while executing an auction")
+			return err
+		}
+	} else {
+		take := inputMethods.ClipperTake{
+			AuctionId: auctionId,
+			Amt:       amt,
+			Max:       collateralPrice,
+			Who:       profitAddress, // be careful with this. user should have access to profitAddress to exit gems
+		}
+		err = s.TakeUsingWalletFunds(ctx, take)
+		if err != nil {
+			s.l.Logger.Error().Err(err).
+				Str("service", "take").
+				Str("method", "TakeById").
+				Str("ilk", s.IlkName).
+				Int64("auctionId", auctionId.Int64()).
+				Msg("error while executing an auction")
+			return err
+		}
 	}
-	err = s.Take(take, minProfit, profitAddress, s.gemjoin)
-	if err != nil {
-		s.l.Logger.Error().Err(err).
-			Str("service", "take").
-			Str("method", "TakeById").
-			Str("ilk", s.IlkName).
-			Int64("auctionId", auctionId.Int64()).
-			Msg("error while executing an auction")
-		return err
-	}
+
 	s.l.Logger.Info().
 		Str("service", "take").
 		Str("method", "TakeById").
 		Str("ilk", s.IlkName).
 		Msg("take Service iteration completed")
+
+	return nil
+}
+
+func (s *Service) TakeUsingWalletFunds(ctx context.Context, take inputMethods.ClipperTake) error {
+	s.l.Logger.Info().Str("service", "take").Str("method", "TakeUsingWalletFunds").Msg("Calling take method")
+	err := s.Take(take)
+	if err != nil {
+		s.l.Logger.Error().Err(err).
+			Str("service", "take").
+			Str("method", "TakeUsingWalletFunds").
+			Str("profitReceiver", take.Who.String()).
+			Str("auctionId", take.AuctionId.String()).
+			Msg("error while calling take")
+		return err
+	}
 
 	return nil
 }
@@ -505,7 +446,7 @@ var (
 	Address, _ = abi.NewType("address", "", nil)
 )
 
-func (s *Service) Take(take inputMethods.ClipperTake, minProfit *big.Int, profitAddr, gemJoinAdapter common.Address) error {
+func (s *Service) TakeUsingUniswap(take inputMethods.ClipperTake, minProfit *big.Int, profitAddr, gemJoinAdapter common.Address) error {
 	args := abi.Arguments{
 		{Name: "to", Type: Address},
 		{Name: "gemJoin", Type: Address},
@@ -516,27 +457,42 @@ func (s *Service) Take(take inputMethods.ClipperTake, minProfit *big.Int, profit
 	route, err := uniswap_v3.GetRouter(s.path)
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "take").Msg("error while getting the route from uniswapV3")
-		return fmt.Errorf(fmt.Sprintf("error in get route: %v", err))
+		return fmt.Errorf("error in get route: %v", err)
 	}
 
-	_, err = args.Pack(profitAddr, gemJoinAdapter, minProfit, route, common.Address{0})
+	take.Data, err = args.Pack(profitAddr, gemJoinAdapter, minProfit, route, common.HexToAddress("0x"))
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "take").Msg("error while getting the flashData")
-		return fmt.Errorf(fmt.Sprintf("error in pack flash data: : %v", err))
+		return fmt.Errorf("error in pack flash data: : %v", err)
 	}
 
+	err = s.Take(take)
+	if err != nil {
+		s.l.Logger.Error().Err(err).
+			Str("service", "take").
+			Str("method", "TakeUsingUniswap").
+			Str("profitReceiver", take.Who.String()).
+			Str("auctionId", take.AuctionId.String()).
+			Msg("error while calling take")
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) Take(take inputMethods.ClipperTake) error {
 	opts, err := s.sender.GetTransactOpts()
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "take").Msg("error while getting a transaction opts")
 		return err
 	}
 
-	tx, err := s.clip.Take(opts, take.Auction_id, take.Amt, take.Max, take.Who, nil)
+	tx, err := s.clip.Take(opts, take.AuctionId, take.Amt, take.Max, take.Who, take.Data)
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "take").Msg("error while calling the clipper take method")
 		return err
 	}
-	fmt.Println("take tx.Hash", tx.Hash().String())
+	fmt.Println("take tx sent:", tx.Hash().String())
 	return s.sender.HandleSentTx(tx)
 }
 
@@ -546,12 +502,12 @@ func (s *Service) Stop() {
 }
 
 func (s *Service) getCurrentTime(ctx context.Context) (uint64, error) {
-	blockNum, err := s.eth.BlockNumber(context.Background())
+	blockNum, err := s.eth.BlockNumber(ctx)
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "getCurrentTime").Msg("error while getting the last block number")
 		return 0, err
 	}
-	block, err := s.eth.BlockByNumber(context.Background(), big.NewInt(int64(blockNum)))
+	block, err := s.eth.BlockByNumber(ctx, big.NewInt(int64(blockNum)))
 	if err != nil {
 		s.l.Logger.Error().Err(err).Str("service", "take").Str("method", "getCurrentTime").Msg("error while getting the head")
 		return 0, err

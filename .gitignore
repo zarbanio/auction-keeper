@@ -7,7 +7,7 @@ config.yaml
 goerli.ptr
 mainnet.ptr
 
-# ethereume generator
+# ethereum generator
 eh-gen
 
 # IDEA
@@ -27,3 +27,7 @@ types
 
 #environment
 .env
+
+# generated binary file
+main
+x/events_handler

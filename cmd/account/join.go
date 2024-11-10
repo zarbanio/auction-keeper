@@ -14,14 +14,18 @@ import (
 	"github.com/zarbanio/auction-keeper/store"
 )
 
-func joinZar(cfg configs.Config, amount *big.Int) {
+func joinZar(cfg configs.Config, secrets configs.Secrets, amount *big.Int) {
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
-	eth, err := ethclient.Dial(cfg.Network.Node.Api)
+	eth, err := ethclient.Dial(secrets.RpcArbitrum)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer eth.Close()
-	newSigner, err := signer.NewSigner(cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
+	err = postgresStore.Migrate(cfg.Postgres.MigrationsPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	newSigner, err := signer.NewSigner(secrets.PrivateKey, big.NewInt(cfg.Network.ChainId))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -49,7 +53,7 @@ func joinZar(cfg configs.Config, amount *big.Int) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("approve tx confirmed:", tx.Hash().String())
+	fmt.Println("approve tx confirmed.")
 
 	ops, err := sender.GetTransactOpts()
 	if err != nil {
@@ -64,5 +68,5 @@ func joinZar(cfg configs.Config, amount *big.Int) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("join tx confirmed:", tx.Hash().String())
+	fmt.Println("join tx confirmed.")
 }

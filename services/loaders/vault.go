@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/cdpmanager"
-	"github.com/zarbanio/auction-keeper/bindings/zarban/getcdps"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/vat"
 	"github.com/zarbanio/auction-keeper/cache"
 	"github.com/zarbanio/auction-keeper/domain"
@@ -23,7 +22,6 @@ import (
 type VaultLoader struct {
 	store       store.IStore
 	managerAddr common.Address
-	getcdps     *getcdps.Getcdps
 	manager     *cdpmanager.Cdpmanager
 	vat         *vat.Vat
 }
@@ -42,15 +40,9 @@ func NewVaultLoader(
 	eth *ethclient.Client,
 	store store.IStore,
 	managerAddr,
-	getcdpsAddr,
 	vatAddr common.Address) *VaultLoader {
 
 	m, err := cdpmanager.NewCdpmanager(managerAddr, eth)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	g, err := getcdps.NewGetcdps(getcdpsAddr, eth)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -63,7 +55,6 @@ func NewVaultLoader(
 	return &VaultLoader{
 		store:       store,
 		vat:         v,
-		getcdps:     g,
 		manager:     m,
 		managerAddr: managerAddr,
 	}

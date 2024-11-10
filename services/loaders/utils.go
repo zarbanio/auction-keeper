@@ -2,9 +2,7 @@ package loaders
 
 import (
 	"math/big"
-	"strings"
 
-	"github.com/zarbanio/auction-keeper/domain"
 	"github.com/zarbanio/auction-keeper/domain/math"
 	"github.com/zarbanio/auction-keeper/x/decimal"
 )
@@ -46,23 +44,6 @@ func annualStabilityFee(duty *big.Int) decimal.Decimal {
 		new(big.Int).Sub(math.RayPow(duty, math.SecondsPerYear), math.Ray),
 		int64(math.RayDecimals),
 	)
-}
-
-func IlkToSymbol(name string) domain.Symbol {
-	if name == "ETHA" {
-		return "ETH"
-	}
-	if name == "ETHB" {
-		return "ETH"
-	}
-	if name == "DAIA" {
-		return "DAI"
-	}
-	if name == "DAIB" {
-		return "DAI"
-	}
-	s := strings.Split(name, "-")
-	return domain.Symbol(s[0])
 }
 
 func minSafeCollateralAmount(debtValue, liquidationRatio, price decimal.Decimal) decimal.Decimal {

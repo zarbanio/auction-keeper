@@ -30,78 +30,7 @@ after make file need to config project.
 ###### here is example file for goerli ethereum testnet network just create file and name it to config.yaml and copy and paste configs below.
 
 ```yaml
-
-Indexer:
-  BlockInterval: '10s'
-  PoolSize: 2
-  BlockPtr: 8485879
-Redis:
-  URL: 'auction-keeper-redis:6379'
-postgres:
-  Host: 'localhost:5432'
-  User: 'postgres'
-  Password: 'postgres'
-  DB: 'postgres'
-  MigrationsPath: './store/migrations'
-Network:
-  ChainId: 5
-  NativeAsset:
-    Name: 'Ethereum'
-    Symbol: 'ETH'
-    Decimals: 18
-    MockAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
-  Node:
-    Api: 'https://rpc.ankr.com/eth_goerli'
-Wallet:
-  Private: ''
-  Address: ''
-Times:
-  VaultTicker: 60
-  FlopperTicker: 60
-  LiquidatorTicker: 60
-ZarJoin: '0xe752ba573bb3ee4840ad424f9c386f7696084e6a'
-Vat: '0xe33f43032db170bac2903115e3afb6db981ac822'
-Vow: '0x24020386d0162ee2d940111de81a89d0868a0b78'
-Dog: '0xc61157c26cdcb5f88cd8d81d61c9fd97023c0cd0'
-Flopper: '0x370699470ad9f3b80d42c81e981ee9b2b5ed1801'
-UniswapV3QuoterAddress: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6'
-Collaterals:
-  -
-    Name: 'ETHA'
-    Erc20addr: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
-    Decimals: 18
-    Clipper: '0xE3FDbF840476c8A0A1cd327Ad5DBcd77Dd94fEb5'
-    GemJoinAdapter: '0x77C0154cF96039519e5BEffaDcfe6eD3c6354b6d'
-    UniswapV3Callee: '0x040bC072eE59551aFc67DDF3a265c42e762728fe'
-    UniswapV3Path:
-      - # WETH -> DAI
-        Fee: 10000
-        TokenA: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
-        TokenB: '0x7df1d674021792630e15eca46467516660e021af'
-      - # DAI -> Zar
-        Fee: 10000
-        TokenA: '0x7df1d674021792630e15eca46467516660e021af'
-        TokenB: '0x91f53a3c281cd82531ea540ebfbb9a64e13ebc8f'
-  -
-    Name: 'ETHB'
-    Erc20addr: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
-    Decimals: 18
-    Clipper: '0x5bfD87c9212738834B800FaCb58e073cb3E475c0'
-    GemJoinAdapter: '0x361eE781A33560BD8649EDf77ec65f49eB9C4542'
-    UniswapV3Callee: '0x040bC072eE59551aFc67DDF3a265c42e762728fe'
-    UniswapV3Path:
-      - # WETH -> DAI
-        Fee: 10000
-        TokenA: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6'
-        TokenB: '0x7df1d674021792630e15eca46467516660e021af'
-      - # DAI -> ZAR
-        Fee: 10000
-        TokenA: '0x7df1d674021792630e15eca46467516660e021af'
-        TokenB: '0x91f53a3c281cd82531ea540ebfbb9a64e13ebc8f'
-Processor:
-  MinProfitPercentage: 1.025
-  MinLotZarValue: 0
-  MaxLotZarValue: 1000000
+... config ...
 
 ```
 now we need to replace wallet.Private and wallet.Address with our wallet information.
@@ -121,9 +50,11 @@ go build
 ### account
 Manage account - check balance, join pool, etc.
 ```
-account balance         # Check account ETH balance
-account join <amount>   # Join pool with specified amount 
-account hope <address>  # Check account's hope balance
+account balance               # Check wallet balance and account balance in system
+account join <amount>         # Deposit ZAR to the system for executing 'take' actions
+account hope <address>        # Check account's hope
+account exit <amount>         # Withdraw ZAR from system
+account exit <ilk> <amount>   # Withdraw tokens from ilk
 ```
 
 
@@ -131,10 +62,10 @@ account hope <address>  # Check account's hope balance
 
 Manage auctions - list auctions, redo, take, etc.
 ```
-auctions clippers         # List auction clippers
-auctions list             # List all auctions 
-auctions redo <ilk> <id>  # Redo specific auction
-auctions take <ilk> <id>  # Take funds from specific auction
+auctions clippers                     # List auction clippers
+auctions list                         # List all auctions 
+auctions redo <ilk> <id>              # Redo specific auction
+auctions take <ilk> <id> [--uniswap]  # Take funds from specific auction
 ```
 
 ### vaults
@@ -151,8 +82,26 @@ vaults ls <id>          # List specific vault by ID
 
 Run the keeper across different modes
 ```
-run                     # Runs in default bark, redo and take modes
-run --modes bark        # Run only in bark mode
-run --modes redo        # Run only in redo mode
-run --ilks ethb,daib    # Run on specific ilks
+run [--uniswap]                     # Runs in default bark, redo and take modes
+run --modes bark                    # Run only in bark mode
+run --modes redo                    # Run only in redo mode
+run --modes take [--uniswap]        # Run only in take mode
+run --ilks ethb,daib [--uniswap]    # Run on specific ilks
 ```
+If you set the `uniswap` flag, then for each `take` action, the released collateral from the under-collateralized vault would be swapped to the ZAR in UniswapV3 DEX and the vault debt is paid by the swapped tokens and the leftover will be transferred to your wallet, so, in this mode you only need to pay transaction gas fee and don't need to have any ERC20 tokens in your wallet, otherwise, if you don't set the `uniswap` flag, then the vaults will be liquidated by your personal ZAR funds in system.
+
+## Initializing
+At the beginning, execute this command to get the list of all clippers:
+```bash
+go run main.go auctions clippers --config=/PATH/TO/YOUR/CONFIG
+```
+After it, you need to give access to the clippers that you want to run `take` action on vaults that are on those ilks. You need to run it once and for all. So, we suggest to give access to each clipper address by running the following command:
+```bash
+go run main.go account hope [clipper-address-1] [clipper-address-2] ... --config=/PATH/TO/YOUR/CONFIG
+```
+If you want to run bot in the `take` mode and don't set `uniswap` flag, then you have to deposit some ZAR to the system to use it for repaying debt. To do so, run this command:
+```bash
+go run main.go account join <amount> --config=/PATH/TO/YOUR/CONFIG
+```
+If you want to exit your ZAR or other ERC20s from the system, you need to first give access to the `join` contracts by running hope command.
+Now, you've done all initializations you need. It's time to run bot in the mode that you want.

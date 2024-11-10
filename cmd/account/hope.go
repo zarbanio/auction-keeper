@@ -1,27 +1,31 @@
 package account
 
 import (
+	"fmt"
 	"log"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/bindings/zarban/vat"
-	"github.com/zarbanio/auction-keeper/bindings/zarban/zarjoin"
 	"github.com/zarbanio/auction-keeper/configs"
 	"github.com/zarbanio/auction-keeper/services/sender"
 	"github.com/zarbanio/auction-keeper/services/signer"
 	"github.com/zarbanio/auction-keeper/store"
 )
 
-func hope(cfg configs.Config, addrs ...common.Address) {
+func hope(cfg configs.Config, secrets configs.Secrets, addrs ...common.Address) {
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
-	eth, err := ethclient.Dial(cfg.Network.Node.Api)
+	eth, err := ethclient.Dial(secrets.RpcArbitrum)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer eth.Close()
-	newSigner, err := signer.NewSigner(cfg.Wallet.Private, big.NewInt(cfg.Network.ChainId))
+	err = postgresStore.Migrate(cfg.Postgres.MigrationsPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	newSigner, err := signer.NewSigner(secrets.PrivateKey, big.NewInt(cfg.Network.ChainId))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,28 +40,16 @@ func hope(cfg configs.Config, addrs ...common.Address) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Println("hoping for:", addr.String())
 		tx, err := vat.Hope(ops, addr)
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Println("hope tx sent:", tx.Hash().String())
 		err = sender.HandleSentTx(tx)
 		if err != nil {
 			log.Fatal(err)
 		}
-	}
-}
-
-func exitZars(zarjoin *zarjoin.Zarjoin, sender sender.Sender, amount *big.Int) {
-	ops, err := sender.GetTransactOpts()
-	if err != nil {
-		log.Fatal(err)
-	}
-	tx, err := zarjoin.Exit(ops, sender.GetAddress(), amount)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = sender.HandleSentTx(tx)
-	if err != nil {
-		log.Fatal(err)
+		fmt.Println("hope tx confirmed.")
 	}
 }

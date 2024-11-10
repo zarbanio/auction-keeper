@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/zarbanio/auction-keeper/cache"
 	"github.com/zarbanio/auction-keeper/configs"
@@ -13,10 +12,15 @@ import (
 	"github.com/zarbanio/auction-keeper/store"
 )
 
-func listClippers(cfg configs.Config) {
+func listClippers(cfg configs.Config, secrets configs.Secrets) {
 	postgresStore := store.NewPostgres(cfg.Postgres.Host, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DB)
 
-	eth, err := ethclient.Dial(cfg.Network.Node.Api)
+	eth, err := ethclient.Dial(secrets.RpcArbitrum)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = postgresStore.Migrate(cfg.Postgres.MigrationsPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,15 +32,6 @@ func listClippers(cfg configs.Config) {
 		log.Fatal("error loading addresses.", err)
 	}
 
-	addrs["cdp_manager"] = cfg.Contracts.CDPManager
-	addrs["get_cdps"] = cfg.Contracts.GetCDPs
-	addrs["ilk_registry"] = cfg.Contracts.IlkRegistry
-	addrs["eth_a_join"] = cfg.Contracts.ETHAJoin
-	addrs["eth_b_join"] = cfg.Contracts.ETHBJoin
-	addrs["dai_a_join"] = cfg.Contracts.DAIAJoin
-	addrs["dai_b_join"] = cfg.Contracts.DAIBJoin
-	addrs["dai_median"] = cfg.Contracts.DAIMedian
-	addrs["eth_median"] = cfg.Contracts.ETHMedian
 	ilksLoader := loaders.NewIlksLoader(
 		eth,
 		postgresStore,
@@ -44,17 +39,8 @@ func listClippers(cfg configs.Config) {
 		addrs["jug"],
 		addrs["spot"],
 		addrs["dog"],
-		addrs["ilk_registry"],
-		[]common.Address{
-			addrs["eth_a_join"],
-			addrs["eth_b_join"],
-			addrs["dai_a_join"],
-			addrs["dai_b_join"],
-		},
-		map[common.Address]common.Address{
-			cfg.Contracts.DAI:  addrs["dai_median"],
-			cfg.Contracts.WETH: addrs["eth_median"],
-		},
+		cfg.Contracts.IlkRegistry,
+		cfg.Contracts.OsmRegistry,
 	)
 
 	ilks, err := ilksLoader.LoadIlks(context.Background())

@@ -21,7 +21,7 @@ type Config struct {
 	} `yaml:"General"`
 	Redis struct {
 		URL string `yaml:"URL"`
-	}
+	} `yaml:"Redis"`
 	Postgres struct {
 		Host           string `yaml:"Host"`
 		User           string `yaml:"User"`
@@ -37,15 +37,8 @@ type Config struct {
 			Symbol      string         `yaml:"Symbol"`
 			Decimals    int64          `yaml:"Decimals"`
 			MockAddress common.Address `yaml:"MockAddress"`
-		}
-		Node struct {
-			Api string `yaml:"Api"`
-		}
-	}
-	Wallet struct {
-		Private string         `yaml:"Private"`
-		Address common.Address `yaml:"Address"`
-	}
+		} `yaml:"NativeAsset"`
+	} `yaml:"Network"`
 	Ilks []struct {
 		Name          string                    `yaml:"Name"`
 		Decimals      int64                     `yaml:"Decimals"`
@@ -55,34 +48,27 @@ type Config struct {
 		MinProfitPercentage int64 `yaml:"MinProfitPercentage"`
 		MinLotZarValue      int64 `yaml:"MinLotZarValue"`
 		MaxLotZarValue      int64 `yaml:"MaxLotZarValue"`
-	}
+	} `yaml:"Processor"`
 	Times struct {
-		VaultTicker      int64 `yaml:"VaultTicker"`
-		FlopperTicker    int64 `yaml:"FlopperTicker"`
-		LiquidatorTicker int64 `yaml:"LiquidatorTicker"`
-	}
+		BarkTicker time.Duration `yaml:"BarkTicker"`
+		RedoTicker time.Duration `yaml:"RedoTicker"`
+		TakeTicker time.Duration `yaml:"TakeTicker"`
+	} `yaml:"Times"`
 	Contracts struct {
 		Deployment      common.Address `yaml:"Deployment"`
 		IlkRegistry     common.Address `yaml:"IlkRegistry"`
 		AddressProvider common.Address `yaml:"AddressProvider"`
 		CDPManager      common.Address `yaml:"CDPManager"`
-		GetCDPs         common.Address `yaml:"GetCDPs"`
-		ETHAJoin        common.Address `yaml:"ETHAJoin"`
-		ETHBJoin        common.Address `yaml:"ETHBJoin"`
-		DAIAJoin        common.Address `yaml:"DAIAJoin"`
-		DAIBJoin        common.Address `yaml:"DAIBJoin"`
-		DAIMedian       common.Address `yaml:"DAIMedian"`
-		ETHMedian       common.Address `yaml:"ETHMedian"`
 		DAI             common.Address `yaml:"DAI"`
 		ZAR             common.Address `yaml:"ZAR"`
 		WETH            common.Address `yaml:"WETH"`
+		WstETH          common.Address `yaml:"WstETH"`
 		UniswapV3Quoter common.Address `yaml:"UniswapV3Quoter"`
 		UniswapV3Callee common.Address `yaml:"UniswapV3Callee"`
 		ZarJoin         common.Address `yaml:"ZarJoin"`
 		Vat             common.Address `yaml:"Vat"`
-		Vow             common.Address `yaml:"Vow"`
-		Dog             common.Address `yaml:"Dog"`
-	}
+		OsmRegistry     common.Address `yaml:"OsmRegistry"`
+	} `yaml:"Contracts"`
 }
 
 func ReadConfig(configFile string) Config {
