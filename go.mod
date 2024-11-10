@@ -3,7 +3,7 @@ module github.com/zarbanio/auction-keeper
 go 1.19
 
 require (
-	github.com/ethereum/go-ethereum v1.14.6-0.20241029112117-8c73523812d3
+	github.com/ethereum/go-ethereum v1.14.6-0.20241110095705-77f3ef3714af
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jackc/pgx/v4 v4.17.2
