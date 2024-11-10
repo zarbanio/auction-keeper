@@ -2,6 +2,7 @@ package take
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math/big"
@@ -376,6 +377,7 @@ func (s *Service) TakeById(ctx context.Context, auctionId *big.Int, minProfitPer
 				Str("debtToCover", debtToCover.String()).
 				Str("minUniV3Proceeds", minUniV3Proceeds.String()).
 				Msg("profit amount is less than cost")
+			return errors.New("profit amount is less than cost")
 		}
 
 		take := inputMethods.ClipperTake{
