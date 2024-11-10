@@ -128,7 +128,6 @@ func action(cfg configs.Config, secrets configs.Secrets, mode Mode, useUniswap b
 			}
 			break
 		}
-
 	}
 }
 
